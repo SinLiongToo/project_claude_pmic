@@ -6,6 +6,7 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lg = Math.log10;
   const DEG = 180 / Math.PI;
+  const LAB = window.PMICLab = window.PMICLab || {};   // simulation results shared with lab-circuit.js
   const CAPS = [0.1, 0.22, 0.47, 1, 2.2, 4.7, 10, 22, 47].map(v => v * 1e-6);
   const logspace = (a, b, n) => Array.from({length:n}, (_, i) => Math.pow(10, lg(a) + (lg(b) - lg(a)) * i / (n - 1)));
 
@@ -230,6 +231,7 @@
           let dip = wp * (ref - ip) * dt;
           dip = clamp(dip, -SR * dt, SR * dt);
           ip += dip;
+          if(ip < 0) ip = 0;                     // a PMOS pass device can only source current
           vc += (ip - il) / c * dt;
           tt += dt;
         }
@@ -247,6 +249,7 @@
         {l:t('估算 ΔI·ESR + ΔI/(2π·f_c·C)', 'Estimate ΔI·ESR + ΔI/(2π·f_c·C)'), v:fmtSI(simple, 'V'), s:t('一階手算', 'first-order hand calc')},
         {l:t('負載調節誤差', 'Load-regulation error'), v:fmtSI(-vfin, 'V'), s:t('有限迴路增益', 'finite loop gain')}
       ]);
+      LAB.tr = {rec, T, lo, hi};
       const us = 1e6, ymin = Math.min(vmin * 1e3 * 1.15, -5), ymax = Math.max(vmax * 1e3 * 1.15, 5);
       plot($('tr-v'), {x:[0, T * us], y:[ymin, ymax], H:250, xlabel:t('時間 (µs)', 'Time (µs)'), ylabel:'ΔV (mV)',
         series:[{pts:rec.map(r => [r[0] * us, r[1] * 1e3]), color:'var(--accent)', w:2}], hlines:[{y:0}]});
@@ -418,6 +421,7 @@
       }
       let vc = 0; const vr = pts.map(([t, il]) => { const ic = il - p.I; vc += ic * dt / c; return [t, vc + esr * ic]; });
       const mean = vr.reduce((s, r) => s + r[1], 0) / vr.length; vr.forEach(r => { r[1] -= mean; });
+      LAB.bk = {pts, vr, win, per, pfm, D:o.D, t1:o.t1, t2:o.t2, I:p.I, vin:p.vin, ipk:o.ipk};
       const vpp = Math.max(...vr.map(r => r[1])) - Math.min(...vr.map(r => r[1]));
       const eff = 100 * p.vout * p.I / (p.vout * p.I + o.loss);
       metrics($('bk-metrics'), [

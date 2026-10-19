@@ -140,6 +140,82 @@
              'Process variation shifts the bandgap (σ, μ); the ATE measures V<sub>OUT</sub>, computes a trim code and programs OTP / fuses, switching a resistor ladder (range = 2<sup>N</sup> × LSB) to pull the output back. Package stress happens <b>after</b> trimming, which is why pre-compensating it at CP matters.')})
   };
 
+  /* ---------- playback: a time cursor on the plots and currents flowing in the circuit ---------- */
+  const LAB = () => window.PMICLab || {};
+  const fmtA = a => { const x = Math.abs(a); return (a < 0 ? '−' : '') + (x >= 1 ? x.toFixed(2) + ' A' : x >= 1e-3 ? (x * 1e3).toPrecision(3) + ' mA' : (x * 1e6).toPrecision(3) + ' µA'); };
+  const fmtT = s => s >= 1e-3 ? (s * 1e3).toFixed(2) + ' ms' : s >= 1e-6 ? (s * 1e6).toFixed(2) + ' µs' : (s * 1e9).toFixed(0) + ' ns';
+  const offs = {};                                         // dash offset per flow path, so the dashes keep moving
+  function flow(key, d, I, imax, dt){
+    const a = Math.abs(I), r = Math.min(a / (imax || 1), 1);
+    if(r < 0.01) return '';
+    offs[key] = ((offs[key] || 0) - Math.sign(I) * (20 + 140 * r) * dt) % 1000;
+    return '<path class="flow" d="' + d + '" style="stroke-width:' + (1.6 + 5 * r).toFixed(1) + 'px;stroke-dashoffset:' + offs[key].toFixed(1) + '"/>';
+  }
+  function cursor(svgId, x){
+    const svg = $(svgId); if(!svg || !svg.__plot) return;
+    const {X, m, ph} = svg.__plot;
+    let ln = svg.querySelector('line.cursor');
+    if(!ln){ ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('class', 'cursor'); svg.appendChild(ln); }
+    const px = X(x).toFixed(1);
+    ln.setAttribute('x1', px); ln.setAttribute('x2', px); ln.setAttribute('y1', m.t); ln.setAttribute('y2', m.t + ph);
+  }
+  const lab = (x, y, s, a, color) => T(x, y, s, a || 'start', ' style="fill:' + (color || 'var(--s2)') + ';font-weight:600"');
+  const ANIM = {
+    transient: {dur:7, frame(p, dt){
+      const d = LAB().tr; if(!d) return '';
+      const rec = d.rec, i = Math.min(rec.length - 1, Math.round(p * (rec.length - 1)));
+      const [tt, v, il, ip] = rec[i], ic = ip - il;
+      if(d.__max === undefined) d.__max = Math.max(...rec.map(r => Math.max(r[2], r[3]))) || 1;
+      cursor('tr-v', tt * 1e6); cursor('tr-i', tt * 1e6);
+      const im = d.__max;
+      return flow('tp', 'M302 51H420', ip, im, dt) + flow('tl', 'M420 51H560V111', il, im, dt) + flow('tc', 'M420 51V98', ic, im, dt) +
+        lab(20, 20, 't = ' + fmtT(tt), 'start', 'var(--ink)') +
+        lab(361, 40, 'I<tspan baseline-shift="sub" font-size="8">pass</tspan> ' + fmtA(ip), 'middle') +
+        lab(580, 156, t('現在 ', 'now ') + fmtA(il)) +
+        lab(408, 160, 'I<tspan baseline-shift="sub" font-size="8">C</tspan> ' + fmtA(ic) + (Math.abs(ic) < im * 0.01 ? '' : ic > 0 ? t('（充電）', ' (charging)') : t('（放電）', ' (discharging)')), 'end', ic < 0 ? 'var(--bad)' : 'var(--ok)') +
+        lab(690, 24, 'ΔV<tspan baseline-shift="sub" font-size="8">OUT</tspan> ' + (v * 1e3).toFixed(1) + ' mV', 'end', Math.abs(v) > 0.03 ? 'var(--bad)' : 'var(--ink)');
+    }},
+    buck: {dur:6, frame(p, dt){
+      const d = LAB().bk; if(!d) return '';
+      const pts = d.pts, i = Math.min(pts.length - 1, Math.round(p * (pts.length - 1)));
+      const [tt, il] = pts[i], u = tt % d.per;
+      const hs = d.pfm ? u < d.t1 : u < d.D * d.per, ls = d.pfm ? (u >= d.t1 && u < d.t1 + d.t2) : !hs;
+      cursor('bk-il', tt * 1e6); cursor('bk-v', tt * 1e6);
+      const im = Math.max(d.ipk, d.I, 1e-6), ic = il - d.I;
+      const st = (x, y, on, below) => '<rect x="' + x + '" y="' + y + '" width="60" height="28" rx="5" style="fill:' + (on ? 'color-mix(in srgb,var(--ok) 30%,transparent)' : 'color-mix(in srgb,var(--bg) 55%,transparent)') + ';stroke:' + (on ? 'var(--ok)' : 'none') + ';stroke-width:2.4"/>' +
+        T(x + 30, below ? y + 42 : y - 5, on ? 'ON' : 'OFF', 'middle', ' style="fill:' + (on ? 'var(--ok)' : 'var(--muted)') + ';font-weight:700"');
+      return st(150, 36, hs) + st(210, 140, ls, true) +
+        (hs ? flow('bh', 'M30 50H150M210 50H240V110', il, im, dt) : '') + (ls ? flow('bl', 'M240 210V168M240 140V110', il, im, dt) : '') +
+        flow('bL', 'M240 110H280M360 110H450', il, im, dt) + flow('bo', 'M450 110H580V146', d.I, im, dt) + flow('bc', 'M450 110V125', ic, im, dt) +
+        lab(20, 20, 't = ' + fmtT(tt) + t('（第 ', ' (cycle ') + (Math.floor(tt / d.per) + 1) + t(' 個週期）', ')'), 'start', 'var(--ink)') +
+        lab(330, 150, 'i<tspan baseline-shift="sub" font-size="8">L</tspan> ' + fmtA(il), 'middle') +
+        lab(272, 128, '= ' + (hs ? d.vin.toFixed(1) + ' V' : ls ? '0 V' : t('浮接', 'floating')), 'start', 'var(--ink)') +
+        lab(438, 144, 'i<tspan baseline-shift="sub" font-size="8">C</tspan> ' + fmtA(ic), 'end', ic < 0 ? 'var(--bad)' : 'var(--ok)');
+    }}
+  };
+  const play = {};                                          // per tab: {on, p, last}
+  function drawAnim(sec, dt){
+    const name = sec.id.slice(4), a = ANIM[name], st = play[name], svg = sec.querySelector('svg.schem');
+    if(!a || !st || !svg) return;
+    let g = svg.querySelector('g.live');
+    if(!g){ g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', 'live'); svg.appendChild(g); }
+    g.innerHTML = a.frame(st.p, dt || 0);
+    const sl = sec.querySelector('.an-pos'); if(sl && document.activeElement !== sl) sl.value = Math.round(st.p * 1000);
+  }
+  function loop(ts){
+    const sec = document.querySelector('section.tabp:not([hidden])');
+    if(sec){
+      const name = sec.id.slice(4), st = play[name];
+      if(st){
+        const dt = st.last ? Math.min((ts - st.last) / 1000, 0.1) : 0;
+        st.last = ts;
+        if(st.on) st.p = (st.p + dt / ANIM[name].dur) % 1;
+        drawAnim(sec, st.on ? dt : 0);
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
   /* ---------- panel, highlighting and linking ---------- */
   let last = {id:null, at:0};
   const sweepingIds = sec => [...sec.querySelectorAll('.ctl.sw-on input[type=range]')].map(e => e.id);
@@ -156,6 +232,7 @@
     const hot = new Set(sweepingIds(sec));
     if(last.id && performance.now() - last.at < 1600) hot.add(last.id);
     svg.querySelectorAll('g.el').forEach(g => { if(g.dataset.k.split(' ').some(k => hot.has(k))) g.classList.add('hot'); });
+    drawAnim(sec, 0);
   }
   function ensure(sec){
     if(!sec || !SCH[sec.id.slice(4)]) return;
@@ -163,10 +240,20 @@
       const pan = document.createElement('div');
       pan.className = 'panel schem-panel';
       pan.innerHTML = '<h3>' + t('電路與參數的關係', 'Circuit and parameters') + ' <small>' + t('移到元件上看對應參數，點一下跳過去', 'hover a part to see its control, click to jump') + '</small></h3>' +
+        (ANIM[sec.id.slice(4)] ? '<div class="an-row"><button class="btn pri an-play" type="button" aria-pressed="true">' + t('❚❚ 暫停播放', '❚❚ Pause') + '</button>' +
+          '<label class="an-lbl">' + t('時間', 'Time') + ' <input class="an-pos" type="range" min="0" max="1000" value="0"></label><span class="note">' + t('電流方向＝虛線流動方向，線越粗電流越大；波形上的直線是目前時間', 'flow direction = current direction, thicker = more current; the vertical line on the plots is the current time') + '</span></div>' : '') +
         '<svg class="schem" role="img" aria-label="' + t('電路示意圖', 'Circuit schematic') + '"></svg><p class="note schem-note"></p>';
       const stack = sec.querySelector('.stack'), m = stack.querySelector('.metrics');
       m.after(pan);
       const svg = pan.querySelector('svg');
+      const nm = sec.id.slice(4);
+      if(ANIM[nm]){
+        play[nm] = {on:true, p:0, last:0};
+        const btn = pan.querySelector('.an-play'), pos = pan.querySelector('.an-pos');
+        const setBtn = () => { btn.textContent = play[nm].on ? t('❚❚ 暫停播放', '❚❚ Pause') : t('▶ 播放電流', '▶ Play currents'); btn.setAttribute('aria-pressed', play[nm].on ? 'true' : 'false'); };
+        btn.addEventListener('click', e => { e.stopPropagation(); play[nm].on = !play[nm].on; setBtn(); });
+        pos.addEventListener('input', e => { e.stopPropagation(); play[nm].on = false; setBtn(); play[nm].p = +pos.value / 1000; drawAnim(sec, 0); });
+      }
       svg.addEventListener('mouseover', e => { const g = e.target.closest('g.el'); if(!g) return; g.classList.add('hover'); g.dataset.k.split(' ').forEach(k => { const c = ctlOf(k); if(c) c.classList.add('link'); }); });
       svg.addEventListener('mouseout', e => { const g = e.target.closest('g.el'); if(!g || g.contains(e.relatedTarget)) return; g.classList.remove('hover'); sec.querySelectorAll('.ctl.link').forEach(c => c.classList.remove('link')); });
       svg.addEventListener('click', e => {
@@ -197,4 +284,5 @@
   document.querySelectorAll('[role=tab]').forEach(tb => tb.addEventListener('click', () => ensure(current())));
   window.addEventListener('hashchange', () => setTimeout(() => ensure(current()), 0));
   ensure(current());
+  requestAnimationFrame(loop);
 })();

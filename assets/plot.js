@@ -69,7 +69,8 @@
     });
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     svg.innerHTML = s;
-    return {X, Y, m, pw, ph};
+    svg.__plot = {X, Y, m, pw, ph};   // lets overlays (e.g. a time cursor) map data to pixels
+    return svg.__plot;
   }
 
   /* math helpers */

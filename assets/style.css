@@ -299,3 +299,11 @@ svg.schem g.el.hover text{fill:var(--accent)}
 .ctl.link label{color:var(--accent)}
 .ctl.flash{animation:ctlflash 1.2s ease-out}
 @keyframes ctlflash{0%{box-shadow:0 0 0 8px color-mix(in srgb,var(--accent) 45%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+/* lab: current playback */
+svg.schem path.flow{fill:none;stroke:var(--s2);stroke-linecap:round;stroke-dasharray:3 9;opacity:.9;pointer-events:none}
+svg.schem g.live text{pointer-events:none}
+svg line.cursor{stroke:var(--s2);stroke-width:1.6;stroke-dasharray:3 3;pointer-events:none}
+.an-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 6px}
+.an-lbl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.an-lbl input{width:200px;accent-color:var(--s2)}
+.an-row .note{flex:1 1 220px}

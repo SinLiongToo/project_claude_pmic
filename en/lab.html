@@ -124,7 +124,8 @@
   <div class="panel"><h3>What to look for</h3><ul>
     <li>The vertical jump at the step is ΔI·ESR; the slope after it is the capacitor supplying the load alone before the loop reacts: ΔI·t / C.</li>
     <li>Lower phase margin to 25°: the recovery rings — which is how phase margin is estimated from transient waveforms.</li>
-    <li>Reduce gate-drive strength: pass current becomes a ramp and undershoot grows sharply. Low-I<sub>Q</sub> LDOs stepping from light to heavy load are most prone to this.</li></ul></div>
+    <li>Reduce gate-drive strength: pass current becomes a ramp and undershoot grows sharply. Low-I<sub>Q</sub> LDOs stepping from light to heavy load are most prone to this.</li>
+    <li>Press "Play currents" and watch the circuit: right after the load steps up, nearly all the current comes from C<sub>OUT</sub> discharging; on load release a PMOS can only source, not sink, so once the pass current hits 0 the extra charge drains only through the light load and the overshoot lingers.</li></ul></div>
   <div class="panel"><h3>Further reading</h3><ul>
     <li><a href="design.html#transient">Design · load transient</a></li>
     <li><a href="issues.html#overshoot">Troubleshooting · overshoot and undershoot</a></li>

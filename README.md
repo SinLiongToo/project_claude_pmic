@@ -15,7 +15,7 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `application.html` | 6. 應用：電源樹、時序、MLCC DC bias、電感、熱、佈局、EMI、熱插拔、車用、選型檢查表 |
 | `issues.html` | 常見問題：症狀索引，振盪 / 啟動 / 過衝 / 熱 / 雜訊 / 效率 / 反灌 / EMI，設計、製程、測試類問題，除錯技巧 |
 | `complaints.html` | 客訴處理：流程、資訊收集、FA 流程、失效分類、8D、根因工具、10 個典型案例、溝通、指標 |
-| `lab.html` | 互動實驗室：LDO 穩定度、PSRR、負載暫態、壓差與熱、Buck 漣波、MLCC DC bias、修調與良率；每個實驗都有自動掃描（參數來回跑、殘影比較）與電路圖（`assets/lab-circuit.js`，參數對應元件會亮起、點元件跳到滑桿） |
+| `lab.html` | 互動實驗室：LDO 穩定度、PSRR、負載暫態、壓差與熱、Buck 漣波、MLCC DC bias、修調與良率；每個實驗都有自動掃描（參數來回跑、殘影比較）與電路圖（`assets/lab-circuit.js`，參數對應元件會亮起、點元件跳到滑桿；負載暫態與 Buck 可播放電流，電路上顯示即時電流流向，波形上有時間游標） |
 | `sic.html` | 專題：SiC 與資料中心電源（Si / SiC / GaN 分工、PSU、800 V HVDC、Infineon 例、SiC 設計與可靠度）|
 | `roles.html` | 職務地圖：類比設計、佈局、數位、AE/FAE、PE、TE、製程、QRA、FA |
 | `quiz.html` | 測驗：57 題，八個主題 |
