@@ -604,7 +604,7 @@
     if(el.value !== before){
       const snap = snapshot(s.sec);
       const t0 = performance.now();
-      s.internal = true; el.dispatchEvent(new Event('input')); s.internal = false;
+      s.internal = true; el.dispatchEvent(new Event('input', {bubbles:true})); s.internal = false;
       Object.keys(snap).forEach(id => { const h = s.ghosts[id] = s.ghosts[id] || []; if(snap[id]) h.push(snap[id]); if(h.length > TRAIL) h.shift(); });
       paintGhosts(s.sec);
       s.timer = setTimeout(tick, Math.max(0, ms - (performance.now() - t0)));

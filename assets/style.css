@@ -285,3 +285,17 @@ svg.chain text{font-size:10px}
 .sw-play[aria-pressed="true"]{background:var(--bad);border-color:var(--bad)}
 .ctl.sw-on{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:6px;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 10%,transparent)}
 .ctl.sw-on label{color:var(--accent)}
+/* lab: circuit next to each experiment */
+svg.schem{display:block;width:100%;height:auto;max-height:300px}
+svg.schem text{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+svg.schem g.el{cursor:pointer}
+svg.schem g.el.hover .w,svg.schem g.el.hover .wt,svg.schem g.el.hover .box{stroke:var(--accent)}
+svg.schem g.el.hot :not(text){filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 70%,transparent))}
+svg.schem g.el.hot .w,svg.schem g.el.hot .wt,svg.schem g.el.hot .box,svg.schem g.el.hot path,svg.schem g.el.hot rect{stroke:var(--accent);stroke-width:2.2}
+svg.schem g.el.hot text{fill:var(--accent);font-weight:700;stroke-width:4px}
+svg.schem g.el.hover text{fill:var(--accent)}
+.schem-note{margin:6px 0 0;line-height:1.6}
+.ctl.link{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:6px;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 10%,transparent)}
+.ctl.link label{color:var(--accent)}
+.ctl.flash{animation:ctlflash 1.2s ease-out}
+@keyframes ctlflash{0%{box-shadow:0 0 0 8px color-mix(in srgb,var(--accent) 45%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
