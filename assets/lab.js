@@ -302,11 +302,28 @@
         {l:t('效率', 'Efficiency'), v:(100 * op.vout * I / Math.max(Vin * (I + IQ), 1e-12)).toFixed(0), u:'%'}
       ]);
       const Is = Array.from({length:101}, (_, i) => i / 100);
-      plot($('th-tj'), {x:[0, 1], y:[Math.min(Ta, 0) - 5, 250], W:380, H:300, xlabel:t('負載電流 (A)', 'Load current (A)'), ylabel:'T_J (°C)',
-        series:PKG.map((pk, j) => ({pts:Is.map(ii => [ii, ldoOp(Vin, Vs, ii, pk.th * bd.get(), Ta, true).tj]), color:j === k ? 'var(--accent)' : 'var(--muted)', w:j === k ? 2.6 : 1, dash:j === k ? null : '3 3'})),
-        hlines:[{y:TSD, color:'var(--bad)', label:t('熱關機 160 °C', 'TSD 160 °C')}, {y:125, label:'125 °C'}],
-        extra:(X, Y) => '<circle cx="' + X(I).toFixed(1) + '" cy="' + Y(Math.min(op.tj, 249)).toFixed(1) + '" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>' +
-          PKG.map((pk, j) => { const y = ldoOp(Vin, Vs, 1, pk.th * bd.get(), Ta, true).tj; return y < 245 ? '<text class="ts t-mut" x="' + (X(1) - 4) + '" y="' + (Y(y) - 4) + '" text-anchor="end">' + pk.n + '</text>' : ''; }).join('')});
+      // above ~400 °C the self-heating model is meaningless (the part is long in thermal shutdown): end the curve there
+      const curves = PKG.map(pk => Is.map(ii => { const tj = ldoOp(Vin, Vs, ii, pk.th * bd.get(), Ta, true).tj; return [ii, tj >= 399 ? NaN : tj]; }));
+      const ylo = Math.min(Ta, 0) - 5;
+      const yhi = Math.min(420, Math.ceil(Math.max(TSD + 40, Math.min(op.tj, 400), ...curves[k].map(p => p[1]).filter(isFinite)) * 1.05 / 50) * 50);
+      plot($('th-tj'), {x:[0, 1], y:[ylo, yhi], W:380, H:300, xlabel:t('負載電流 (A)', 'Load current (A)'), ylabel:'T_J (°C)',
+        series:curves.map((pts, j) => ({pts, color:j === k ? 'var(--accent)' : 'var(--muted)', w:j === k ? 2.6 : 1, dash:j === k ? null : '3 3'})),
+        hlines:[{y:TSD, color:'var(--bad)'}, {y:125}],
+        extra:(X, Y) => '<circle cx="' + X(I).toFixed(1) + '" cy="' + Y(Math.min(op.tj, yhi)).toFixed(1) + '" r="5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>' +
+          '<text class="ts" x="' + (X(0) + 4) + '" y="' + (Y(TSD) - 4).toFixed(1) + '" style="fill:var(--bad)">' + t('熱關機 160 °C', 'TSD 160 °C') + '</text>' +
+          '<text class="ts t-mut" x="' + (X(0) + 4) + '" y="' + (Y(125) + 12).toFixed(1) + '">125 °C</text>' +
+          (() => {
+            // label each package at the right edge, or where its curve leaves the plot; push labels apart vertically
+            const labs = curves.map((pts, j) => {
+              const fin = pts.filter(p => isFinite(p[1]));
+              const last = fin[fin.length - 1], exits = last[1] >= yhi * 0.97 || last[0] < 1;
+              const ax = exits ? Math.min(last[0], 1) : 1, ay = Math.min(last[1], yhi);
+              if(ay - ylo < 0.12 * (yhi - ylo)) return null;
+              return {j, x:X(ax) - 4, y:Y(ay) + (exits ? 13 : -4)};
+            }).filter(Boolean).sort((a, b) => a.y - b.y);
+            for(let n = 1; n < labs.length; n++) if(Math.abs(labs[n].x - labs[n - 1].x) < 60 && labs[n].y - labs[n - 1].y < 12) labs[n].y = labs[n - 1].y + 12;
+            return labs.map(l => '<text class="ts" x="' + l.x.toFixed(1) + '" y="' + l.y.toFixed(1) + '" text-anchor="end" style="paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round;fill:' + (l.j === k ? 'var(--accent)' : 'var(--muted)') + (l.j === k ? ';font-weight:600' : '') + '">' + PKG[l.j].n + '</text>').join('');
+          })()});
       const vmax = Math.max(Vs + 2, 4), vins = Array.from({length:121}, (_, i) => vmax * i / 120);
       plot($('th-do'), {x:[0, vmax], y:[0, Vs * 1.2], W:380, H:300, xlabel:'V_IN (V)', ylabel:'V_OUT (V)',
         series:[{pts:vins.map(v => [v, ldoOp(v, Vs, I, th, Ta, false).vout]), color:'var(--muted)', w:1.4, dash:'5 4'},
