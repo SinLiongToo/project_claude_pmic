@@ -190,7 +190,7 @@
       const hrs = Array.from({length:150}, (_, i) => 0.02 + 1.48 * i / 149);
       plot($('ps-hr-plot'), {x:[0, 1.5], y:[0, 90], H:220, xlabel:'V_IN − V_OUT (V)', ylabel:'PSRR (dB)',
         series:[{pts:hrs.map(h => [h, -20 * lg(psrrH(F, Object.assign({}, p, {hr:h})))]), color:'var(--accent)', w:2.2}],
-        vlines:[{x:vdo, color:'var(--bad)', label:'V_DO'}, {x:p.hr, color:'var(--ink)', label:t('目前', 'now'), dash:'2 3'}]});
+        vlines:[{x:vdo, color:'var(--bad)', label:'V_DO'}, {x:p.hr, color:'var(--ink)', label:t('目前', 'now'), dash:'2 3', anchor:p.hr > 1.1 ? 'end' : 'start'}]});
     }
     render(); redraws.push(render);
   };
@@ -527,6 +527,93 @@
     }
     render(); redraws.push(render);
   };
+
+  /* =====================================================================
+     Auto sweep: animate one slider back and forth, leaving fading trails of earlier curves
+     ===================================================================== */
+  const SWEEP_DEFAULT = {bode:'bd-esr', psrr:'ps-bw', transient:'tr-pm', thermal:'th-i', buck:'bk-l', mlcc:'ml-v', trim:'tm-lsb'};
+  const SPEED = {slow:[140, 70], mid:[70, 50], fast:[36, 35]};   // [steps per pass, ms per step]
+  const TRAIL = 7;
+  let sweep = null;                                               // {sec, el, pos, dir, timer, ghosts}
+  const labelOf = el => { const l = document.querySelector('label[for="' + el.id + '"]'); if(!l) return el.id; const c = l.cloneNode(true); c.querySelectorAll('output').forEach(o => o.remove()); return c.textContent.trim(); };
+
+  function snapshot(sec){
+    // remember the stroked series paths of every plot in this tab before it re-renders
+    const out = {};
+    sec.querySelectorAll('svg.viz').forEach(svg => {
+      const g = svg.querySelector('g[clip-path]'); if(!g) return;
+      out[svg.id] = [...g.children].filter(p => p.tagName === 'path' && /fill:none/.test(p.getAttribute('style') || '')).map(p => p.outerHTML).join('');
+    });
+    return out;
+  }
+  function paintGhosts(sec){
+    if(!sweep.trail) return;
+    sec.querySelectorAll('svg.viz').forEach(svg => {
+      const g = svg.querySelector('g[clip-path]'), hist = sweep.ghosts[svg.id];
+      if(!g || !hist || !hist.length) return;
+      const ghost = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      ghost.setAttribute('class', 'ghost');
+      ghost.innerHTML = hist.map((h, i) => '<g style="opacity:' + (0.08 + 0.32 * (i + 1) / hist.length).toFixed(2) + '">' + h + '</g>').join('');
+      g.insertBefore(ghost, g.firstChild);
+    });
+  }
+  function tick(){
+    const s = sweep; if(!s) return;
+    const el = s.el, min = +el.min, max = +el.max, [steps, ms] = SPEED[s.speed];
+    s.pos += s.dir * (max - min) / steps;
+    if(s.pos >= max){ s.pos = max; s.dir = -1; } else if(s.pos <= min){ s.pos = min; s.dir = 1; }
+    const before = el.value;
+    el.value = s.pos;
+    if(el.value !== before){
+      const snap = snapshot(s.sec);
+      const t0 = performance.now();
+      s.internal = true; el.dispatchEvent(new Event('input')); s.internal = false;
+      Object.keys(snap).forEach(id => { const h = s.ghosts[id] = s.ghosts[id] || []; if(snap[id]) h.push(snap[id]); if(h.length > TRAIL) h.shift(); });
+      paintGhosts(s.sec);
+      s.timer = setTimeout(tick, Math.max(0, ms - (performance.now() - t0)));
+    } else s.timer = setTimeout(tick, 0);
+  }
+  function stopSweep(){
+    if(!sweep) return;
+    clearTimeout(sweep.timer);
+    const c = sweep.el.closest('.ctl'); if(c) c.classList.remove('sw-on');
+    const b = sweep.sec.querySelector('.sw-play');
+    if(b){ b.textContent = t('▶ 開始掃描', '▶ Start sweep'); b.setAttribute('aria-pressed', 'false'); }
+    sweep = null;
+  }
+  function startSweep(sec){
+    stopSweep();
+    const el = document.getElementById(sec.querySelector('.sw-param').value);
+    sweep = {sec, el, pos:+el.value, dir:1, timer:0, ghosts:{}, speed:sec.querySelector('.sw-speed').value, trail:sec.querySelector('.sw-trail').checked};
+    if(sweep.pos >= +el.max) sweep.dir = -1;
+    const c = el.closest('.ctl'); if(c) c.classList.add('sw-on');
+    const b = sec.querySelector('.sw-play');
+    b.textContent = t('❚❚ 暫停', '❚❚ Pause'); b.setAttribute('aria-pressed', 'true');
+    tick();
+  }
+  document.querySelectorAll('section.tabp').forEach(sec => {
+    const name = sec.id.slice(4), panel = sec.querySelector('.bench > .panel');
+    const ranges = [...panel.querySelectorAll('input[type=range]')];
+    if(!panel || !ranges.length) return;
+    const box = document.createElement('div');
+    box.className = 'sweep';
+    box.innerHTML = '<div class="sw-head">' + t('自動掃描', 'Auto sweep') + '<small>' + t('讓參數自己來回跑，留下殘影比較', 'let a parameter run back and forth, with trails to compare') + '</small></div>' +
+      '<div class="ctl"><label>' + t('掃描參數', 'Parameter') + '</label><select class="sw-param">' +
+      ranges.map(r => '<option value="' + r.id + '"' + (r.id === SWEEP_DEFAULT[name] ? ' selected' : '') + '>' + labelOf(r) + '</option>').join('') + '</select></div>' +
+      '<div class="sw-row"><button class="btn pri sw-play" type="button" aria-pressed="false">' + t('▶ 開始掃描', '▶ Start sweep') + '</button>' +
+      '<select class="sw-speed" aria-label="' + t('速度', 'Speed') + '"><option value="slow">' + t('慢', 'Slow') + '</option><option value="mid" selected>' + t('中', 'Medium') + '</option><option value="fast">' + t('快', 'Fast') + '</option></select>' +
+      '<label class="sw-tr"><input type="checkbox" class="sw-trail" checked> ' + t('殘影', 'Trails') + '</label></div>';
+    panel.querySelector('h3').after(box);
+    box.querySelector('.sw-play').addEventListener('click', () => { sweep && sweep.sec === sec ? stopSweep() : startSweep(sec); });
+    box.querySelector('.sw-param').addEventListener('change', () => { if(sweep && sweep.sec === sec) startSweep(sec); });
+    box.querySelector('.sw-speed').addEventListener('change', e => { if(sweep && sweep.sec === sec) sweep.speed = e.target.value; });
+    box.querySelector('.sw-trail').addEventListener('change', e => { if(sweep && sweep.sec === sec){ sweep.trail = e.target.checked; if(!sweep.trail) sweep.ghosts = {}; } });
+    // touching any control by hand stops the sweep
+    panel.addEventListener('input', e => { if(sweep && sweep.sec === sec && !sweep.internal && !e.target.closest('.sweep')) stopSweep(); });
+    panel.addEventListener('click', e => { if(sweep && sweep.sec === sec && e.target.closest('button[data-v], button[data-preset]')) stopSweep(); });
+  });
+  tabs.forEach(tb => tb.addEventListener('click', stopSweep));
+  document.addEventListener('visibilitychange', () => { if(document.hidden) stopSweep(); });
 
   show(location.hash.slice(1) || 'bode');
 })();

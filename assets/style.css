@@ -274,3 +274,14 @@ a.tbtn{text-decoration:none;font:600 12.5px var(--mono)}
 .steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:14px;top:10px;font:600 13px var(--mono);color:var(--accent)}
 .steps li b{font-weight:600}
 svg.chain text{font-size:10px}
+/* lab auto-sweep */
+.sweep{border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 6%,var(--surface));border-radius:8px;padding:10px 12px 4px;margin:0 0 16px}
+.sweep .sw-head{font:600 13px var(--sans);color:var(--accent);margin-bottom:8px}
+.sweep .sw-head small{display:block;font:400 12px var(--sans);color:var(--muted)}
+.sweep .ctl{margin-bottom:8px}
+.sw-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.sw-row select{font:13px var(--sans);padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+.sw-tr{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer}
+.sw-play[aria-pressed="true"]{background:var(--bad);border-color:var(--bad)}
+.ctl.sw-on{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:6px;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 10%,transparent)}
+.ctl.sw-on label{color:var(--accent)}
