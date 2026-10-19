@@ -153,17 +153,19 @@
   <div class="stack">
     <div class="metrics" id="th-metrics"></div>
     <div class="two">
-      <div class="panel"><h3>接面溫度 vs 負載電流 <small>各封裝</small></h3><svg class="viz" id="th-tj" role="img" aria-label="接面溫度與負載電流"></svg></div>
+      <div class="panel"><h3>接面溫度 vs 負載電流 <small>穩態，假設不熱關機</small></h3><svg class="viz" id="th-tj" role="img" aria-label="接面溫度與負載電流"></svg></div>
       <div class="panel"><h3>V<sub>OUT</sub> vs V<sub>IN</sub> <small>壓差區</small></h3><svg class="viz" id="th-do" role="img" aria-label="輸出電壓與輸入電壓"></svg>
         <div class="legend"><span><i style="background:var(--accent)"></i>含自熱</span><span><i style="background:var(--muted)"></i>25 °C 理想</span></div></div>
     </div>
-    <div class="panel"><h3>熱關機時的輸出 <small>示意</small></h3><svg class="viz" id="th-hic" role="img" aria-label="熱關機打嗝波形"></svg></div>
+    <div class="panel"><h3>實際行為：熱關機打嗝 <small>目前電流下的 T<sub>J</sub> vs 時間（示意）</small></h3><svg class="viz" id="th-hic" data-noghost role="img" aria-label="熱關機打嗝波形"></svg>
+      <div class="legend"><span><i style="background:var(--s2)"></i>實際 T<sub>J</sub></span><span><i style="background:var(--muted)"></i>沒有熱關機時的升溫</span><span><i style="background:var(--accent)"></i>穩態溫度（＝上圖的點）</span><span><i style="background:var(--ok)"></i>輸出開啟</span></div></div>
   </div>
 </div>
 <div class="explain">
   <div class="panel"><h3>看圖重點</h3><ul>
     <li>預設 5 V → 3.3 V、300 mA、SOT-23：功耗約 0.5 W，T<sub>J</sub> 超過 150 °C，已經在熱關機邊緣。</li>
     <li>換 DFN 或 QFN：同樣的功耗只升 30–40 °C。熱往往比電流規格更早限制 LDO。</li>
+    <li>上圖是「如果沒有熱關機」最後會到的溫度；下圖是實際情況：晶片朝那個溫度升溫，到 160 °C 就關斷、冷到 140 °C 再開，輸出變成一段一段的。上圖的點超過 160 °C，下圖就一定會打嗝。</li>
     <li>把 V<sub>IN</sub> 降到 3.5 V：功耗大減，但開始接近壓差區；右圖可以看到高溫讓壓差變大。</li></ul></div>
   <div class="panel"><h3>延伸閱讀</h3><ul>
     <li><a href="architecture.html#dropout">架構 · 壓差與功耗</a></li>

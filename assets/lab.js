@@ -296,7 +296,7 @@
         {l:t('功耗 P<sub>D</sub>', 'Dissipation P<sub>D</sub>'), v:fmtSI(op.pd, 'W')},
         {l:t('接面溫度 T<sub>J</sub>', 'Junction temp T<sub>J</sub>'), v:op.tj > 399 ? '> 400' : op.tj.toFixed(0), u:'°C', cls:op.tj < 125 ? 'ok' : op.tj < TSD ? 'warn' : 'bad', s:tsd ? t('熱關機！', 'thermal shutdown!') : t('距熱關機 ', 'to TSD: ') + (TSD - op.tj).toFixed(0) + ' °C'},
         {l:t('等效 θ<sub>JA</sub>', 'Effective θ<sub>JA</sub>'), v:th.toFixed(0), u:'°C/W'},
-        {l:t('V<sub>OUT</sub> 實際', 'Actual V<sub>OUT</sub>'), v:op.vout.toFixed(2), u:'V', cls:dropping ? 'warn' : '', s:dropping ? t('壓差區：輸出跟著 V_IN 走', 'dropout: output tracks V_IN') : t('穩壓中', 'regulating')},
+        {l:t('V<sub>OUT</sub> 實際', 'Actual V<sub>OUT</sub>'), v:op.vout.toFixed(2), u:'V', cls:tsd ? 'bad' : dropping ? 'warn' : '', s:tsd ? t('熱關機打嗝：輸出斷斷續續', 'thermal hiccup: output cuts in and out') : dropping ? t('壓差區：輸出跟著 V_IN 走', 'dropout: output tracks V_IN') : t('穩壓中', 'regulating')},
         {l:t('壓差（當下 T<sub>J</sub>）', 'Dropout (at present T<sub>J</sub>)'), v:fmtSI(op.vdo, 'V')},
         {l:t('不熱關機的最大電流', 'Max current without TSD'), v:imax >= 1 ? '≥ 1 A' : fmtSI(Math.max(imax, 0), 'A'), s:t('此 V_IN、封裝與 T_A', 'at this V_IN, package and T_A')},
         {l:t('效率', 'Efficiency'), v:(100 * op.vout * I / Math.max(Vin * (I + IQ), 1e-12)).toFixed(0), u:'%'}
@@ -340,11 +340,31 @@
         tj += (target - tj) * (Tend / N) / tau;
         if(on && tj >= TSD) on = false; else if(!on && tj <= TSD - THYS) on = true;
       }
-      plot($('th-hic'), {x:[0, Tend], y:[Math.min(Ta, 0) - 5, Math.max(TSD + 20, Math.min(tjOn, 300) + 10)], H:200, xlabel:t('時間 (s)', 'Time (s)'), ylabel:'T_J (°C)',
-        series:[{pts:rec.map(r => [r[0], r[1]]), color:'var(--s2)', w:2}],
-        hlines:[{y:TSD, color:'var(--bad)', label:t('關斷 160 °C', 'off 160 °C')}, {y:TSD - THYS, label:t('恢復 140 °C', 'restart 140 °C')}],
-        extra:(X, Y) => { let s = '', st = null; rec.forEach((r, i) => { if(r[2] && st === null) st = r[0]; if((!r[2] || i === rec.length - 1) && st !== null){ s += '<rect x="' + X(st).toFixed(1) + '" y="' + (Y(Math.min(Ta, 0) - 5) - 10).toFixed(1) + '" width="' + (X(r[0]) - X(st)).toFixed(1) + '" height="10" style="fill:var(--ok);fill-opacity:.6"/>'; st = null; } });
-          return s + '<text class="ts" x="' + (X(0) + 6) + '" y="' + (Y(Math.min(Ta, 0) - 5) - 14).toFixed(1) + t('" style="fill:var(--ok)">綠色 = 輸出開啟</text>', '" style="fill:var(--ok)">green = output on</text>'); }});
+      // dashed: where T_J would head without thermal shutdown — the same steady-state value as the dot in the plot above
+      const tgt = Math.min(tjOn, 400), yb = Math.min(Ta, 0) - 5;
+      const yTop = Math.ceil(Math.max(TSD + 30, tgt * 1.08) / 50) * 50;
+      const would = rec.map(r => [r[0], Ta + (tjOn - Ta) * (1 - Math.exp(-r[0] / tau))]).map(p => [p[0], p[1] > 400 ? NaN : p[1]]);
+      const tripped = tjOn >= TSD;
+      plot($('th-hic'), {x:[0, Tend], y:[yb, yTop], H:220, xlabel:t('時間 (s)', 'Time (s)'), ylabel:'T_J (°C)',
+        series:(tripped ? [{pts:would, color:'var(--muted)', w:1.6, dash:'6 4'}] : []).concat([{pts:rec.map(r => [r[0], r[1]]), color:'var(--s2)', w:2.2}]),
+        hlines:[{y:TSD, color:'var(--bad)'}, {y:TSD - THYS}],
+        extra:(X, Y) => {
+          const halo = 'paint-order:stroke;stroke:var(--surface);stroke-width:3px;';
+          let s = '<text class="ts" x="' + (X(Tend) - 4) + '" y="' + (Y(TSD) - 5).toFixed(1) + '" text-anchor="end" style="' + halo + 'fill:var(--bad)">' + t('關斷 160 °C', 'off 160 °C') + '</text>' +
+            '<text class="ts" x="' + (X(Tend) - 4) + '" y="' + (Y(TSD - THYS) + 13).toFixed(1) + '" text-anchor="end" style="' + halo + 'fill:var(--muted)">' + t('恢復 140 °C', 'restart 140 °C') + '</text>', st = null;
+          rec.forEach((r, i) => { if(r[2] && st === null) st = r[0]; if((!r[2] || i === rec.length - 1) && st !== null){ s += '<rect x="' + X(st).toFixed(1) + '" y="' + (Y(yb) - 10).toFixed(1) + '" width="' + Math.max(X(r[0]) - X(st), 1).toFixed(1) + '" height="10" style="fill:var(--ok);fill-opacity:.6"/>'; st = null; } });
+          if(tripped){
+            const yt = Y(tgt).toFixed(1);
+            s += '<line x1="' + X(0) + '" x2="' + X(Tend) + '" y1="' + yt + '" y2="' + yt + '" style="stroke:var(--accent);stroke-width:1.2;stroke-dasharray:2 3"/>' +
+              '<circle cx="' + (X(Tend) - 4) + '" cy="' + yt + '" r="4.5" style="fill:var(--accent);stroke:var(--surface);stroke-width:2"/>' +
+              '<text class="ts" x="' + (X(0) + 6) + '" y="' + (Y(tgt) - 6).toFixed(1) + '" style="paint-order:stroke;stroke:var(--surface);stroke-width:3px;fill:var(--accent)">' +
+              (tjOn > 400 ? t('不熱關機時的穩態 T_J > 400 °C（＝上圖的點）', 'steady-state T_J without shutdown > 400 °C (= dot above)')
+                          : t('不熱關機時的穩態 T_J ≈ ', 'steady-state T_J without shutdown ≈ ') + tjOn.toFixed(0) + t(' °C（＝上圖的點）', ' °C (= dot above)')) + '</text>';
+          } else {
+            s += '<text class="ts" x="' + (X(0) + 6) + '" y="' + (Y(TSD) - 18).toFixed(1) + '" style="fill:var(--ok)">' + t('穩態 T_J ≈ ', 'steady-state T_J ≈ ') + tjOn.toFixed(0) + t(' °C，低於熱關機門檻，不會打嗝', ' °C, below the trip point — no hiccup') + '</text>';
+          }
+          return s;
+        }});
     }
     render(); redraws.push(render);
   };
@@ -557,7 +577,7 @@
   function snapshot(sec){
     // remember the stroked series paths of every plot in this tab before it re-renders
     const out = {};
-    sec.querySelectorAll('svg.viz').forEach(svg => {
+    sec.querySelectorAll('svg.viz:not([data-noghost])').forEach(svg => {
       const g = svg.querySelector('g[clip-path]'); if(!g) return;
       out[svg.id] = [...g.children].filter(p => p.tagName === 'path' && /fill:none/.test(p.getAttribute('style') || '')).map(p => p.outerHTML).join('');
     });
@@ -565,7 +585,7 @@
   }
   function paintGhosts(sec){
     if(!sweep.trail) return;
-    sec.querySelectorAll('svg.viz').forEach(svg => {
+    sec.querySelectorAll('svg.viz:not([data-noghost])').forEach(svg => {
       const g = svg.querySelector('g[clip-path]'), hist = sweep.ghosts[svg.id];
       if(!g || !hist || !hist.length) return;
       const ghost = document.createElementNS('http://www.w3.org/2000/svg', 'g');

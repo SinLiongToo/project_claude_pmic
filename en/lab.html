@@ -154,17 +154,19 @@
   <div class="stack">
     <div class="metrics" id="th-metrics"></div>
     <div class="two">
-      <div class="panel"><h3>Junction temperature vs load current <small>each package</small></h3><svg class="viz" id="th-tj" role="img" aria-label="Junction temperature versus load current"></svg></div>
+      <div class="panel"><h3>Junction temperature vs load current <small>steady state, assuming no shutdown</small></h3><svg class="viz" id="th-tj" role="img" aria-label="Junction temperature versus load current"></svg></div>
       <div class="panel"><h3>V<sub>OUT</sub> vs V<sub>IN</sub> <small>dropout region</small></h3><svg class="viz" id="th-do" role="img" aria-label="Output voltage versus input voltage"></svg>
         <div class="legend"><span><i style="background:var(--accent)"></i>with self-heating</span><span><i style="background:var(--muted)"></i>25 °C ideal</span></div></div>
     </div>
-    <div class="panel"><h3>Output during thermal shutdown <small>sketch</small></h3><svg class="viz" id="th-hic" role="img" aria-label="Thermal-shutdown hiccup waveform"></svg></div>
+    <div class="panel"><h3>What actually happens: thermal-shutdown hiccup <small>T<sub>J</sub> vs time at the present current (sketch)</small></h3><svg class="viz" id="th-hic" data-noghost role="img" aria-label="Thermal-shutdown hiccup waveform"></svg>
+      <div class="legend"><span><i style="background:var(--s2)"></i>actual T<sub>J</sub></span><span><i style="background:var(--muted)"></i>heating without shutdown</span><span><i style="background:var(--accent)"></i>steady-state temperature (= dot above)</span><span><i style="background:var(--ok)"></i>output on</span></div></div>
   </div>
 </div>
 <div class="explain">
   <div class="panel"><h3>What to look for</h3><ul>
     <li>Defaults of 5 V → 3.3 V, 300 mA in SOT-23: about 0.5 W dissipated and T<sub>J</sub> above 150 °C — right at the edge of thermal shutdown.</li>
     <li>Switch to DFN or QFN: the same dissipation rises only 30–40 °C. Heat often limits an LDO before its current rating does.</li>
+    <li>The upper plot is where T<sub>J</sub> would settle with no thermal shutdown; the lower plot is what really happens: the die heads toward that temperature, shuts off at 160 °C, cools to 140 °C and restarts, so the output comes and goes. Whenever the dot above is over 160 °C, the lower plot hiccups.</li>
     <li>Lower V<sub>IN</sub> to 3.5 V: dissipation falls a lot, but you approach dropout; the right-hand plot shows dropout growing with temperature.</li></ul></div>
   <div class="panel"><h3>Further reading</h3><ul>
     <li><a href="architecture.html#dropout">Architecture · dropout and dissipation</a></li>
