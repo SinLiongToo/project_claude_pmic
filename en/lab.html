@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Power Lab · PMIC Notes</title>
+<meta name="description" content="Interactive simulations: LDO Bode plot and ESR stability window, PSRR versus frequency, load transient, dropout and junction temperature, buck ripple and efficiency, MLCC DC-bias effective capacitance, CP trim yield and Cpk.">
+<link rel="alternate" hreflang="zh-Hant" href="../lab.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="lab">
+<main class="app-wrap">
+<div class="app-head">
+  <div class="eyebrow">PMIC Lab</div>
+  <h1>Turn the knobs and watch regulators settle — or lose control</h1>
+  <p>Each tab is a simplified behavioural model for building intuition, not SPICE; values are order-of-magnitude only. Adjust the parameters on the left and the plots update live.</p>
+</div>
+
+<div class="seg" role="tablist" aria-label="Experiments">
+  <button role="tab" data-tab="bode" aria-selected="true">LDO stability</button>
+  <button role="tab" data-tab="psrr" aria-selected="false">PSRR</button>
+  <button role="tab" data-tab="transient" aria-selected="false">Load transient</button>
+  <button role="tab" data-tab="thermal" aria-selected="false">Dropout &amp; thermal</button>
+  <button role="tab" data-tab="buck" aria-selected="false">Buck ripple</button>
+  <button role="tab" data-tab="mlcc" aria-selected="false">MLCC DC bias</button>
+  <button role="tab" data-tab="trim" aria-selected="false">Trim &amp; yield</button>
+</div>
+
+<!-- ============ BODE ============ -->
+<section class="tabp" id="tab-bode" role="tabpanel">
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>PMOS LDO · 1.8 V</small></h3>
+    <div class="ctl"><label>Compensation</label>
+      <div class="btnrow" id="bd-mode"><button class="btn" data-v="ext" aria-pressed="true">Classic (needs ESR zero)</button><button class="btn" data-v="int" aria-pressed="false">Internal (ceramic-stable)</button></div></div>
+    <div class="ctl"><label for="bd-i">Load current <output id="bd-i-o"></output></label><input id="bd-i" type="range" min="0" max="100" step="1" value="80"></div>
+    <div class="ctl"><label for="bd-c">Effective output capacitance C<sub>OUT</sub> <output id="bd-c-o"></output></label><input id="bd-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="bd-esr">Capacitor ESR <output id="bd-esr-o"></output></label><input id="bd-esr" type="range" min="0" max="100" step="1" value="18"></div>
+    <div class="btnrow"><button class="btn" type="button" data-preset="cer">Ceramic 5 mΩ</button><button class="btn" type="button" data-preset="tan">Tantalum 0.5 Ω</button><button class="btn" type="button" data-preset="el">Electrolytic 3 Ω</button></div>
+    <p class="note">Model: output pole 1/(2π(R<sub>out</sub>+ESR)C<sub>OUT</sub>) moves with load; gate pole 500 kHz; parasitic poles 5 MHz and 20 MHz; internal compensation adds an internal zero at 300 kHz.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="bd-metrics"></div>
+    <div class="two">
+      <div class="panel"><h3>Loop gain <small>|L(f)|</small></h3><svg class="viz" id="bd-gain" role="img" aria-label="Loop-gain Bode plot"></svg></div>
+      <div class="panel"><h3>Loop phase <small>∠L(f)</small></h3><svg class="viz" id="bd-phase" role="img" aria-label="Loop-phase Bode plot"></svg></div>
+    </div>
+    <div class="panel"><h3>Stability map <small>phase margin vs ESR × load</small></h3><svg class="viz" id="bd-map" role="img" aria-label="Phase-margin map over ESR and load current"></svg>
+      <div class="legend"><span><i style="background:var(--ok)"></i>PM ≥ 45°</span><span><i style="background:var(--warn)"></i>20–45°</span><span><i style="background:var(--bad)"></i>&lt; 20° (oscillates or rings badly)</span><span><i style="background:var(--ink)"></i>current setting</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>In classic mode press "Ceramic": phase margin falls below 20° at heavy load, while light load is stable. That is why old LDOs oscillate with ceramic capacitors.</li>
+    <li>Press "Tantalum": the ESR zero restores phase. Now push ESR above 5 Ω: gain lifts at high frequency and it is unstable again. The map shows a "tunnel" with failures on both sides.</li>
+    <li>Switch to internal compensation with ceramic: stable. Drop C<sub>OUT</sub> to 0.22 µF: crossover moves up to the parasitic poles and it oscillates — the origin of the minimum-capacitance spec.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="design.html#ldo-loop">Design · the LDO loop</a>, <a href="design.html#esr-window">the ESR window</a></li>
+    <li><a href="application.html#capacitors">Applications · MLCC DC bias</a>: the datasheet minimum means <b>effective</b> capacitance.</li>
+    <li><a href="issues.html#oscillation">Troubleshooting · oscillation</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ PSRR ============ -->
+<section class="tabp" id="tab-psrr" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>LDO after a buck</small></h3>
+    <div class="ctl"><label>Pass device</label>
+      <div class="btnrow" id="ps-pass"><button class="btn" data-v="p" aria-pressed="true">PMOS</button><button class="btn" data-v="n" aria-pressed="false">NMOS (with bias rail)</button></div></div>
+    <div class="ctl"><label for="ps-hr">Headroom V<sub>IN</sub> − V<sub>OUT</sub> <output id="ps-hr-o"></output></label><input id="ps-hr" type="range" min="0.02" max="1.5" step="0.01" value="0.5"></div>
+    <div class="ctl"><label for="ps-i">Load current <output id="ps-i-o"></output></label><input id="ps-i" type="range" min="0" max="100" step="1" value="70"></div>
+    <div class="ctl"><label for="ps-bw">Loop bandwidth <output id="ps-bw-o"></output></label><input id="ps-bw" type="range" min="0" max="100" step="1" value="50"></div>
+    <div class="ctl"><label for="ps-c">Output capacitance <output id="ps-c-o"></output></label><input id="ps-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="ps-fsw">Upstream buck switching frequency <output id="ps-fsw-o"></output></label><input id="ps-fsw" type="range" min="0.3" max="4" step="0.1" value="2"></div>
+    <div class="ctl"><label for="ps-rip">Ripple at the LDO input <output id="ps-rip-o"></output></label><input id="ps-rip" type="range" min="1" max="100" step="1" value="20"></div>
+    <p class="note">Pass-device R<sub>DS(on)</sub> 0.3 Ω; loop gain starts to fall when headroom is below dropout + 0.25 V. At high frequency PSRR is set by the divider between coupling capacitance and C<sub>OUT</sub> (with 0.6 nH ESL).</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="ps-metrics"></div>
+    <div class="panel"><h3>PSRR vs frequency <small>higher is better</small></h3><svg class="viz" id="ps-plot" role="img" aria-label="PSRR frequency response"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>current setting</span><span><i style="background:var(--muted)"></i>1.0 V headroom reference</span><span><i style="background:var(--s2)"></i>buck switching frequency</span></div></div>
+    <div class="panel"><h3>PSRR at the switching frequency vs headroom <small>the dropout cliff</small></h3><svg class="viz" id="ps-hr-plot" role="img" aria-label="PSRR versus headroom"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>Low-frequency PSRR is set by loop gain and starts falling near the loop bandwidth; at high frequency the capacitor divider holds it up until ESL resonance, after which it worsens.</li>
+    <li>Cut headroom below 0.15 V: the pass device enters the linear region, PSRR drops 20–40 dB and buck ripple passes straight through.</li>
+    <li>Watch the buck-frequency line: 70 dB at 1 kHz does not mean 70 dB at 2 MHz.</li>
+    <li>Switch to NMOS: the source follower isolates the input itself and the whole curve moves up.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="design.html#psrr">Design · PSRR</a></li>
+    <li><a href="application.html#power-tree">Applications · power tree</a>: how high should the buck pre-regulator be?</li>
+    <li><a href="issues.html#noise-ripple">Troubleshooting · noise and ripple</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ TRANSIENT ============ -->
+<section class="tabp" id="tab-transient" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>load step</small></h3>
+    <div class="ctl"><label for="tr-i1">Light load <output id="tr-i1-o"></output></label><input id="tr-i1" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-i2">Heavy load <output id="tr-i2-o"></output></label><input id="tr-i2" type="range" min="0" max="100" step="1" value="85"></div>
+    <div class="ctl"><label for="tr-tr">Load rise time <output id="tr-tr-o"></output></label><input id="tr-tr" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-c">Output capacitance <output id="tr-c-o"></output></label><input id="tr-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="tr-esr">ESR <output id="tr-esr-o"></output></label><input id="tr-esr" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-bw">Loop bandwidth <output id="tr-bw-o"></output></label><input id="tr-bw" type="range" min="0" max="100" step="1" value="55"></div>
+    <div class="ctl"><label for="tr-pm">Phase margin <output id="tr-pm-o"></output></label><input id="tr-pm" type="range" min="15" max="80" step="1" value="55"></div>
+    <div class="ctl"><label for="tr-sr">Gate-drive strength (current slew rate) <output id="tr-sr-o"></output></label><input id="tr-sr" type="range" min="0" max="100" step="1" value="70"></div>
+    <p class="note">Pass current follows the error voltage through a two-pole loop and is slew-rate limited; finite loop gain leaves a steady load-regulation error.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="tr-metrics"></div>
+    <div class="panel"><h3>Output voltage deviation <small>ΔV<sub>OUT</sub></small></h3><svg class="viz" id="tr-v" role="img" aria-label="Load-transient output voltage"></svg></div>
+    <div class="panel"><h3>Currents <small>load vs pass device</small></h3><svg class="viz" id="tr-i" role="img" aria-label="Load and pass-device current"></svg>
+      <div class="legend"><span><i style="background:var(--muted)"></i>load current</span><span><i style="background:var(--accent)"></i>pass-device current</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>The vertical jump at the step is ΔI·ESR; the slope after it is the capacitor supplying the load alone before the loop reacts: ΔI·t / C.</li>
+    <li>Lower phase margin to 25°: the recovery rings — which is how phase margin is estimated from transient waveforms.</li>
+    <li>Reduce gate-drive strength: pass current becomes a ramp and undershoot grows sharply. Low-I<sub>Q</sub> LDOs stepping from light to heavy load are most prone to this.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="design.html#transient">Design · load transient</a></li>
+    <li><a href="issues.html#overshoot">Troubleshooting · overshoot and undershoot</a></li>
+    <li><a href="test.html#bench">Test · characterisation</a>: the load edge must be fast enough that you measure the LDO, not the load.</li></ul></div>
+</div>
+</section>
+
+<!-- ============ THERMAL ============ -->
+<section class="tabp" id="tab-thermal" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>1 A LDO</small></h3>
+    <div class="ctl"><label for="th-vin">V<sub>IN</sub> <output id="th-vin-o"></output></label><input id="th-vin" type="range" min="1.5" max="12" step="0.1" value="5"></div>
+    <div class="ctl"><label for="th-vout">V<sub>OUT</sub> setpoint <output id="th-vout-o"></output></label><input id="th-vout" type="range" min="0.8" max="5" step="0.1" value="3.3"></div>
+    <div class="ctl"><label for="th-i">Load current <output id="th-i-o"></output></label><input id="th-i" type="range" min="0" max="1000" step="10" value="300"></div>
+    <div class="ctl"><label for="th-pkg">Package</label><select id="th-pkg">
+      <option value="0">SC-70 (θJA ≈ 260 °C/W)</option>
+      <option value="1" selected>SOT-23-5 (≈ 210 °C/W)</option>
+      <option value="2">WLCSP (≈ 85 °C/W)</option>
+      <option value="3">DFN 2×2 (≈ 65 °C/W)</option>
+      <option value="4">SOIC-8 EP (≈ 45 °C/W)</option>
+      <option value="5">QFN 3×3 (≈ 40 °C/W)</option></select></div>
+    <div class="ctl"><label for="th-board">Board heat-sinking <output id="th-board-o"></output></label><input id="th-board" type="range" min="0.6" max="1.8" step="0.05" value="1"></div>
+    <div class="ctl"><label for="th-ta">Ambient T<sub>A</sub> <output id="th-ta-o"></output></label><input id="th-ta" type="range" min="-40" max="105" step="1" value="45"></div>
+    <p class="note">R<sub>DS(on)</sub> 0.25 Ω at 25 °C, +0.4 %/°C; I<sub>Q</sub> 50 µA; thermal shutdown 160 °C with 20 °C hysteresis. Board heat-sinking 1.0 = JEDEC 4-layer test board; larger means a worse board.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="th-metrics"></div>
+    <div class="two">
+      <div class="panel"><h3>Junction temperature vs load current <small>each package</small></h3><svg class="viz" id="th-tj" role="img" aria-label="Junction temperature versus load current"></svg></div>
+      <div class="panel"><h3>V<sub>OUT</sub> vs V<sub>IN</sub> <small>dropout region</small></h3><svg class="viz" id="th-do" role="img" aria-label="Output voltage versus input voltage"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i>with self-heating</span><span><i style="background:var(--muted)"></i>25 °C ideal</span></div></div>
+    </div>
+    <div class="panel"><h3>Output during thermal shutdown <small>sketch</small></h3><svg class="viz" id="th-hic" role="img" aria-label="Thermal-shutdown hiccup waveform"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>Defaults of 5 V → 3.3 V, 300 mA in SOT-23: about 0.5 W dissipated and T<sub>J</sub> above 150 °C — right at the edge of thermal shutdown.</li>
+    <li>Switch to DFN or QFN: the same dissipation rises only 30–40 °C. Heat often limits an LDO before its current rating does.</li>
+    <li>Lower V<sub>IN</sub> to 3.5 V: dissipation falls a lot, but you approach dropout; the right-hand plot shows dropout growing with temperature.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="architecture.html#dropout">Architecture · dropout and dissipation</a></li>
+    <li><a href="application.html#thermal">Applications · thermal design</a>, <a href="production.html#assembly">Production · package thermal resistance</a></li>
+    <li><a href="issues.html#thermal-shutdown">Troubleshooting · thermal shutdown</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ BUCK ============ -->
+<section class="tabp" id="tab-buck" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>synchronous buck</small></h3>
+    <div class="ctl"><label for="bk-vin">V<sub>IN</sub> <output id="bk-vin-o"></output></label><input id="bk-vin" type="range" min="2.5" max="20" step="0.1" value="5"></div>
+    <div class="ctl"><label for="bk-vout">V<sub>OUT</sub> <output id="bk-vout-o"></output></label><input id="bk-vout" type="range" min="0.6" max="5" step="0.05" value="1.2"></div>
+    <div class="ctl"><label for="bk-i">Load current <output id="bk-i-o"></output></label><input id="bk-i" type="range" min="0" max="100" step="1" value="92"></div>
+    <div class="ctl"><label for="bk-f">Switching frequency <output id="bk-f-o"></output></label><input id="bk-f" type="range" min="0.2" max="4" step="0.1" value="2"></div>
+    <div class="ctl"><label for="bk-l">Inductance L <output id="bk-l-o"></output></label><input id="bk-l" type="range" min="0" max="9" step="1" value="3"></div>
+    <div class="ctl"><label for="bk-isat">Inductor saturation current I<sub>sat</sub> <output id="bk-isat-o"></output></label><input id="bk-isat" type="range" min="0.5" max="6" step="0.1" value="3"></div>
+    <div class="ctl"><label for="bk-c">Output capacitance (effective) <output id="bk-c-o"></output></label><input id="bk-c" type="range" min="0" max="8" step="1" value="7"></div>
+    <div class="ctl"><label for="bk-esr">ESR <output id="bk-esr-o"></output></label><input id="bk-esr" type="range" min="0" max="100" step="1" value="15"></div>
+    <div class="ctl"><label>Light-load mode</label>
+      <div class="btnrow" id="bk-mode"><button class="btn" data-v="pfm" aria-pressed="true">Auto (DCM)</button><button class="btn" data-v="fpwm" aria-pressed="false">Forced PWM</button></div></div>
+    <p class="note">High side 60 mΩ, low side 30 mΩ, inductor DCR estimated from inductance; switching loss from an 8 ns transition and 4 nC gate charge; t<sub>ON,min</sub> = 60 ns.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="bk-metrics"></div>
+    <div class="panel"><h3>Inductor current <small>three cycles</small></h3><svg class="viz" id="bk-il" role="img" aria-label="Inductor-current waveform"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>i<sub>L</sub></span><span><i style="background:var(--muted)"></i>I<sub>OUT</sub></span><span><i style="background:var(--bad)"></i>I<sub>sat</sub></span></div></div>
+    <div class="two">
+      <div class="panel"><h3>Output ripple <small>mV</small></h3><svg class="viz" id="bk-v" role="img" aria-label="Output-voltage ripple"></svg></div>
+      <div class="panel"><h3>Efficiency vs load <small>current L and frequency</small></h3><svg class="viz" id="bk-eff" role="img" aria-label="Efficiency curve"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i>selected mode</span><span><i style="background:var(--muted)"></i>other mode</span></div></div>
+    </div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>Ripple current ΔI<sub>L</sub> = V<sub>OUT</sub>(1−D)/(L·f). Halve the inductance and ripple doubles; the peak may hit saturation.</li>
+    <li>Drop the load to very little: auto mode enters DCM and keeps efficiency up; forced PWM drives the inductor current negative — poor light-load efficiency but fixed ripple.</li>
+    <li>Set V<sub>IN</sub> 20 V, V<sub>OUT</sub> 0.6 V, 4 MHz: the on-time falls below t<sub>ON,min</sub> and the converter cannot hold a fixed frequency.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="architecture.html#buck">Architecture · buck</a>, <a href="application.html#inductor">Applications · inductor selection</a></li>
+    <li><a href="design.html#gate-drive">Design · minimum on-time</a></li>
+    <li><a href="issues.html#efficiency">Troubleshooting · efficiency</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ MLCC ============ -->
+<section class="tabp" id="tab-mlcc" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>multilayer ceramic capacitor</small></h3>
+    <div class="ctl"><label for="ml-c">Nominal capacitance <output id="ml-c-o"></output></label><input id="ml-c" type="range" min="0" max="7" step="1" value="6"></div>
+    <div class="ctl"><label for="ml-size">Case size</label><select id="ml-size"><option value="0">0201</option><option value="1">0402</option><option value="2" selected>0603</option><option value="3">0805</option><option value="4">1206</option></select></div>
+    <div class="ctl"><label for="ml-vr">Rated voltage</label><select id="ml-vr"><option value="4">4 V</option><option value="6.3" selected>6.3 V</option><option value="10">10 V</option><option value="16">16 V</option><option value="25">25 V</option></select></div>
+    <div class="ctl"><label for="ml-diel">Dielectric</label><select id="ml-diel"><option value="x5r" selected>X5R (−55~85 °C ±15%)</option><option value="x7r">X7R (−55~125 °C ±15%)</option><option value="y5v">Y5V (+22/−82%)</option></select></div>
+    <div class="ctl"><label for="ml-v">Working DC voltage <output id="ml-v-o"></output></label><input id="ml-v" type="range" min="0" max="12" step="0.1" value="3.3"></div>
+    <div class="ctl"><label for="ml-t">Temperature <output id="ml-t-o"></output></label><input id="ml-t" type="range" min="-40" max="125" step="1" value="85"></div>
+    <div class="ctl"><label for="ml-tol">Tolerance</label><select id="ml-tol"><option value="0.1">±10%</option><option value="0.2" selected>±20%</option></select></div>
+    <div class="ctl"><label for="ml-age">Time since reflow <output id="ml-age-o"></output></label><input id="ml-age" type="range" min="0" max="5" step="0.1" value="4"></div>
+    <div class="ctl"><label for="ml-req">Minimum effective capacitance the LDO needs <output id="ml-req-o"></output></label><input id="ml-req" type="range" min="0.5" max="10" step="0.1" value="2"></div>
+    <p class="note">DC bias approximated as C/C₀ = 1/(1+(V/V₀)<sup>1.6</sup>), with V₀ depending on size, rated voltage and capacitance density. Use the capacitor vendor's simulation tools for real curves.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="ml-metrics"></div>
+    <div class="panel"><h3>Effective capacitance vs DC bias <small>same value, different sizes</small></h3><svg class="viz" id="ml-bias" role="img" aria-label="Effective capacitance versus DC bias"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>selected size</span><span><i style="background:var(--muted)"></i>other sizes</span><span><i style="background:var(--bad)"></i>LDO minimum</span><span>dashed: incl. tolerance, temperature, ageing</span></div></div>
+    <div class="panel"><h3>Capacitance waterfall <small>nominal → worst-case effective</small></h3><svg class="viz" id="ml-wf" role="img" aria-label="Capacitance loss waterfall"></svg>
+      <div class="legend"><span><i style="background:var(--bad)"></i>red = loss at that step; red dashed = LDO minimum</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>The default 10 µF / 0603 / 6.3 V at 3.3 V, 85 °C and −20% tolerance leaves only about 3 µF.</li>
+    <li>Keep 10 µF but go to 0805 or a 10 V rating: DC-bias loss improves dramatically. That is cheaper than adding a capacitor.</li>
+    <li>Switch the dielectric to Y5V: almost no capacitance left when hot. Never use it for power.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="application.html#capacitors">Applications · capacitor selection</a></li>
+    <li><a href="complaints.html#c-mlcc">Complaints · oscillation after a capacitor change</a></li>
+    <li>Take the effective value to <a href="#bode">LDO stability</a> and try it.</li></ul></div>
+</div>
+</section>
+
+<!-- ============ TRIM ============ -->
+<section class="tabp" id="tab-trim" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>output-voltage trim · 20 000 units</small></h3>
+    <div class="ctl"><label for="tm-sig">Pre-trim σ <output id="tm-sig-o"></output></label><input id="tm-sig" type="range" min="0.2" max="3" step="0.05" value="1.2"></div>
+    <div class="ctl"><label for="tm-mu">Pre-trim mean offset <output id="tm-mu-o"></output></label><input id="tm-mu" type="range" min="-3" max="3" step="0.05" value="0.6"></div>
+    <div class="ctl"><label for="tm-bits">Trim bits <output id="tm-bits-o"></output></label><input id="tm-bits" type="range" min="2" max="8" step="1" value="5"></div>
+    <div class="ctl"><label for="tm-lsb">Step size LSB <output id="tm-lsb-o"></output></label><input id="tm-lsb" type="range" min="0.05" max="1" step="0.01" value="0.2"></div>
+    <div class="ctl"><label for="tm-pk">Package shift mean <output id="tm-pk-o"></output></label><input id="tm-pk" type="range" min="-0.6" max="0.6" step="0.01" value="0.5"></div>
+    <div class="ctl"><label for="tm-pks">Package shift σ <output id="tm-pks-o"></output></label><input id="tm-pks" type="range" min="0" max="0.3" step="0.01" value="0.08"></div>
+    <div class="ctl"><label for="tm-nz">CP measurement noise σ <output id="tm-nz-o"></output></label><input id="tm-nz" type="range" min="0" max="0.2" step="0.005" value="0.02"></div>
+    <div class="ctl"><label for="tm-spec">Spec ± <output id="tm-spec-o"></output></label><input id="tm-spec" type="range" min="0.3" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><label>CP trim target</label>
+      <div class="btnrow" id="tm-pc"><button class="btn" data-v="0" aria-pressed="true">Aim at 0</button><button class="btn" data-v="1" aria-pressed="false">Pre-compensate package shift</button></div></div>
+    <p class="note">CP test limit is 70% of spec; FT judges against spec. Trim codes range from −2<sup>N−1</sup> to 2<sup>N−1</sup>−1.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="tm-metrics"></div>
+    <div class="panel"><h3>Output-error distribution <small>pre-trim vs final FT</small></h3><svg class="viz" id="tm-hist" role="img" aria-label="Distribution before and after trim"></svg>
+      <div class="legend"><span><i style="background:var(--muted)"></i>pre-trim</span><span><i style="background:var(--accent)"></i>final FT (CP passes)</span><span><i style="background:var(--bad)"></i>spec limits</span></div></div>
+    <div class="panel"><h3>Trim-code distribution <small>codes at the limit = trim range too small</small></h3><svg class="viz" id="tm-code" role="img" aria-label="Trim-code distribution"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>What to look for</h3><ul>
+    <li>Trim range = 2<sup>N</sup> × LSB. If it is too small, parts at the tails cannot be trimmed back and the code distribution piles up at the limits.</li>
+    <li>With a large LSB the post-trim residual is uniform over ±LSB/2 and Cpk will not rise; a small LSB needs more bits to cover the range.</li>
+    <li>Press "Pre-compensate package shift": the final distribution recentres and Cpk clearly improves. That is the value of CP / FT correlation analysis.</li></ul></div>
+  <div class="panel"><h3>Further reading</h3><ul>
+    <li><a href="process.html#trim-fuse">Process · trimming methods</a></li>
+    <li><a href="production.html#cp-trim">Production · CP trim</a>, <a href="production.html#cpk">Cpk and SPC</a></li>
+    <li><a href="test.html#correlation">Test · correlation</a></li></ul></div>
+</div>
+</section>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+<script src="../assets/plot.js"></script>
+<script src="../assets/lab.js"></script>
+</body>
+</html>

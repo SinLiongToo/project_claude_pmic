@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Customer Complaints · PMIC Notes</title>
+<meta name="description" content="Handling power-IC customer complaints: flow and timelines, information to collect, failure-analysis steps, failure classification, the 8D report, root-cause tools, typical cases (EOS, MLCC oscillation, OTP, test escape, delamination, NTF, unannounced change, system ESD, counterfeits) and communication.">
+<link rel="alternate" hreflang="zh-Hant" href="../complaints.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="complaints" data-ch="rel">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Customer complaints</div>
+<h1>Customer complaints: from the customer's e-mail to a closed 8D</h1>
+<p class="lead">A complaint usually starts with a short e-mail: "Twelve of your LDOs failed on our line." Over the following days or weeks, quality, product, test, design and applications engineers must answer three questions together: <b>Is it our problem? How big is the exposure? How do we make sure it never happens again?</b> This page covers the handling flow, failure-analysis steps, the 8D report and the most typical power-IC complaint scenarios.</p>
+<div class="callout"><b>About the cases</b>　The cases on this page are composites of common industry situations, written to show the reasoning. They do not describe any particular company or product.</div>
+
+<h2 id="flow">Flow and timelines</h2>
+<ol class="steps">
+  <li><b>Acknowledge (within 24 hours)</b>: confirm receipt, open a complaint number, assign an owner.</li>
+  <li><b>Initial containment (24–72 hours)</b>: decide whether to freeze inventory, screen goods in transit and notify other customers on the same lots.</li>
+  <li><b>Gather information</b>: failure rate, lot / date code, operating conditions, failure mode, photos and waveforms (see <a href="#info">what to ask</a>).</li>
+  <li><b>Get samples</b>: failing parts plus good parts from the same lot, and the failing board if possible. Ask the customer not to keep powering it to try fixes.</li>
+  <li><b>Verify the failure</b>: reproduce it on ATE and on the bench. If it cannot be reproduced it is NTF — go back to the application conditions.</li>
+  <li><b>Failure analysis (FA)</b>: from non-destructive to destructive, locate the physical failure and its mechanism (see <a href="#fa">FA flow</a>).</li>
+  <li><b>Root cause and exposure</b>: link the physical failure to a process, package, test, design or application root cause, and decide which lots are affected.</li>
+  <li><b>Correct and prevent</b>: short-term actions, permanent actions, horizontal deployment (do other products share the risk?).</li>
+  <li><b>Close the 8D</b>: verify the actions work and get the customer to agree to close.</li>
+</ol>
+<p>Common time requirements: <b>3D</b> (including containment) within 24–48 hours and the <b>full 8D</b> within 10–30 working days; automotive customers are usually stricter. FA time is the biggest variable — a complex on-die failure can take weeks.</p>
+
+<h2 id="info">Information to collect from the customer</h2>
+<div class="tblwrap"><table>
+  <tr><th>Category</th><th>Questions</th></tr>
+  <tr><td>Identification</td><td>Full part number, marking (date code, lot code), purchase channel (direct, distributor, open market)</td></tr>
+  <tr><td>Quantity</td><td>Failures / total used, and at which stage (incoming inspection, after SMT, functional test, burn-in, after shipment, field)</td></tr>
+  <tr><td>Failure mode</td><td>No output, output shifted, oscillation, overheating, short, leakage, intermittent? Does it recover?</td></tr>
+  <tr><td>Application conditions</td><td>Schematic, V<sub>IN</sub> source and range, load, actual input / output capacitor part numbers, layout, ambient temperature</td></tr>
+  <tr><td>Changes</td><td>Any recent design change, new capacitor / inductor / adapter supplier, new SMT house or reflow profile, new IC lot?</td></tr>
+  <tr><td>Events</td><td>Any hot plugging, ESD testing, lightning, shorts or misuse before the failure?</td></tr>
+  <tr><td>Evidence</td><td>Waveforms (V<sub>IN</sub>, V<sub>OUT</sub>, SW), thermal images, photos of the failing board, X-rays</td></tr>
+</table></div>
+<div class="callout"><b>"What changed recently?" is the most valuable question</b>　When a product has run for a long time and suddenly starts failing, the answer is usually hidden in a change: the customer switched capacitor vendors, we changed a test program, a distributor topped up stock from the open market. Lining up the change points with when failures began often points the way.</div>
+
+<h2 id="fa">The failure-analysis flow</h2>
+<ol class="steps">
+  <li><b>Visual inspection</b>: optical microscope for package cracks, burns, damaged leads, solder residue and correct marking (counterfeit check).</li>
+  <li><b>X-ray</b>: broken or displaced bond wires, solder voids, die cracks.</li>
+  <li><b>C-SAM acoustic scan</b>: delamination and voids inside the package.</li>
+  <li><b>Electrical verification</b>: full ATE program and bench reproduction under customer conditions; compare with good parts from the same lot.</li>
+  <li><b>Pin-to-pin I-V curves</b> (curve trace): find which pins are shorted, leaky or open, compared with a good part.</li>
+  <li><b>Decapsulation</b>: remove mould compound chemically or by laser to expose the die.</li>
+  <li><b>Hot-spot localisation</b>: EMMI (light emission), OBIRCH (laser-induced resistance change), lock-in thermography to find leakage or shorts.</li>
+  <li><b>Deprocessing and inspection</b>: delayering, SEM, FIB cross-sections and EDX composition to confirm the physical defect.</li>
+  <li><b>Conclusion</b>: failure site, mechanism and likely root cause, with photos and data.</li>
+</ol>
+<p>The rule is <b>non-destructive first, destructive later</b>: once decapsulated or delayered, you cannot go back. Photograph everything before each step.</p>
+
+<h2 id="classification">Failure classification</h2>
+<div class="tblwrap"><table>
+  <tr><th>Class</th><th>Typical FA finding</th><th>Ownership and direction</th></tr>
+  <tr><td>EOS (electrical overstress)</td><td>Large areas of melted metal, burned-through power devices, charred package</td><td>Mostly application transients; find the energy source</td></tr>
+  <tr><td>ESD</td><td>Small melt spots in ESD structures or input stages</td><td>Line static control, system-level ESD design</td></tr>
+  <tr><td>NTF (no trouble found)</td><td>Everything passes on ATE and the bench</td><td>Back to application conditions, soldering, board, measurement method</td></tr>
+  <tr><td>Wafer process defect</td><td>Oxide defects, particles, metal shorts</td><td>Fab; assess same-lot risk</td></tr>
+  <tr><td>Package defect</td><td>Bond wires, delamination, die-attach voids, foreign material</td><td>Assembly site</td></tr>
+  <tr><td>Test escape</td><td>Failure reproducible on ATE under specific conditions, but not covered by the production program</td><td>Test engineering; add test items</td></tr>
+  <tr><td>Design issue</td><td>Reproducible under specific conditions on all lots</td><td>Design; may need a revision or a datasheet change</td></tr>
+  <tr><td>Application issue</td><td>IC is fine; use is outside spec or recommendations</td><td>Applications engineering helps the customer fix it</td></tr>
+  <tr><td>Counterfeit / remarked</td><td>Wrong die marking, odd package marking, a different die inside</td><td>Purchase channel</td></tr>
+</table></div>
+<p>Among returned power ICs, EOS and NTF are usually the two largest classes. Genuine chip defects are a small share, but each one must be taken seriously because it may signal a whole-lot risk.</p>
+
+<h2 id="eight-d">The 8D report</h2>
+<div class="tblwrap"><table>
+  <tr><th>Step</th><th>Content</th><th>Common problems</th></tr>
+  <tr><td>D0 Prepare</td><td>Decide whether an 8D is needed; emergency response</td><td></td></tr>
+  <tr><td>D1 Team</td><td>Cross-functional: quality, product, test, design, applications, manufacturing</td><td>Quality writes it alone</td></tr>
+  <tr><td>D2 Problem description</td><td>5W2H: what, where, when, how many, how found</td><td>Too vague, e.g. "IC defective"</td></tr>
+  <tr><td>D3 Containment</td><td>Quarantine stock, screen, ship alternates, and verify containment works</td><td>Just "strengthen inspection"</td></tr>
+  <tr><td>D4 Root cause</td><td>Find both the <b>occurrence root cause</b> (why it happened) and the <b>escape root cause</b> (why it was not caught)</td><td>Only occurrence, escape ignored</td></tr>
+  <tr><td>D5 Permanent actions</td><td>Actions for each of the two root causes</td><td>The action is "training"</td></tr>
+  <tr><td>D6 Implement and verify</td><td>Put in place and prove effective with data</td><td>No verification data</td></tr>
+  <tr><td>D7 Prevent recurrence</td><td>Update FMEA, control plan, design rules, test programs; deploy horizontally to other products</td><td>No horizontal deployment</td></tr>
+  <tr><td>D8 Close</td><td>Customer confirmation, team wrap-up</td><td></td></tr>
+</table></div>
+<div class="callout"><b>The escape root cause often matters more</b>　Defects will always occasionally happen — but why did test miss it? For a UVLO fault that only appears when cold, the occurrence cause is a process shift and the escape cause is room-temperature-only FT. Fixing the process without adding the test lets the next kind of shift escape too.</div>
+
+<h2 id="tools">Root-cause tools</h2>
+<ul>
+  <li><b>5 Whys</b>: keep asking "why" until you reach a system cause you can change, not "operator error".</li>
+  <li><b>Fishbone</b> (Ishikawa): list possible causes by man, machine, material, method, environment and measurement (6M) so nothing is missed.</li>
+  <li><b>Is / is-not analysis</b>: which lots, customers and conditions have the problem — and which <b>do not</b>? The differences are the clues.</li>
+  <li><b>Fault-tree analysis (FTA)</b>: expand every possible path below the top failure event and eliminate them one by one with data.</li>
+  <li><b>Data analysis</b>: map failing units back to CP / FT data to see where they sat in the distribution; they often turn out to have been marginal or PAT outliers.</li>
+</ul>
+
+<h2 id="cases">Typical complaint cases</h2>
+
+<div class="case" id="c-eos"><div class="case-h"><span class="tag rel">EOS</span><b>Hot-plug spike destroys a buck input</b><small>Consumer · 12 V adapter</small></div><dl>
+<div><dt>Symptom</dt><dd>Products occasionally fail to power on at end users; returned buck ICs have V<sub>IN</sub> shorted to ground, at about 0.1% failure rate.</dd></div>
+<div><dt>Analysis</dt><dd>FA shows a large melted area in the high-side switch — classic EOS. Plugging a 12 V adapter with a long cable into the customer board shows a 23 V spike on V<sub>IN</sub>, above the IC's 20 V absolute maximum.</dd></div>
+<div><dt>Root cause</dt><dd>The input has only ceramic capacitors, forming a lightly damped LC with the adapter cable inductance; the new design dropped the original electrolytic to save cost.</dd></div>
+<div><dt>Action</dt><dd>Add a TVS and an electrolytic for damping at the input; longer term, move to a 28 V-rated part. Add hot-plug guidance to the application note.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>EOS is a starting point, not a conclusion; find where the energy came from and reproduce it on the customer's board.</dd></div></dl></div>
+
+<div class="case" id="c-mlcc"><div class="case-h"><span class="tag use">Application</span><b>New capacitor supplier, and the LDO starts oscillating</b><small>Industrial · 3.3 V LDO</small></div><dl>
+<div><dt>Symptom</dt><dd>After two trouble-free years in production, 3% of boards in one month show bad ADC readings in functional test; the customer suspects an LDO lot problem.</dd></div>
+<div><dt>Analysis</dt><dd>All returned LDOs pass (NTF). The failing boards show 400 kHz oscillation on the LDO output. ABA swap: a good IC on a bad board still oscillates.</dd></div>
+<div><dt>Root cause</dt><dd>Purchasing switched to a different 0402, 6.3 V, 2.2 µF MLCC that keeps only about 0.8 µF at 3.3 V bias — below the LDO's 1 µF minimum. With capacitor tolerance some boards oscillate.</dd></div>
+<div><dt>Action</dt><dd>Move to a 0603, 10 V-rated capacitor; the customer's BOM adds the capacitor DC-bias spec to its qualification criteria.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>An "IC lot problem" is often a "lot problem in another part"; ask proactively about the customer's changes.</dd></div></dl></div>
+
+<div class="case" id="c-otp"><div class="case-h"><span class="tag mfg">Production</span><b>Wrong OTP setting, wrong output voltage</b><small>PMIC · part configuration</small></div><dl>
+<div><dt>Symptom</dt><dd>A customer receives a reel of PMICs where one rail outputs 1.8 V instead of 1.2 V, damaging the SoC.</dd></div>
+<div><dt>Analysis</dt><dd>Reading out the OTP shows the settings of another part number built on the same die. Traced to an FT part-number changeover where the test program switched but the programming file was not updated.</dd></div>
+<div><dt>Root cause</dt><dd>Occurrence: part-number changeover relied on manual checks. Escape: FT only verified that programming "succeeded", not that the content matched the part number.</dd></div>
+<div><dt>Action</dt><dd>Test programs load the programming file automatically by part number; after programming, read back the OTP and compare a CRC with the part master; recall and screen all lots from the same period.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>The risk in configurable chips lies in configuration management; verify the content after programming, not just the action.</dd></div></dl></div>
+
+<div class="case" id="c-escape"><div class="case-h"><span class="tag tst">Test</span><b>Cold UVLO threshold escapes test</b><small>Automotive · LDO</small></div><dl>
+<div><dt>Symptom</dt><dd>On winter cold starts, ECUs in a few vehicles reset. Returned LDOs work at room temperature.</dd></div>
+<div><dt>Analysis</dt><dd>At −40 °C, the failing units' rising UVLO threshold is 150 mV above spec; others from the lot are fine. CP data shows the failing units were already extreme values at room temperature.</dd></div>
+<div><dt>Root cause</dt><dd>Occurrence: a local wafer process shift gave the UVLO comparator an abnormal temperature coefficient. Escape: FT tested only room and hot, and UVLO was not included in PAT.</dd></div>
+<div><dt>Action</dt><dd>Add a cold test, or apply PAT dynamic limits to the room-temperature value to remove outliers; review test-temperature coverage for other temperature-sensitive parameters.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Outliers often signal latent defects; choose test temperatures by each parameter's temperature behaviour, not one size fits all.</dd></div></dl></div>
+
+<div class="case" id="c-delam"><div class="case-h"><span class="tag mfg">Package</span><b>MSL violation causes delamination</b><small>Consumer · QFN PMIC</small></div><dl>
+<div><dt>Symptom</dt><dd>Post-SMT functional-test fallout suddenly rises to 0.5%, with output shifts and intermittent opens.</dd></div>
+<div><dt>Analysis</dt><dd>C-SAM shows delamination between die surface and mould compound; unmounted parts from the same lot are fine. The reel had been open on the line for over two weeks.</dd></div>
+<div><dt>Root cause</dt><dd>An MSL 3 part was used beyond its floor life (168 hours) without baking; absorbed moisture vaporised in reflow, delaminating, pulling on bond wires and changing die stress.</dd></div>
+<div><dt>Action</dt><dd>The customer introduces moisture-sensitive device control (open-time logging, dry cabinets, bake when expired). The supplier strengthens the warning on the packaging label.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Not every failure happens inside the chipmaker; the customer's process control is part of reliability too.</dd></div></dl></div>
+
+<div class="case" id="c-ntf"><div class="case-h"><span class="tag rel">NTF</span><b>All returns are good: a soldering problem</b><small>Wearable · WLCSP LDO</small></div><dl>
+<div><dt>Symptom</dt><dd>After drop testing, some products show output faults; the customer returns 20 LDOs for analysis.</dd></div>
+<div><dt>Analysis</dt><dd>All 20 pass ATE and bench tests. A failing board is requested; a cross-section shows cracks between the WLCSP solder balls and PCB pads.</dd></div>
+<div><dt>Root cause</dt><dd>PCB pad design and underfill did not follow recommendations, concentrating drop stress in the joints.</dd></div>
+<div><dt>Action</dt><dd>Fix the pad size per recommendation and add underfill; the standard NTF process now requires the failing board.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>NTF does not mean "no problem"; removing the IC may destroy the evidence.</dd></div></dl></div>
+
+<div class="case" id="c-pcn"><div class="case-h"><span class="tag mfg">Change</span><b>An unannounced mould-compound change</b><small>Industrial · precision LDO</small></div><dl>
+<div><dt>Symptom</dt><dd>In the customer's hot-humid ageing test, LDO output drifts 0.8%, beyond the system's 0.5% allowance; older lots do not.</dd></div>
+<div><dt>Analysis</dt><dd>Comparing lots shows the assembly site switched to an equivalent-grade mould compound for supply reasons, judged internally as "no spec impact" and issued no PCN. The new compound changes stress more after absorbing moisture.</dd></div>
+<div><dt>Root cause</dt><dd>The change-impact assessment looked only at room-temperature electricals, not humidity stress on precision parameters.</dd></div>
+<div><dt>Action</dt><dd>Revert to the original compound; change-control rules now require post-humidity drift qualification and customer notification for any material change that affects die stress.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>"No spec impact" must be proven with qualification data; when in doubt, issue a PCN.</dd></div></dl></div>
+
+<div class="case" id="c-esd"><div class="case-h"><span class="tag tst">ESD</span><b>System ESD testing kills the IC</b><small>Consumer · USB port power switch</small></div><dl>
+<div><dt>Symptom</dt><dd>After IEC 61000-4-2 ±8 kV contact discharge, the load switch fails; the customer says the datasheet's ±2 kV HBM is not enough.</dd></div>
+<div><dt>Analysis</dt><dd>FA shows the input ESD structure melted. The IC meets its HBM and CDM ratings; system-level discharge carries far more energy and current than HBM.</dd></div>
+<div><dt>Root cause</dt><dd>No external TVS on the USB port, so all the system ESD energy entered the IC.</dd></div>
+<div><dt>Action</dt><dd>Add a TVS at the port, close to the connector; the application note explains the difference between HBM and system-level ESD.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Component-level and system-level ESD are different specifications; pins connected to the outside world need system protection.</dd></div></dl></div>
+
+<div class="case" id="c-counterfeit"><div class="case-h"><span class="tag rel">Counterfeit</span><b>Counterfeits bought on the open market</b><small>During a shortage · LDO</small></div><dl>
+<div><dt>Symptom</dt><dd>During a shortage the customer buys from an unauthorised channel; the new lot has high I<sub>Q</sub>, large dropout and some units are unstable.</dd></div>
+<div><dt>Analysis</dt><dd>Marking font differs from the original, date and lot codes do not match the manufacturer's records; after decap the die marking belongs to another vendor's low-end product.</dd></div>
+<div><dt>Root cause</dt><dd>Remarked counterfeits from an unauthorised channel.</dd></div>
+<div><dt>Action</dt><dd>The customer buys only from the manufacturer or authorised distributors; the manufacturer offers a lot-verification service.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Confirming the purchase channel is one of the first steps; parts not shipped by the manufacturer are not its quality problem, but help the customer identify them anyway.</dd></div></dl></div>
+
+<div class="case" id="c-foldback"><div class="case-h"><span class="tag des">Design</span><b>Foldback current limit stops an LDO starting</b><small>Industrial · FPGA auxiliary rail</small></div><dl>
+<div><dt>Symptom</dt><dd>On some boards the output sticks at 0.6 V after power-up instead of reaching 2.5 V; re-powering sometimes helps.</dd></div>
+<div><dt>Analysis</dt><dd>The FPGA auxiliary rail starts drawing heavily at low voltage; the LDO's foldback allows only 200 mA at low V<sub>OUT</sub>, not enough to supply the load and charge the 100 µF output capacitor.</dd></div>
+<div><dt>Root cause</dt><dd>The application is incompatible with foldback limiting; the datasheet shows the foldback curve but the application section gives no warning.</dd></div>
+<div><dt>Action</dt><dd>Switch to a constant-current-limit part, or delay the load with PG; add start-up guidance to the datasheet application section.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Protection behaviour is part of the specification; spell out when it will "over-protect".</dd></div></dl></div>
+
+<h2 id="communication">Talking to the customer</h2>
+<ul>
+  <li><b>Respond first, analyse second</b>: an initial reply within 24 hours stating receipt, next steps and timeline beats a full report after three days of silence.</li>
+  <li><b>Let data speak</b>: "the IC is fine" needs test data, swap results and waveforms, not just a conclusion.</li>
+  <li><b>Do not rush to assign blame</b>: an EOS or application conclusion still needs a concrete energy source or condition, and improvement suggestions. Customers want a solution, not a verdict.</li>
+  <li><b>Interim reports</b>: for long FAs, update progress every few days.</li>
+  <li><b>One contact</b>: a single point of contact keeps departments from giving conflicting answers.</li>
+  <li><b>Follow up after closing</b>: confirm the actions work at the customer and the failure rate returns to baseline.</li>
+</ul>
+
+<h2 id="metrics">Quality metrics</h2>
+<div class="tblwrap"><table>
+  <tr><th>Metric</th><th>Definition</th><th>Typical target</th></tr>
+  <tr><td>DPPM</td><td>Confirmed customer rejects / units shipped × 10<sup>6</sup></td><td>Consumer &lt; 10–50; automotive &lt; 1</td></tr>
+  <tr><td>First response time</td><td>From complaint to first reply</td><td>&lt; 24 hours</td></tr>
+  <tr><td>8D cycle time</td><td>From complaint to 8D closure</td><td>&lt; 30 days</td></tr>
+  <tr><td>FA cycle time</td><td>From samples received to FA report</td><td>1–3 weeks</td></tr>
+  <tr><td>Recurrence rate</td><td>Share of root causes that recur</td><td>0</td></tr>
+  <tr><td>RMA</td><td>Return authorisations by count and cause</td><td>Track trends by cause</td></tr>
+</table></div>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>8D</dt><dd>Eight Disciplines, an eight-step problem-solving and reporting format.</dd></div>
+  <div><dt>FA</dt><dd>Failure analysis.</dd></div>
+  <div><dt>NTF / NFF</dt><dd>No trouble found / no fault found.</dd></div>
+  <div><dt>RMA</dt><dd>Return material authorisation.</dd></div>
+  <div><dt>C-SAM</dt><dd>C-mode scanning acoustic microscopy, for package delamination.</dd></div>
+  <div><dt>EMMI</dt><dd>Emission microscopy, detecting faint light from defects.</dd></div>
+  <div><dt>OBIRCH</dt><dd>Optical beam induced resistance change, a laser-heating localisation method.</dd></div>
+  <div><dt>FIB</dt><dd>Focused ion beam, for cross-sections and circuit edits.</dd></div>
+  <div><dt>Containment</dt><dd>Short-term measures that stop suspect parts reaching customers.</dd></div>
+  <div><dt>Escape</dt><dd>A defective part that passes test and reaches the customer.</dd></div>
+  <div><dt>FMEA</dt><dd>Failure mode and effects analysis.</dd></div>
+</dl>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

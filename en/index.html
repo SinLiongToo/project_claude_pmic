@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PMIC Notes · A map of power-management ICs</title>
+<meta name="description" content="A map of LDO and PMIC knowledge: architecture, BCD process, circuit design, wafer production, test and qualification, system applications, plus troubleshooting, customer-complaint handling and an interactive lab.">
+<link rel="alternate" hreflang="zh-Hant" href="../index.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="index">
+<main class="hub">
+  <div class="eyebrow">PMIC Notes · A map of power-management ICs</div>
+  <h1>LDOs and PMICs: from one error amplifier to the customer's board</h1>
+  <p class="lead">Study notes on linear regulators (LDOs), DC-DC converters and integrated power-management ICs (PMICs). They follow a power IC from architecture, BCD process, circuit design, wafer production, test and qualification through to the system, then collect the problems seen most often in the field and how customer complaints are handled. Each chapter has diagrams, a glossary and links to interactive experiments.</p>
+  <button class="hero-find" type="button" data-open-find>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <span>Search a topic or term: dropout, phase margin, trim, MLCC DC bias, 8D…</span><kbd>Ctrl K</kbd>
+  </button>
+
+  <nav class="flow" aria-label="Knowledge flow">
+    <a href="architecture.html" style="--c:var(--arc)"><span class="st">01 · ARCHITECTURE</span><b>Architecture</b><small>LDO, buck, boost, charge pump, PMIC block diagram</small></a>
+    <a href="process.html" style="--c:var(--fab)"><span class="st">02 · PROCESS</span><b>Process</b><small>BCD, LDMOS, isolation, passives, fuses</small></a>
+    <a href="design.html" style="--c:var(--des)"><span class="st">03 · DESIGN</span><b>Design</b><small>Loop stability, PSRR, noise, protection, control</small></a>
+    <a href="production.html" style="--c:var(--mfg)"><span class="st">04 · PRODUCTION</span><b>Production</b><small>Wafers, CP trim, packaging, FT, yield, change control</small></a>
+    <a href="test.html" style="--c:var(--tst)"><span class="st">05 · TEST</span><b>Test</b><small>Parametric test, characterisation, AEC-Q100, ESD</small></a>
+    <a href="application.html" style="--c:var(--use)"><span class="st">06 · APPLICATION</span><b>Applications</b><small>Power tree, capacitors, thermal, layout, EMI</small></a>
+  </nav>
+
+  <h2 class="grp-h">Chapters</h2>
+  <div class="cards">
+    <a class="card" href="architecture.html" style="--c:var(--arc)"><span class="k">Chapter 1 · Architecture</span><h3>Architecture: turning one voltage into another</h3>
+      <p>Linear vs switching regulation, the LDO block diagram, PMOS / NMOS pass devices, buck / boost / buck-boost, charge pumps, PMIC integration and key specs.</p>
+      <ul><li>Dropout</li><li>Efficiency</li><li>I<sub>Q</sub></li><li>CCM / DCM</li></ul></a>
+    <a class="card" href="process.html" style="--c:var(--fab)"><span class="k">Chapter 2 · Process</span><h3>Process: BCD puts three kinds of transistor on one die</h3>
+      <p>Bipolar-CMOS-DMOS integration, LDMOS and R<sub>DS(on)</sub>·area, isolation and parasitics, resistors and capacitors, thick metal, fuses / OTP, matching and stress.</p>
+      <ul><li>LDMOS</li><li>DTI</li><li>R<sub>sp</sub></li><li>Poly fuse</li></ul></a>
+    <a class="card" href="design.html" style="--c:var(--des)"><span class="k">Chapter 3 · Circuit design</span><h3>Design: stable, quiet and able to protect itself</h3>
+      <p>LDO loop poles and zeros, the ESR window, capacitor-less LDOs, PSRR, noise, bandgap references, current limit and thermal shutdown, DC-DC control modes, compensation, PMIC sequencing and digital interfaces.</p>
+      <ul><li>Phase margin</li><li>Bandgap</li><li>Foldback</li><li>COT</li></ul></a>
+    <a class="card" href="production.html" style="--c:var(--mfg)"><span class="k">Chapter 4 · Production</span><h3>Production: from wafers to reels of tape</h3>
+      <p>Manufacturing flow and WAT, CP and trim, package types and thermal resistance, FT, yield and Cpk, SPC, PAT, traceability, capacity, and PCN / change control.</p>
+      <ul><li>Trim</li><li>QFN</li><li>Cpk</li><li>PCN</li></ul></a>
+    <a class="card" href="test.html" style="--c:var(--tst)"><span class="k">Chapter 5 · Test &amp; qualification</span><h3>Test: you only know it is good if you measure it right</h3>
+      <p>How LDO / DC-DC parameters are measured, ATE production test, bench characterisation, Kelvin sensing and correlation, AEC-Q100 qualification, ESD and latch-up, functional safety.</p>
+      <ul><li>Load reg</li><li>Correlation</li><li>HTOL</li><li>HBM / CDM</li></ul></a>
+    <a class="card" href="application.html" style="--c:var(--use)"><span class="k">Chapter 6 · Applications</span><h3>Applications: surviving on the customer's board</h3>
+      <p>SoC power trees and sequencing, choosing an LDO or a DC-DC, capacitors and DC bias, thermal design, PCB layout, EMI, automotive, phones, industrial and AI-server power.</p>
+      <ul><li>Power tree</li><li>θ<sub>JA</sub></li><li>Layout</li><li>CISPR 25</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">Problems and complaints</h2>
+  <div class="cards">
+    <a class="card" href="issues.html" style="--c:var(--rel)"><span class="k">Troubleshooting</span><h3>Something broke on the board: where to look first</h3>
+      <p>Oscillation, failure to start, overshoot, thermal shutdown, noise, low efficiency, reverse current, EMI failures… organised as "symptom → likely cause → how to check → fix".</p>
+      <ul><li>Symptom index</li><li>Measurement tips</li><li>Design / process / test issues</li></ul></a>
+    <a class="card" href="complaints.html" style="--c:var(--rel)"><span class="k">Customer complaints</span><h3>From the customer's e-mail to a closed 8D</h3>
+      <p>The complaint-handling flow, failure-analysis (FA) steps, the 8D report, typical complaint cases (EOS, soldering, MLCCs, test escapes, delamination) and how to talk to customers.</p>
+      <ul><li>8D</li><li>FA flow</li><li>NTF</li><li>Cases</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">Interactive tools and learning</h2>
+  <div class="cards">
+    <a class="card tool wide" href="lab.html" style="--c:var(--accent)">
+      <svg class="ic" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 20h14l8 24 8-36 8 28h14"/><path d="M6 56h52M6 8v48" opacity=".4"/></svg>
+      <div><span class="k">PMIC Lab</span><h3>Turn the knobs and watch regulators settle — or lose control</h3>
+      <p>Seven live simulations: LDO loop Bode plot and ESR stability window, PSRR versus frequency, load transient, dropout and thermal, buck ripple and inductor choice, MLCC DC-bias effective capacitance, and CP trim yield / Cpk.</p>
+      <ul><li>Bode / phase margin</li><li>PSRR</li><li>Load transient</li><li>Thermal and T<sub>J</sub></li><li>Buck ripple</li><li>MLCC DC bias</li><li>Trim yield</li></ul></div></a>
+    <a class="card" href="roles.html" style="--c:var(--mfg)"><span class="k">Career map</span><h3>What each role should read first</h3>
+      <p>Analogue design, layout, applications (AE / FAE), product, test, process integration, quality and reliability (QRA), failure analysis: what they do, key sections, tools and interview questions.</p>
+      <ul><li>Design</li><li>AE / FAE</li><li>PE</li><li>TE</li><li>QRA</li></ul></a>
+    <a class="card" href="quiz.html" style="--c:var(--tst)"><span class="k">Quiz</span><h3>Test yourself</h3>
+      <p>Multiple-choice questions on eight topics; pick chapters and length. Each answer comes with an explanation and a review link, and missed questions are listed at the end.</p>
+      <ul><li>Instant feedback</li><li>Keyboard answers</li><li>Review links</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">Four ways to regulate, in one table</h2>
+  <div class="tblwrap"><table>
+    <tr><th></th><th>LDO</th><th>Buck (step-down)</th><th>Boost (step-up)</th><th>Charge pump</th></tr>
+    <tr><td>Principle</td><td>Pass device acts as a variable resistor; excess voltage becomes heat</td><td>Switch + inductor deliver energy packet by packet</td><td>Inductor stores energy, then stacks it on the input</td><td>Switches + flying capacitors multiply or divide</td></tr>
+    <tr><td>Output range</td><td>V<sub>OUT</sub> &lt; V<sub>IN</sub> − V<sub>DO</sub></td><td>V<sub>OUT</sub> &lt; V<sub>IN</sub></td><td>V<sub>OUT</sub> &gt; V<sub>IN</sub></td><td>Fixed ratio (×2, ÷2, −1)</td></tr>
+    <tr><td>Efficiency</td><td>≈ V<sub>OUT</sub>/V<sub>IN</sub></td><td>85–95%</td><td>80–93%</td><td>High at the right ratio, low otherwise</td></tr>
+    <tr><td>Noise / ripple</td><td>Very low; it even filters input noise</td><td>Switching ripple and EMI</td><td>Yes, and noisier on the discontinuous side</td><td>Moderate</td></tr>
+    <tr><td>External parts</td><td>1–2 capacitors</td><td>Inductor + capacitors</td><td>Inductor + capacitors (+ diode)</td><td>Several capacitors, no inductor</td></tr>
+    <tr><td>Typical use</td><td>RF, ADC, sensors, PLL, low-current post-regulation</td><td>SoC core, DDR, main rails</td><td>Battery boost, LED, USB 5 V</td><td>Display bias, fast-charge dividers, small negative rails</td></tr>
+  </table></div>
+
+  <h2 class="grp-h">Suggested reading paths</h2>
+  <div class="cards">
+    <a class="card" href="design.html#ldo-loop" style="--c:var(--des)"><span class="k">Analogue design</span><h3>Getting started with LDO design</h3>
+      <p>Architecture · LDO block diagram → Design · loop stability, PSRR, noise → Lab · Bode plot, PSRR → Process · matching and trim.</p></a>
+    <a class="card" href="application.html#power-tree" style="--c:var(--use)"><span class="k">Applications / FAE</span><h3>Helping customers get power right</h3>
+      <p>Applications · power tree, capacitors, thermal, layout → Lab · MLCC DC bias, thermal → Troubleshooting · oscillation and start-up → Complaints.</p></a>
+    <a class="card" href="production.html#cp-trim" style="--c:var(--mfg)"><span class="k">Product / test</span><h3>From yield to Cpk</h3>
+      <p>Production · CP trim, yield, Cpk → Test · ATE and correlation → Lab · trim yield → Complaints · test-escape case.</p></a>
+    <a class="card" href="complaints.html#flow" style="--c:var(--rel)"><span class="k">Quality / QRA</span><h3>Reliability and complaints</h3>
+      <p>Test · AEC-Q100, ESD → Production · PCN and traceability → Complaints · FA and 8D → Troubleshooting · process and package issues.</p></a>
+  </div>
+
+  <p class="foot">Study notes for teaching. Numbers are order-of-magnitude references; vendor datasheets and JEDEC / AEC standards are authoritative. Press <kbd>Ctrl</kbd> + <kbd>K</kbd> or <kbd>/</kbd> to search the site.</p>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

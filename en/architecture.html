@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Architecture · PMIC Notes</title>
+<meta name="description" content="Power IC architecture: linear vs switching regulation, the LDO block diagram and pass devices, dropout and efficiency, buck / boost / buck-boost, charge pumps, PMIC integration and key specifications.">
+<link rel="alternate" hreflang="zh-Hant" href="../architecture.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="arch" data-ch="arc">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Chapter 1 · Architecture</div>
+<h1>Architecture: turning one voltage into another</h1>
+<p class="lead">A battery gives 3.0–4.4 V, USB 5–20 V, a car battery 9–16 V (dropping to 3 V in a cold crank and jumping above 40 V in a load dump). Yet an SoC core wants 0.6–1.0 V, DDR 1.1 V and analogue circuits a clean 1.8 V or 3.3 V. A power IC's job is to turn the input into exactly the voltage each load needs, across every input and load condition.</p>
+
+<h2 id="why-regulate">Why regulate at all</h2>
+<p>Load current can jump from microamps to amps in nanoseconds; the input moves as the battery discharges, a charger is plugged in or an engine cranks. A regulator is a <b>negative-feedback system</b>: it measures the output, compares it with a reference and adjusts the pass element so the output stays put. Judging a regulator means asking how far the output moves under these disturbances, how quickly it comes back and how much energy that costs.</p>
+<div class="tblwrap"><table>
+  <tr><th>Disturbance</th><th>Specification</th><th>Typical magnitude</th></tr>
+  <tr><td>Slow change in load current</td><td>Load regulation</td><td>0.1–1 %/A</td></tr>
+  <tr><td>Slow change in input voltage</td><td>Line regulation</td><td>0.01–0.1 %/V</td></tr>
+  <tr><td>Fast load step</td><td>Load transient</td><td>Tens of mV undershoot, µs recovery</td></tr>
+  <tr><td>Ripple and noise on the input</td><td>Power-supply rejection (PSRR)</td><td>60–80 dB at 1 kHz</td></tr>
+  <tr><td>Temperature, process, ageing</td><td>Output accuracy</td><td>±0.5–2 % (full temperature, full load)</td></tr>
+</table></div>
+
+<h2 id="linear-vs-switching">Linear vs switching regulation</h2>
+<p>A <b>linear regulator</b> runs its pass element in the saturation / linear region, acting as a variable resistor controlled by feedback. The excess voltage (V<sub>IN</sub> − V<sub>OUT</sub>) times the current all becomes heat. It is simple, quiet and fast, and needs no inductor.</p>
+<p>A <b>switching regulator</b> keeps its switches either fully on or fully off, so ideally they dissipate nothing, then filters the pulses into DC with an inductor and capacitor. It is efficient, but has switching ripple, EMI and more external parts.</p>
+<div class="eq">η<sub>LDO</sub> = (V<sub>OUT</sub>·I<sub>OUT</sub>) / (V<sub>IN</sub>·(I<sub>OUT</sub> + I<sub>Q</sub>)) ≈ V<sub>OUT</sub> / V<sub>IN</sub></div>
+<p>Dropping 3.6 V to 1.8 V, an LDO is at most 50% efficient; to 0.8 V, only 22%. So high-current rails with large headroom use DC-DC converters, while clean rails, small headroom or small currents use LDOs. The most common combination is <b>a DC-DC that steps close to the target, followed by an LDO as a filter</b> (post-regulation).</p>
+
+<h2 id="ldo-block">The LDO block diagram</h2>
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="LDO block diagram: pass device, error amplifier, reference, feedback divider and output capacitor">
+  <line class="w" x1="40" y1="50" x2="250" y2="50"/><text x="40" y="40">V<tspan baseline-shift="sub" font-size="10">IN</tspan></text>
+  <circle class="fi" cx="40" cy="50" r="3"/>
+  <line class="w" x1="80" y1="50" x2="80" y2="80"/><rect class="box" x="68" y="80" width="24" height="10"/><line class="w" x1="68" y1="90" x2="92" y2="90"/><line class="w" x1="80" y1="90" x2="80" y2="110"/>
+  <text x="96" y="92" class="ts t-mut">C<tspan baseline-shift="sub" font-size="8">IN</tspan></text>
+  <rect class="c1" x="250" y="30" width="90" height="44" rx="6"/>
+  <text x="295" y="50" text-anchor="middle" class="tl">PMOS</text><text x="295" y="66" text-anchor="middle" class="ts t-mut">pass device</text>
+  <line class="w" x1="340" y1="50" x2="600" y2="50"/><text x="560" y="40">V<tspan baseline-shift="sub" font-size="10">OUT</tspan></text>
+  <circle class="fi" cx="600" cy="50" r="3"/>
+  <line class="w" x1="430" y1="50" x2="430" y2="90"/>
+  <rect class="box" x="420" y="90" width="20" height="44" rx="3"/><text x="448" y="116" class="ts">R1</text>
+  <line class="w" x1="430" y1="134" x2="430" y2="160"/>
+  <rect class="box" x="420" y="160" width="20" height="44" rx="3"/><text x="448" y="186" class="ts">R2</text>
+  <line class="w" x1="430" y1="204" x2="430" y2="260"/>
+  <circle class="fa" cx="430" cy="147" r="3"/><text x="392" y="151" class="ts" text-anchor="end">V<tspan baseline-shift="sub" font-size="8">FB</tspan></text>
+  <line class="w" x1="530" y1="50" x2="530" y2="100"/>
+  <rect class="box" x="520" y="100" width="20" height="30" rx="3"/><text x="546" y="120" class="ts">ESR</text>
+  <line class="w" x1="530" y1="130" x2="530" y2="160"/>
+  <line class="wt" x1="514" y1="160" x2="546" y2="160"/><line class="wt" x1="514" y1="170" x2="546" y2="170"/>
+  <text x="552" y="170" class="ts">C<tspan baseline-shift="sub" font-size="8">OUT</tspan></text>
+  <line class="w" x1="530" y1="170" x2="530" y2="260"/>
+  <line class="w" x1="600" y1="50" x2="600" y2="140"/><circle class="box" cx="600" cy="160" r="18"/><path class="w" d="M600 150v20m-5-6 5 6 5-6"/><text x="600" y="198" text-anchor="middle" class="ts">load</text>
+  <line class="w" x1="600" y1="178" x2="600" y2="260"/>
+  <path class="c3" d="M250 130 L250 210 L320 170 Z"/><text x="262" y="158" class="ts">−</text><text x="262" y="196" class="ts">+</text>
+  <text x="285" y="230" text-anchor="middle" class="ts">error amplifier EA</text>
+  <line class="w" x1="430" y1="147" x2="360" y2="147"/><line class="w" x1="360" y1="147" x2="360" y2="120"/><line class="w" x1="360" y1="120" x2="230" y2="120"/><line class="w" x1="230" y1="120" x2="230" y2="153"/><line class="w" x1="230" y1="153" x2="250" y2="153"/>
+  <line class="w" x1="320" y1="170" x2="345" y2="170"/><line class="w" x1="345" y1="170" x2="345" y2="96"/><line class="w" x1="345" y1="96" x2="295" y2="96"/><line class="w" x1="295" y1="96" x2="295" y2="74"/>
+  <text x="352" y="92" class="ts t-mut">gate drive</text>
+  <rect class="c2" x="130" y="170" width="80" height="40" rx="6"/><text x="170" y="195" text-anchor="middle" class="ts">V<tspan baseline-shift="sub" font-size="8">REF</tspan> bandgap</text>
+  <line class="w" x1="210" y1="190" x2="250" y2="190"/>
+  <line class="w" x1="80" y1="260" x2="600" y2="260"/><line class="w" x1="170" y1="210" x2="170" y2="260"/><line class="w" x1="80" y1="110" x2="80" y2="260"/>
+  <text x="330" y="280" text-anchor="middle" class="ts t-mut">GND</text>
+</svg>
+<figcaption>PMOS LDO: the error amplifier compares V<sub>FB</sub> with the bandgap reference and drives the pass-device gate so that V<sub>OUT</sub> = V<sub>REF</sub>·(1 + R1/R2). C<sub>OUT</sub> and its ESR take part in the loop's poles and zeros.</figcaption>
+</figure>
+<ul>
+  <li><b>Reference</b>: usually a bandgap with a tempco below 50 ppm/°C; it sets the output accuracy.</li>
+  <li><b>Error amplifier</b>: its gain sets regulation, its bandwidth sets transient response, and its output swing decides whether the pass device can be fully turned on (which affects dropout).</li>
+  <li><b>Pass device</b>: a large PMOS or NMOS that may take over half the LDO's area and has the largest gate capacitance.</li>
+  <li><b>Feedback divider</b>: sets the output voltage; built in for fixed-output parts, brought out to an FB pin on adjustable parts.</li>
+  <li><b>Protection</b>: current limit, thermal shutdown, undervoltage lockout (UVLO), soft start and active discharge — see <a href="design.html#protection">Design · protection</a>.</li>
+</ul>
+
+<h2 id="pass-device">Pass device: PMOS, NMOS or PNP</h2>
+<div class="tblwrap"><table>
+  <tr><th>Pass device</th><th>Minimum dropout</th><th>Gate drive</th><th>Loop behaviour</th><th>Typical use</th></tr>
+  <tr><td>PMOS (common source)</td><td>I·R<sub>DS(on)</sub>, down to 50–200 mV</td><td>Pull the gate low; no voltage above V<sub>IN</sub> needed</td><td>High output impedance; dominant pole at the output; needs C<sub>OUT</sub> / ESR for stability</td><td>General-purpose LDOs, phones, IoT</td></tr>
+  <tr><td>NMOS (source follower)</td><td>Needs V<sub>GS</sub> unless a bias rail or charge pump exists</td><td>Gate above V<sub>OUT</sub> + V<sub>GS</sub>; needs V<sub>BIAS</sub> or an internal charge pump</td><td>Low output impedance (≈1/g<sub>m</sub>); good transient, high PSRR, easy to stabilise</td><td>Low-voltage high-current rails (0.8 V / 3 A), SoC cores</td></tr>
+  <tr><td>PNP (classic)</td><td>V<sub>CE(sat)</sub> ≈ 0.2–0.5 V</td><td>Needs base current; I<sub>Q</sub> rises with load</td><td>Similar to PMOS</td><td>Legacy, high-voltage automotive</td></tr>
+  <tr><td>NPN Darlington (e.g. 78xx)</td><td>≈ 1.5–2 V</td><td>Simple</td><td>Very stable, but not "low dropout"</td><td>Legacy standard regulators</td></tr>
+</table></div>
+<div class="callout"><b>Why "low dropout"</b>　The early 78xx parts needed over 2 V of headroom. Replacing the NPN Darlington with a single PNP or PMOS cut dropout to hundreds or even tens of mV — hence the name.</div>
+
+<h2 id="dropout">Dropout, efficiency and power dissipation</h2>
+<p><b>Dropout voltage (V<sub>DO</sub>)</b> is the minimum V<sub>IN</sub> − V<sub>OUT</sub> at which the output still holds its setpoint, usually defined where the output has fallen 1–2% or 100 mV. In dropout, a PMOS LDO's pass device is fully on and behaves as a resistor:</p>
+<div class="eq">V<sub>DO</sub> ≈ I<sub>OUT</sub> · R<sub>DS(on)</sub>　　P<sub>D</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·I<sub>OUT</sub> + V<sub>IN</sub>·I<sub>Q</sub>　　T<sub>J</sub> = T<sub>A</sub> + P<sub>D</sub>·θ<sub>JA</sub></div>
+<p>Example: 5 V to 3.3 V at 500 mA gives P<sub>D</sub> = 0.85 W. A SOT-23 with θ<sub>JA</sub> ≈ 200 °C/W would rise 170 °C and certainly shut down; a DFN with θ<sub>JA</sub> ≈ 45 °C/W and copper for heat-sinking works. When choosing an LDO, <b>heat often limits you before the current rating does</b>.</p>
+<ul>
+  <li><b>PSRR collapses in dropout</b>: the pass device enters the linear region, gain disappears and input ripple passes straight through. Datasheet PSRR is usually measured with V<sub>IN</sub> − V<sub>OUT</sub> ≥ 0.5–1 V.</li>
+  <li><b>Dropout rises with temperature</b>: R<sub>DS(on)</sub> has a tempco of about +0.3–0.5 %/°C, so dropout is 30–50% higher when hot.</li>
+  <li><b>End of battery life</b>: as the battery approaches V<sub>OUT</sub>, the LDO is fully on; the smaller the dropout, the more battery capacity is usable.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#thermal">dropout, dissipation and junction temperature</a></div>
+
+<h2 id="ldo-specs">Key LDO specifications</h2>
+<dl class="terms">
+  <div><dt>Output accuracy</dt><dd>The sum of reference, divider, EA offset, temperature, line and load regulation; typically ±1% (25 °C) or ±2% (full temperature).</dd></div>
+  <div><dt>Quiescent current I<sub>Q</sub></dt><dd>Current the LDO draws itself at no load. Wearables and IoT want &lt; 1 µA; high-PSRR, high-bandwidth LDOs may need tens to hundreds of µA.</dd></div>
+  <div><dt>Ground current I<sub>GND</sub></dt><dd>Current to ground under load; close to I<sub>Q</sub> for PMOS LDOs, rising with load for PNP LDOs.</dd></div>
+  <div><dt>Shutdown current I<sub>SD</sub></dt><dd>Leakage with EN low; sets standby battery life, typically &lt; 100 nA.</dd></div>
+  <div><dt>PSRR</dt><dd>How much input ripple is rejected, in dB, falling with frequency. See <a href="design.html#psrr">Design · PSRR</a>.</dd></div>
+  <div><dt>Output noise</dt><dd>Integrated noise from 10 Hz to 100 kHz, in µV<sub>RMS</sub>. Low-noise LDOs reach &lt; 5 µV<sub>RMS</sub>.</dd></div>
+  <div><dt>Stable capacitor range</dt><dd>The minimum C<sub>OUT</sub> and ESR range in the datasheet. Outside it the LDO may oscillate — the most common application problem.</dd></div>
+  <div><dt>Current limit / short-circuit current</dt><dd>Maximum current into a short; may be constant-current or foldback.</dd></div>
+</dl>
+
+<h2 id="buck">The buck converter</h2>
+<figure>
+<svg viewBox="0 0 640 220" role="img" aria-label="Synchronous buck: high-side and low-side switches, inductor, output capacitor">
+  <line class="w" x1="40" y1="50" x2="160" y2="50"/><text x="40" y="40">V<tspan baseline-shift="sub" font-size="10">IN</tspan></text>
+  <rect class="c1" x="160" y="34" width="70" height="32" rx="5"/><text x="195" y="55" text-anchor="middle" class="ts">high side HS</text>
+  <line class="w" x1="230" y1="50" x2="280" y2="50"/><line class="w" x1="280" y1="50" x2="280" y2="100"/>
+  <circle class="fa" cx="280" cy="100" r="3.5"/><text x="288" y="94" class="ts">SW</text>
+  <line class="w" x1="280" y1="100" x2="280" y2="130"/><rect class="c1" x="245" y="130" width="70" height="32" rx="5"/><text x="280" y="151" text-anchor="middle" class="ts">low side LS</text>
+  <line class="w" x1="280" y1="162" x2="280" y2="195"/>
+  <line class="w" x1="280" y1="100" x2="340" y2="100"/>
+  <path class="w" d="M340 100c0-14 20-14 20 0c0-14 20-14 20 0c0-14 20-14 20 0c0-14 20-14 20 0"/><text x="380" y="80" text-anchor="middle" class="ts">L</text>
+  <line class="w" x1="420" y1="100" x2="580" y2="100"/><text x="560" y="90">V<tspan baseline-shift="sub" font-size="10">OUT</tspan></text>
+  <line class="w" x1="480" y1="100" x2="480" y2="135"/><line class="wt" x1="464" y1="135" x2="496" y2="135"/><line class="wt" x1="464" y1="145" x2="496" y2="145"/><line class="w" x1="480" y1="145" x2="480" y2="195"/>
+  <text x="502" y="145" class="ts">C<tspan baseline-shift="sub" font-size="8">OUT</tspan></text>
+  <line class="w" x1="40" y1="195" x2="580" y2="195"/><text x="310" y="214" text-anchor="middle" class="ts t-mut">GND</text>
+  <rect class="c3" x="60" y="110" width="110" height="50" rx="6"/><text x="115" y="132" text-anchor="middle" class="ts">control + drivers</text><text x="115" y="148" text-anchor="middle" class="ts t-mut">PWM / dead time</text>
+  <line class="wd" x1="170" y1="125" x2="195" y2="66"/><line class="wd" x1="170" y1="145" x2="245" y2="146"/>
+</svg>
+<figcaption>Synchronous buck: with the high side on, SW = V<sub>IN</sub> and inductor current rises; with the low side on, SW = 0 and it falls. The average is D·V<sub>IN</sub>.</figcaption>
+</figure>
+<div class="eq">D = V<sub>OUT</sub>/V<sub>IN</sub> (ideal)　ΔI<sub>L</sub> = V<sub>OUT</sub>(1 − D) / (L·f<sub>SW</sub>)　ΔV<sub>OUT</sub> ≈ ΔI<sub>L</sub> / (8·f<sub>SW</sub>·C<sub>OUT</sub>) + ΔI<sub>L</sub>·ESR</div>
+<ul>
+  <li><b>Synchronous vs asynchronous</b>: a low-side MOSFET (synchronous) replaces the Schottky diode and saves its 0.3–0.5 V drop, which matters a lot at low output voltages. The cost is a <b>dead time</b> to keep both switches from conducting at once (shoot-through).</li>
+  <li><b>CCM / DCM</b>: if inductor current never reaches zero it is continuous conduction (CCM); at light load it drops to zero (DCM). A synchronous buck forced into CCM (FPWM) at light load sees current reverse — inefficient but with fixed ripple.</li>
+  <li><b>Light-load modes</b>: PFM / pulse skipping reduce switching at light load and lift efficiency from 50% to over 85%, at the cost of larger ripple and a variable frequency that may land in audio or RF-sensitive bands.</li>
+  <li><b>Switching frequency</b>: higher frequency means smaller inductors and capacitors, but more switching and drive loss. Phone PMICs commonly run 1.5–4 MHz; automotive parts avoid the AM band (530–1700 kHz) with 400 kHz or 2.1 MHz.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#buck">buck inductor ripple and output ripple</a></div>
+
+<h2 id="boost-bb">Boost, buck-boost and inverting</h2>
+<div class="tblwrap"><table>
+  <tr><th>Topology</th><th>Ideal conversion ratio</th><th>Characteristics</th><th>Typical use</th></tr>
+  <tr><td>Boost</td><td>V<sub>OUT</sub>/V<sub>IN</sub> = 1/(1−D)</td><td>Discontinuous output current, large output-cap ripple; right-half-plane zero (RHPZ) limits bandwidth; when off, input flows through the inductor and diode to the output, so true shutdown is needed</td><td>Single-cell to 5 V, LED backlight, camera flash</td></tr>
+  <tr><td>Four-switch buck-boost</td><td>Up or down</td><td>Transitions between buck and boost when V<sub>IN</sub> ≈ V<sub>OUT</sub>; the transition region needs care</td><td>Battery 3.0–4.4 V to 3.3 V, USB PD</td></tr>
+  <tr><td>Inverting buck-boost</td><td>V<sub>OUT</sub> = −D/(1−D)·V<sub>IN</sub></td><td>Negative output</td><td>OLED negative bias, op-amp negative rails</td></tr>
+  <tr><td>Flyback / forward</td><td>Set by turns ratio</td><td>Isolated, needs a transformer</td><td>AC-DC chargers, isolated industrial supplies</td></tr>
+</table></div>
+
+<h2 id="charge-pump">Charge pumps (switched capacitor)</h2>
+<p>A charge pump converts voltage with switches and capacitors only — no inductor. The ratio is fixed (×2, ×1.5, ÷2, −1) and efficiency is high when the ratio is "just right"; otherwise the excess voltage is lost much as in an LDO.</p>
+<ul>
+  <li><b>2:1 divider</b>: phone fast chargers halve a USB input set to twice the battery voltage, reaching 97–98% efficiency and far less heat than a buck charger.</li>
+  <li><b>Doublers and inverters</b>: gate drive for NMOS pass devices or high-side switches, LCD bias, RS-232 interfaces.</li>
+  <li><b>Hybrids</b>: a charge pump plus an inductor (3-level buck, Dickson + inductor) for 48 V-to-low-voltage server power, lowering switch voltage ratings and inductor size.</li>
+</ul>
+
+<h2 id="pmic">PMIC: the whole power system in one chip</h2>
+<p>A PMIC integrates multiple bucks, LDOs, boosts, load switches, power sequencing, monitoring ADCs, watchdogs, RTC, chargers and digital interfaces. It saves area and puts sequencing and monitoring in one place; the challenge is that switching converters and sensitive analogue share one substrate, so thermal and noise coupling — and test complexity — grow sharply.</p>
+<div class="tblwrap"><table>
+  <tr><th>Segment</th><th>Typical configuration</th><th>Focus</th></tr>
+  <tr><td>Phones / tablets</td><td>6–12 bucks, 20–30 LDOs, charger, fuel gauge, RTC</td><td>Very low I<sub>Q</sub>, DVS, SPMI / I²C, multiple PMICs working together</td></tr>
+  <tr><td>Application processors / FPGAs</td><td>4–8 bucks, several LDOs, sequencer</td><td>High-current core rails, power-up order, telemetry</td></tr>
+  <tr><td>Automotive (ADAS, cockpit, MCU)</td><td>High-voltage front-end buck, back-end bucks / LDOs, watchdog, voltage monitors</td><td>AEC-Q100, ISO 26262 functional safety, independent monitoring, redundant reference</td></tr>
+  <tr><td>SSD / DDR5 modules</td><td>DDR5 on-module PMIC (VDD / VDDQ / VPP), multi-rail SSD power</td><td>JEDEC PMIC specification, efficiency, power-loss protection</td></tr>
+  <tr><td>Wearables / IoT</td><td>1–2 bucks, a few LDOs, load switches, charger</td><td>nA-level I<sub>Q</sub>, tiny packages (WLCSP)</td></tr>
+</table></div>
+<figure>
+<svg viewBox="0 0 640 230" role="img" aria-label="Typical phone PMIC block diagram">
+  <rect class="box" x="20" y="20" width="600" height="190" rx="10"/><text x="34" y="40" class="tl">PMIC</text>
+  <rect class="c1" x="40" y="56" width="110" height="40" rx="5"/><text x="95" y="80" text-anchor="middle" class="ts">Buck ×8</text>
+  <rect class="c3" x="40" y="106" width="110" height="40" rx="5"/><text x="95" y="130" text-anchor="middle" class="ts">LDO ×24</text>
+  <rect class="c2" x="40" y="156" width="110" height="40" rx="5"/><text x="95" y="180" text-anchor="middle" class="ts">Boost / load switch</text>
+  <rect class="c5" x="170" y="56" width="130" height="40" rx="5"/><text x="235" y="80" text-anchor="middle" class="ts">Bandgap / bias / clock</text>
+  <rect class="c5" x="170" y="106" width="130" height="40" rx="5"/><text x="235" y="130" text-anchor="middle" class="ts">Power sequencer</text>
+  <rect class="c5" x="170" y="156" width="130" height="40" rx="5"/><text x="235" y="180" text-anchor="middle" class="ts">UVLO / OVP / thermal</text>
+  <rect class="c4" x="320" y="56" width="130" height="40" rx="5"/><text x="385" y="80" text-anchor="middle" class="ts">ADC / telemetry</text>
+  <rect class="c4" x="320" y="106" width="130" height="40" rx="5"/><text x="385" y="130" text-anchor="middle" class="ts">SPMI / I²C registers</text>
+  <rect class="c4" x="320" y="156" width="130" height="40" rx="5"/><text x="385" y="180" text-anchor="middle" class="ts">OTP / trim</text>
+  <rect class="c6" x="470" y="56" width="130" height="40" rx="5"/><text x="535" y="80" text-anchor="middle" class="ts">Charger / fuel gauge</text>
+  <rect class="c6" x="470" y="106" width="130" height="40" rx="5"/><text x="535" y="130" text-anchor="middle" class="ts">RTC / 32 kHz</text>
+  <rect class="c6" x="470" y="156" width="130" height="40" rx="5"/><text x="535" y="180" text-anchor="middle" class="ts">Watchdog / reset</text>
+</svg>
+<figcaption>A typical phone PMIC: power outputs (left), shared infrastructure (centre left), digital and measurement (centre right), system functions (right). OTP lets the same silicon ship with different voltages and sequences per customer.</figcaption>
+</figure>
+<ul>
+  <li><b>DVS / AVS</b>: the processor adjusts its core voltage with load and frequency; the PMIC must slew at a set rate within microseconds on command (SPMI, I²C, PMBus, SVID / SVI3).</li>
+  <li><b>Multiphase buck</b>: high-current core rails (10–100 A and beyond) interleave phases to cut ripple and spread heat, and can drop phases at light load (phase shedding).</li>
+  <li><b>OTP configuration</b>: one die becomes many part numbers via OTP settings for voltage, sequencing and protection thresholds. Wrong OTP programming is a common source of complaints (see <a href="complaints.html#cases">Complaints · cases</a>).</li>
+</ul>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>LDO</dt><dd>Low-dropout linear regulator.</dd></div>
+  <div><dt>PMIC</dt><dd>Power-management IC integrating multiple rails and management functions.</dd></div>
+  <div><dt>V<sub>DO</sub></dt><dd>Dropout voltage: the minimum input–output difference needed to regulate.</dd></div>
+  <div><dt>I<sub>Q</sub></dt><dd>Quiescent current.</dd></div>
+  <div><dt>Duty cycle D</dt><dd>Fraction of the switching period the high-side switch is on.</dd></div>
+  <div><dt>CCM / DCM</dt><dd>Continuous / discontinuous conduction mode of the inductor current.</dd></div>
+  <div><dt>PFM</dt><dd>Pulse-frequency modulation: lowering switching frequency at light load for efficiency.</dd></div>
+  <div><dt>Shoot-through</dt><dd>Both switches conducting at once, shorting V<sub>IN</sub> to ground.</dd></div>
+  <div><dt>RHPZ</dt><dd>Right-half-plane zero in boost / buck-boost converters, limiting loop bandwidth.</dd></div>
+  <div><dt>DVS</dt><dd>Dynamic voltage scaling.</dd></div>
+  <div><dt>Post-regulation</dt><dd>An LDO after a DC-DC, using the LDO's PSRR to remove switching ripple.</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

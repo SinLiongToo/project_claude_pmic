@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Circuit Design · PMIC Notes</title>
+<meta name="description" content="Power IC circuit design: LDO loop poles, zeros and phase margin, the ESR window, capacitor-less LDOs, PSRR, noise, load transient, bandgap references, protection, DC-DC control modes and compensation, gate drive, PMIC sequencing and design verification.">
+<link rel="alternate" hreflang="zh-Hant" href="../design.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="design" data-ch="des">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Chapter 3 · Circuit design</div>
+<h1>Design: stable, quiet and able to protect itself</h1>
+<p class="lead">Most of a power IC's design time goes into three things: keeping the loop stable for every load, capacitor and temperature; making the output quiet and fast; and protecting the chip and its load from shorts, overheating, reverse current and static. This chapter starts with the LDO loop and moves on to DC-DC control and the digital side of a PMIC.</p>
+
+<h2 id="ldo-loop">The LDO loop: poles, zeros and phase margin</h2>
+<p>Treat the LDO as a negative-feedback amplifier. Open-loop gain A<sub>OL</sub> = A<sub>EA</sub> · g<sub>m,pass</sub> · R<sub>out</sub> · β, where β = R2/(R1+R2). Stability is decided by where a few poles and zeros sit:</p>
+<div class="tblwrap"><table>
+  <tr><th>Pole / zero</th><th>Location</th><th>Behaviour</th></tr>
+  <tr><td>Output pole p<sub>out</sub></td><td>1 / (2π · R<sub>out</sub> · C<sub>OUT</sub>), R<sub>out</sub> = r<sub>o,pass</sub> ∥ R<sub>load</sub></td><td><b>Moves with load</b>: at heavy load R<sub>out</sub> falls and the pole moves up by tens of times</td></tr>
+  <tr><td>Gate pole p<sub>gate</sub></td><td>1 / (2π · R<sub>o,EA</sub> · C<sub>gate</sub>)</td><td>The bigger the pass device, the bigger C<sub>gate</sub> and the lower the pole</td></tr>
+  <tr><td>ESR zero z<sub>ESR</sub></td><td>1 / (2π · ESR · C<sub>OUT</sub>)</td><td>Set by the external capacitor; can restore phase, or lift gain at high frequency</td></tr>
+  <tr><td>Parasitic poles</td><td>EA internal nodes, capacitor ESL, traces</td><td>Usually above a few MHz</td></tr>
+</table></div>
+<p>A classic PMOS LDO has high output impedance, so <b>the dominant pole is at the output</b> and the second pole at the gate. If the two are too close, phase has turned nearly 180° by unity gain and the loop oscillates. The usual target is <b>phase margin ≥ 45°</b> under all conditions (60° for conservative designs) and gain margin ≥ 10 dB.</p>
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="Sketch of LDO open-loop gain: dominant pole, second pole and ESR zero">
+  <line class="wm" x1="60" y1="20" x2="60" y2="210"/><line class="wm" x1="60" y1="210" x2="610" y2="210"/>
+  <text x="66" y="30" class="ts t-mut">gain (dB)</text><text x="600" y="230" text-anchor="end" class="ts t-mut">frequency (log)</text>
+  <line class="wd" x1="60" y1="150" x2="610" y2="150"/><text x="604" y="144" text-anchor="end" class="ts t-mut">0 dB</text>
+  <path class="wa" d="M60 40 H150 L330 150 L375 205"/>
+  <path d="M60 40 H150 L250 101 L330 101 L420 156 L460 205" style="fill:none;stroke:var(--s2);stroke-width:2;stroke-dasharray:6 4"/>
+  <circle class="fa" cx="150" cy="40" r="4"/><text x="150" y="30" text-anchor="middle" class="ts">p<tspan baseline-shift="sub" font-size="8">out</tspan></text>
+  <circle class="fa" cx="330" cy="150" r="4"/><text x="336" y="140" class="ts">p<tspan baseline-shift="sub" font-size="8">gate</tspan> (near crossover → too little phase)</text>
+  <circle cx="250" cy="101" r="4" style="fill:var(--s2)"/><text x="250" y="91" text-anchor="middle" class="ts" style="fill:var(--s2)">z<tspan baseline-shift="sub" font-size="8">ESR</tspan></text>
+  <text x="420" y="120" class="ts" style="fill:var(--s2)">with ESR zero: crossover moves out, phase restored</text>
+  <text x="160" y="190" class="ts" style="fill:var(--accent)">no ESR: crosses 0 dB at −40 dB/dec</text>
+</svg>
+<figcaption>Sketch: without an ESR zero, the second pole falls near crossover and the gain crosses 0 dB at −40 dB/dec with too little phase margin. A suitable ESR zero restores a −20 dB/dec slope. Too much ESR lifts the high-frequency gain and a third pole destabilises the loop again.</figcaption>
+</figure>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#bode">LDO Bode plot, phase margin and the ESR window</a></div>
+
+<h2 id="esr-window">The ESR window and ceramic capacitors</h2>
+<p>Early LDOs were designed around tantalum or aluminium electrolytic capacitors with 0.1 to several Ω of ESR, which supplied exactly the zero needed for stability. Datasheets drew a "stable region of ESR vs load current", nicknamed the <b>tunnel of death</b>: too little ESR (ceramic) oscillates, and so does too much.</p>
+<p>Once multilayer ceramic capacitors (MLCCs) took over, with only a few mΩ of ESR, old LDOs simply oscillated with them. Modern LDOs are <b>internally compensated</b> — Miller compensation or an internal zero in the EA so the dominant pole no longer depends on ESR — and are marked "stable with ceramic capacitors". Even so:</p>
+<ul>
+  <li><b>Minimum effective capacitance</b> is still a hard limit. Under DC bias an MLCC can drop to 30–50% of nominal (see <a href="application.html#capacitors">Applications · capacitors</a>); the customer thinks they fitted 1 µF but actually have 0.4 µF.</li>
+  <li><b>Too much capacitance</b> can also cause trouble: the output pole drops too low, and start-up inrush can trip the current limit. Datasheets often give a maximum C<sub>OUT</sub>.</li>
+  <li><b>Trace inductance and ESL</b>: a capacitor placed far from the IC looks smaller at high frequency and resonates, turning phase sharply around a few MHz.</li>
+</ul>
+
+<h2 id="capless">Capacitor-less LDOs and NMOS LDOs</h2>
+<p>Digital LDOs inside an SoC or other on-chip LDOs have no room for µF capacitors — only hundreds of pF to a few nF on die. The output pole moves to high frequency and the dominant pole is put inside the EA (Miller compensation), at the cost of limited bandwidth and large undershoot in load transients. Common remedies:</p>
+<ul>
+  <li><b>Flipped voltage follower (FVF)</b> and <b>local fast loops</b>: a fast local loop at the output handles high-frequency transients.</li>
+  <li><b>Capacitively coupled transient boost</b>: sense output dV/dt and push the pass-device gate directly.</li>
+  <li><b>Digital LDO (DLDO)</b>: digitally controlled switch arrays replace the analogue EA and work at very low voltage, but suffer limit cycles and quantisation ripple.</li>
+  <li><b>NMOS source follower</b>: output impedance ≈ 1/g<sub>m</sub> puts the output pole naturally high, so stability and transient are both good; the gate must be V<sub>GS</sub> above V<sub>OUT</sub>, needing another bias rail or an internal charge pump.</li>
+</ul>
+
+<h2 id="psrr">PSRR: keeping input ripple out</h2>
+<p>PSRR = 20·log(ΔV<sub>IN</sub>/ΔV<sub>OUT</sub>). It is not one number but a <b>curve against frequency</b>, roughly in three regions:</p>
+<div class="tblwrap"><table>
+  <tr><th>Region</th><th>Dominant mechanism</th><th>How to improve</th></tr>
+  <tr><td>Low frequency (&lt; 1/10 of loop bandwidth)</td><td>Loop gain: PSRR ≈ A<sub>OL</sub></td><td>More EA gain, a better-rejecting reference, reference low-pass filtering</td></tr>
+  <tr><td>Mid frequency (near loop bandwidth)</td><td>Loop gain falls with frequency, so PSRR worsens; the worst point is usually here</td><td>More bandwidth; gate drive that tracks V<sub>IN</sub> (feed-forward cancellation)</td></tr>
+  <tr><td>High frequency (&gt; a few MHz)</td><td>No loop gain left; C<sub>OUT</sub> divides against parasitics; PMOS C<sub>gs</sub> couples the input straight through</td><td>Large C<sub>OUT</sub>, low ESL, NMOS pass device, series RC filtering</td></tr>
+</table></div>
+<ul>
+  <li><b>Headroom</b>: with too little V<sub>IN</sub> − V<sub>OUT</sub> the pass device enters the linear region and PSRR can drop 20–40 dB. A post-regulating LDO after a buck needs 200–500 mV of headroom.</li>
+  <li><b>Load current</b>: at heavy load the pass-device r<sub>o</sub> falls and low-frequency PSRR usually worsens.</li>
+  <li><b>DC-DC post-regulation</b>: with a 2 MHz buck, look at the LDO's PSRR at 2 MHz and its harmonics, not the 1 kHz number.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#psrr">PSRR versus frequency and buck ripple rejection</a></div>
+
+<h2 id="noise">Output noise</h2>
+<p>Most LDO output noise comes from <b>the reference and the EA input stage</b>, then is amplified by the divider's (1 + R1/R2). So the same LDO is noisier at 3.3 V than at 1.2 V.</p>
+<ul>
+  <li><b>NR / SS pin</b>: an external capacitor after the reference forms an RC low-pass that filters reference noise; it doubles as soft start — the larger it is, the slower the start.</li>
+  <li><b>Feed-forward capacitor C<sub>FF</sub></b>: across R1, it makes the feedback gain 1 at high frequency so noise is no longer amplified; it also adds a pole-zero pair that can improve transient response but can change phase margin.</li>
+  <li><b>1/f noise</b>: low-frequency noise is dominated by MOS flicker noise; BJT or large-area MOS input stages are better. Chopping removes it but adds ripple at the chopping frequency.</li>
+  <li><b>Who cares</b>: PLLs, VCOs, high-resolution ADCs, image sensors and audio; &lt; 10 µV<sub>RMS</sub> integrated from 10 Hz to 100 kHz is a common requirement.</li>
+</ul>
+
+<h2 id="transient">Load transient</h2>
+<p>When load current jumps from 1 mA to 500 mA in 1 µs, the loop cannot react in time and the output capacitor supplies all of it:</p>
+<div class="eq">ΔV<sub>OUT</sub> ≈ ΔI · ESR + ΔI · t<sub>resp</sub> / C<sub>OUT</sub>　　t<sub>resp</sub> ≈ 1/(2π·f<sub>UGB</sub>) + C<sub>gate</sub>·ΔV<sub>gate</sub>/I<sub>slew</sub></div>
+<ul>
+  <li><b>Loop bandwidth</b>: higher is faster, but fights stability.</li>
+  <li><b>Gate slew rate</b>: a big pass device can have hundreds of pF of gate capacitance; if the EA cannot source enough current the gate takes a long time to move. Common fixes are a buffer between EA and pass device, or adaptive biasing (raising bias at heavy load or on a detected transient).</li>
+  <li><b>Light-to-heavy is the hardest</b>: at light load I<sub>Q</sub> is low, gate drive is weak and the output pole is low — the worst transient case. Low I<sub>Q</sub> versus fast transient is the classic LDO trade-off.</li>
+  <li><b>Overshoot</b>: when a heavy load is suddenly removed the pass device cannot shut off instantly and the extra current charges C<sub>OUT</sub>; some LDOs add active discharge or pull-down to absorb it.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#transient">load transient: bandwidth, capacitance and ESR</a></div>
+
+<h2 id="bandgap">Bandgap references</h2>
+<p>A BJT's V<sub>BE</sub> is about 0.6–0.7 V with a tempco of about −2 mV/°C (CTAT); the ΔV<sub>BE</sub> of two BJTs at different current densities, (kT/q)·ln(N), is proportional to absolute temperature (PTAT). Adding them in the right ratio cancels the tempco near one temperature; the sum is about 1.2 V, close to silicon's bandgap.</p>
+<div class="eq">V<sub>REF</sub> = V<sub>BE</sub> + K · (kT/q)·ln(N) ≈ 1.2 V　(K set by a resistor ratio)</div>
+<ul>
+  <li><b>Curvature</b>: V<sub>BE</sub> is not perfectly linear; after first-order compensation a parabolic residue remains, about 10–30 ppm/°C over temperature. Higher-order compensation reduces it further.</li>
+  <li><b>Sub-1 V bandgaps</b>: low-voltage systems use current mode — sum CTAT and PTAT currents into a resistor — so the output can be any value (e.g. 0.5 V).</li>
+  <li><b>Error sources</b>: op-amp offset (amplified by the ln-term gain), resistor ratio, BJT area ratio, package stress, substrate injection. Offset is the largest, which is why bandgaps usually need trimming (see <a href="process.html#trim-fuse">Process · trimming</a>).</li>
+  <li><b>Start-up circuit</b>: a bandgap has a stable "all currents zero" state and needs a start-up circuit to escape it. A marginal start-up circuit causes "occasional no output" — very hard to reproduce.</li>
+</ul>
+
+<h2 id="protection">Protection circuits</h2>
+<div class="tblwrap"><table>
+  <tr><th>Protection</th><th>How</th><th>Design points / common traps</th></tr>
+  <tr><td>Current limit (constant)</td><td>Sense pass current (mirrored sense FET) and clamp the gate above a threshold</td><td>Short-circuit dissipation = V<sub>IN</sub>·I<sub>LIM</sub>, so thermal shutdown follows quickly</td></tr>
+  <tr><td>Foldback limit</td><td>The lower V<sub>OUT</sub>, the lower the allowed current</td><td>Cuts short-circuit dissipation, but <b>heavy or high-capacitance loads may fail to start</b> (stuck at low voltage)</td></tr>
+  <tr><td>Thermal shutdown (TSD)</td><td>On-chip sensor; typically trips at 150–170 °C with 10–20 °C hysteresis</td><td>Too little hysteresis causes rapid cycling; put the sensor next to the hottest pass device</td></tr>
+  <tr><td>Undervoltage lockout (UVLO)</td><td>Turns the output off below a V<sub>IN</sub> threshold, with hysteresis</td><td>Too little hysteresis plus battery resistance gives "on – sag – off – recover" restart loops</td></tr>
+  <tr><td>Overvoltage protection (OVP)</td><td>Shuts down on input or output overvoltage</td><td>Automotive parts must survive load dump and reverse battery</td></tr>
+  <tr><td>Reverse-current protection</td><td>Switch the PMOS body connection or turn off when V<sub>OUT</sub> &gt; V<sub>IN</sub></td><td>The PMOS body diode lets the output back-feed the input; common in multi-supply systems</td></tr>
+  <tr><td>Soft start</td><td>Ramps the reference</td><td>Limits inrush I = C<sub>OUT</sub>·dV/dt; too fast trips current limit, too slow breaks system timing</td></tr>
+  <tr><td>Active discharge</td><td>Discharges C<sub>OUT</sub> through a resistor when off</td><td>Avoids residual voltage leaving downstream ICs in undefined states</td></tr>
+  <tr><td>Power good (PG)</td><td>Compares V<sub>FB</sub> with thresholds; open-drain output</td><td>Needs deglitch and delay; open drain needs an external pull-up</td></tr>
+</table></div>
+<div class="callout"><b>Protection is a complaint hotspot</b>　Most "the IC is broken" complaints turn out to be protection working as intended: thermal shutdown, current limit, UVLO. Make these states observable (PMIC fault registers, PG pin) and document trip conditions clearly in application notes. See <a href="issues.html#symptoms">Troubleshooting · symptom index</a>.</div>
+
+<h2 id="dcdc-control">DC-DC control modes</h2>
+<div class="tblwrap"><table>
+  <tr><th>Control mode</th><th>Principle</th><th>Pros</th><th>Cons</th></tr>
+  <tr><td>Voltage mode (VM)</td><td>Error voltage compared with a fixed ramp</td><td>Noise-immune, stable at light load</td><td>LC double pole needs Type III compensation; slower transient</td></tr>
+  <tr><td>Peak current mode (PCM)</td><td>Peak inductor current compared with the error voltage</td><td>Cycle-by-cycle current limit, simple Type II compensation, easy multiphase sharing</td><td>Subharmonic oscillation above 50% duty needs slope compensation; needs current sensing and blanking</td></tr>
+  <tr><td>Valley current mode</td><td>Senses the inductor-current valley</td><td>Suits low D (high step-down)</td><td>Subharmonic issues at low D</td></tr>
+  <tr><td>Constant on-time (COT)</td><td>Fires a fixed t<sub>ON</sub> when V<sub>OUT</sub> falls below a threshold</td><td>Very fast transient, good light-load efficiency, no compensation network</td><td>Frequency varies with load; needs ripple injection to avoid jitter with low-ESR MLCCs</td></tr>
+  <tr><td>Hysteretic</td><td>V<sub>OUT</sub> toggles between upper and lower thresholds</td><td>Fastest, simplest</td><td>Variable frequency, hard EMI control</td></tr>
+</table></div>
+<div class="eq">Slope compensation (peak current mode): S<sub>e</sub> ≥ (S<sub>f</sub> − S<sub>n</sub>)/2, commonly S<sub>e</sub> ≈ S<sub>f</sub>/2 to S<sub>f</sub></div>
+
+<h2 id="compensation">Compensation networks</h2>
+<ul>
+  <li><b>Crossover frequency</b>: usually f<sub>c</sub> ≤ f<sub>SW</sub>/10 (up to f<sub>SW</sub>/5 for current mode); boost / buck-boost also below 1/3–1/5 of the RHPZ.</li>
+  <li><b>Type II</b> (one zero, two poles): common with current mode; zero near the power-stage dominant pole, high-frequency pole at the ESR zero or f<sub>SW</sub>/2.</li>
+  <li><b>Type III</b> (two zeros, three poles): voltage mode, to recover the 180° phase swing of the LC double pole.</li>
+  <li><b>Internal compensation</b>: many integrated bucks compensate on-chip for simplicity, but that restricts the usable L and C; customers using the wrong parts may see instability.</li>
+  <li><b>Measuring it</b>: in the lab, inject into the feedback path (e.g. a 10–50 Ω injection resistor) with a network analyser, or estimate phase margin from the ringing in a load-transient waveform (see <a href="test.html#bench">Test · characterisation</a>).</li>
+</ul>
+
+<h2 id="gate-drive">Gate drive, dead time and bootstrap</h2>
+<ul>
+  <li><b>Bootstrap</b>: an N-type high-side switch needs its gate V<sub>GS</sub> above SW; a capacitor charges while the low side is on and "floats" on SW when the high side is on. At 100% duty it cannot recharge, so the low side must be forced on periodically or a charge pump added.</li>
+  <li><b>Dead time</b>: prevents shoot-through. Too long means more body-diode conduction, more loss and worse substrate injection; too short risks shoot-through. Adaptive dead time waits until the other gate is confirmed off.</li>
+  <li><b>Switching speed vs EMI</b>: faster SW dV/dt lowers switching loss but raises ringing and EMI. Use segmented or adjustable drive, or a resistor in series with BOOT (a common application trick).</li>
+  <li><b>Minimum on / off time</b>: t<sub>ON,min</sub> limits the maximum step-down ratio (2 MHz with 60 ns t<sub>ON,min</sub> gives D<sub>min</sub> = 12%, so 12 V can only go down to about 1.4 V); beyond that the converter skips pulses.</li>
+</ul>
+
+<h2 id="pmic-digital">The digital side of a PMIC</h2>
+<ul>
+  <li><b>Power-up / power-down sequencer</b>: enables each rail in the order and with the delays set in OTP, waiting for the previous rail's PG. Power-down order matters just as much; getting it wrong can damage the processor or cause latch-up.</li>
+  <li><b>Interfaces</b>: I²C, SPI, SPMI (mobile), PMBus (servers), SVID / SVI3 (x86 processors), for reading and writing voltages, modes, fault status and telemetry.</li>
+  <li><b>DVS</b>: on a new voltage command the reference slews at a set rate (e.g. 10 mV/µs) and the loop must stay stable throughout; when stepping down, a converter that cannot sink current (PFM) lags the command.</li>
+  <li><b>Fault state machine</b>: on OCP, OVP, UVP or thermal warning, decide whether to turn off just that rail, everything, hiccup or latch off until reset — and record the cause in a register for later analysis.</li>
+  <li><b>OTP and part numbers</b>: default voltages, sequences, protection thresholds and I²C address live in OTP. Design in OTP read-back checks (CRC / parity) and a post-program verification flow.</li>
+  <li><b>Functional safety (automotive)</b>: an independent second reference and monitor comparators, watchdog, built-in self-test (BIST) and fault-injection paths to meet ISO 26262 ASIL levels.</li>
+</ul>
+
+<h2 id="verification">Design verification</h2>
+<div class="tblwrap"><table>
+  <tr><th>Item</th><th>Content</th></tr>
+  <tr><td>PVT corners</td><td>Process corners (TT / FF / SS / FS / SF) × voltage × temperature (−40 / 25 / 125 / 150 °C)</td></tr>
+  <tr><td>Monte Carlo</td><td>Offset and accuracy before and after trim; estimate yield and check that the trim range is enough</td></tr>
+  <tr><td>Stability sweep</td><td>Load 0–I<sub>max</sub> × C<sub>OUT</sub> (including DC-bias derating) × ESR × ESL × temperature; phase margin for every combination</td></tr>
+  <tr><td>Transient and start-up</td><td>Soft start, recovery from short, thermal-shutdown hysteresis, slow / fast V<sub>IN</sub> ramps, brown-out, hot plug</td></tr>
+  <tr><td>EM / IR</td><td>Current density in power paths, via counts, metal drop</td></tr>
+  <tr><td>ESD / latch-up</td><td>ESD path checks, guard-ring rules, substrate-injection simulation</td></tr>
+  <tr><td>Ageing</td><td>Hot-carrier and NBTI effects on offset and R<sub>DS(on)</sub></td></tr>
+  <tr><td>Mixed signal</td><td>Co-simulation of the digital sequencer with analogue models (AMS) for every sequence and fault scenario</td></tr>
+  <tr><td>FMEDA (automotive)</td><td>Diagnostic coverage per failure mode; compute SPFM / LFM / PMHF</td></tr>
+</table></div>
+<div class="callout"><b>Do not trust an LDO that is only stable at typical conditions</b>　Most oscillation problems application engineers hear about are corner combinations like "customer's capacitor + DC bias + cold + light load". Stability sweeps must include capacitor DC-bias and temperature behaviour, not just the nominal value.</div>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>Phase margin (PM)</dt><dd>How far the phase is from −180° where the gain falls to 0 dB.</dd></div>
+  <div><dt>UGB</dt><dd>Unity-gain bandwidth: the frequency where loop gain is 1, i.e. crossover.</dd></div>
+  <div><dt>ESR / ESL</dt><dd>A capacitor's equivalent series resistance / inductance.</dd></div>
+  <div><dt>Miller compensation</dt><dd>A capacitor across a gain stage that uses the Miller effect to move the dominant pole down and split the poles.</dd></div>
+  <div><dt>C<sub>FF</sub></dt><dd>Feed-forward capacitor across the upper divider resistor.</dd></div>
+  <div><dt>Foldback</dt><dd>Current limit that falls as output voltage falls.</dd></div>
+  <div><dt>Hiccup</dt><dd>On a fault, shut down for a while and then retry.</dd></div>
+  <div><dt>Slope compensation</dt><dd>A ramp that prevents subharmonic oscillation in peak current mode above 50% duty.</dd></div>
+  <div><dt>COT</dt><dd>Constant on-time control.</dd></div>
+  <div><dt>PTAT / CTAT</dt><dd>Voltage or current proportional / complementary to absolute temperature.</dd></div>
+  <div><dt>SPMI</dt><dd>System Power Management Interface, the MIPI bus for mobile power management.</dd></div>
+  <div><dt>FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis, a functional-safety method.</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

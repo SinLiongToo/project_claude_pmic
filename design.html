@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>設計 · PMIC Notes</title>
+<meta name="description" content="電源 IC 電路設計：LDO 迴路極零點與相位裕度、ESR 穩定窗口、無電容 LDO、PSRR、雜訊、負載暫態、帶隙參考、保護電路、DC-DC 控制模式與補償、閘極驅動、PMIC 時序與設計驗證。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="design" data-ch="des">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Chapter 3 · Circuit design</div>
+<h1>設計：穩定、安靜、又能保護自己</h1>
+<p class="lead">一顆電源 IC 的設計，大部分時間花在三件事：讓迴路在所有負載、電容、溫度下都穩定；讓輸出夠安靜、反應夠快；在短路、過熱、反灌、靜電時保護自己和負載。這一章從 LDO 迴路講起，再到 DC-DC 控制與 PMIC 的數位部分。</p>
+
+<h2 id="ldo-loop">LDO 迴路：極點、零點與相位裕度</h2>
+<p>把 LDO 看成一個負回授放大器。開迴路增益 A<sub>OL</sub> = A<sub>EA</sub> · g<sub>m,pass</sub> · R<sub>out</sub> · β，其中 β = R2/(R1+R2)。決定穩定度的是幾個極點與零點的位置：</p>
+<div class="tblwrap"><table>
+  <tr><th>極零點</th><th>位置</th><th>特性</th></tr>
+  <tr><td>輸出極點 p<sub>out</sub></td><td>1 / (2π · R<sub>out</sub> · C<sub>OUT</sub>)，R<sub>out</sub> = r<sub>o,pass</sub> ∥ R<sub>load</sub></td><td><b>隨負載移動</b>：重載時 R<sub>out</sub> 變小，極點往高頻移動數十倍</td></tr>
+  <tr><td>閘極極點 p<sub>gate</sub></td><td>1 / (2π · R<sub>o,EA</sub> · C<sub>gate</sub>)</td><td>傳輸元件越大、C<sub>gate</sub> 越大，極點越低</td></tr>
+  <tr><td>ESR 零點 z<sub>ESR</sub></td><td>1 / (2π · ESR · C<sub>OUT</sub>)</td><td>由外部電容決定，可以補回相位，也可能讓增益在高頻抬起來</td></tr>
+  <tr><td>寄生極點</td><td>EA 內部節點、電容的 ESL、走線</td><td>通常在數 MHz 以上</td></tr>
+</table></div>
+<p>傳統 PMOS LDO 的輸出阻抗高，<b>主極點在輸出端</b>，次極點在閘極。兩個極點靠得太近時，單位增益頻率處的相位已經轉了接近 180°，就會振盪。設計目標通常是在所有條件下<b>相位裕度 ≥ 45°</b>（較保守的設計要 60°）、增益裕度 ≥ 10 dB。</p>
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="LDO 開迴路增益示意：主極點、次極點與 ESR 零點">
+  <line class="wm" x1="60" y1="20" x2="60" y2="210"/><line class="wm" x1="60" y1="210" x2="610" y2="210"/>
+  <text x="66" y="30" class="ts t-mut">增益 (dB)</text><text x="600" y="230" text-anchor="end" class="ts t-mut">頻率 (log)</text>
+  <line class="wd" x1="60" y1="150" x2="610" y2="150"/><text x="604" y="144" text-anchor="end" class="ts t-mut">0 dB</text>
+  <path class="wa" d="M60 40 H150 L330 150 L375 205"/>
+  <path d="M60 40 H150 L250 101 L330 101 L420 156 L460 205" style="fill:none;stroke:var(--s2);stroke-width:2;stroke-dasharray:6 4"/>
+  <circle class="fa" cx="150" cy="40" r="4"/><text x="150" y="30" text-anchor="middle" class="ts">p<tspan baseline-shift="sub" font-size="8">out</tspan></text>
+  <circle class="fa" cx="330" cy="150" r="4"/><text x="336" y="140" class="ts">p<tspan baseline-shift="sub" font-size="8">gate</tspan>（交越點附近 → 相位不足）</text>
+  <circle cx="250" cy="101" r="4" style="fill:var(--s2)"/><text x="250" y="91" text-anchor="middle" class="ts" style="fill:var(--s2)">z<tspan baseline-shift="sub" font-size="8">ESR</tspan></text>
+  <text x="420" y="120" class="ts" style="fill:var(--s2)">加入 ESR 零點：交越點右移、相位補回</text>
+  <text x="160" y="190" class="ts" style="fill:var(--accent)">無 ESR：−40 dB/dec 穿越 0 dB</text>
+</svg>
+<figcaption>示意：沒有 ESR 零點時，次極點落在交越頻率附近，以 −40 dB/dec 穿越 0 dB，相位裕度不足。適當的 ESR 零點把斜率拉回 −20 dB/dec。但 ESR 太大時，高頻增益抬起，第三個極點又會讓迴路不穩。</figcaption>
+</figure>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#bode">LDO Bode 圖、相位裕度與 ESR 穩定窗口</a></div>
+
+<h2 id="esr-window">ESR 穩定窗口與陶瓷電容</h2>
+<p>早期 LDO 是配合鉭電容或鋁電解電容設計的，它們有 0.1–數 Ω 的 ESR，正好提供穩定所需的零點。規格書會畫一張「ESR vs 負載電流」的穩定區域圖，俗稱 <b>tunnel of death</b>：ESR 太低（陶瓷電容）會振盪，ESR 太高也會振盪。</p>
+<p>多層陶瓷電容（MLCC）普及後，ESR 只有數 mΩ，舊 LDO 直接換上陶瓷電容就會振盪。現代 LDO 改成<b>內部補償</b>：在 EA 內做米勒補償或加內部零點，讓主極點不再依賴 ESR，標示為「stable with ceramic capacitors」。但即使如此：</p>
+<ul>
+  <li><b>最小有效電容</b>仍是硬限制。MLCC 在 DC 偏壓下容值可能掉到標稱值的 30–50%（見<a href="application.html#capacitors">應用 · 電容選擇</a>），客戶以為放了 1 µF，實際只有 0.4 µF。</li>
+  <li><b>電容太大</b>也可能出問題：輸出極點太低、啟動時突波電流觸發限流。規格書通常列出 C<sub>OUT</sub> 上限。</li>
+  <li><b>走線電感與 ESL</b>：電容放得離 IC 太遠，高頻時等效電容變小並出現諧振，相位在 MHz 附近急轉。</li>
+</ul>
+
+<h2 id="capless">無外部電容 LDO 與 NMOS LDO</h2>
+<p>SoC 內部的數位 LDO 或晶片內 LDO 沒有空間放 µF 電容，只有晶片上的數百 pF 到數 nF。這時輸出極點跑到高頻，主極點改放在 EA 內部（米勒補償），代價是頻寬受限、負載暫態時下衝大。常見改善方式：</p>
+<ul>
+  <li><b>翻轉電壓隨耦器（FVF）</b>、<b>局部快速回授迴路</b>：在輸出放一個快速的區域迴路，處理高頻暫態。</li>
+  <li><b>電容耦合的暫態加速</b>：偵測輸出 dV/dt，直接推動傳輸元件閘極。</li>
+  <li><b>數位 LDO（DLDO）</b>：用一排數位控制的開關取代類比 EA，可在極低電壓工作，但有極限環振盪與量化漣波。</li>
+  <li><b>NMOS 源極隨耦</b>：輸出阻抗 ≈ 1/g<sub>m</sub>，輸出極點天生在高頻，穩定度與暫態都好；代價是閘極要比 V<sub>OUT</sub> 高 V<sub>GS</sub>，需另一個偏壓軌或內建電荷泵。</li>
+</ul>
+
+<h2 id="psrr">PSRR：把輸入漣波擋在外面</h2>
+<p>PSRR = 20·log(ΔV<sub>IN</sub>/ΔV<sub>OUT</sub>)。它不是一個數字，而是一條<b>隨頻率變化的曲線</b>，可以大致分成三段：</p>
+<div class="tblwrap"><table>
+  <tr><th>頻段</th><th>主導機制</th><th>怎麼改善</th></tr>
+  <tr><td>低頻（&lt; 迴路頻寬的 1/10）</td><td>迴路增益：PSRR ≈ A<sub>OL</sub></td><td>提高 EA 增益、參考電壓本身的 PSRR、參考低通濾波</td></tr>
+  <tr><td>中頻（接近迴路頻寬）</td><td>迴路增益隨頻率下降，PSRR 跟著變差，常出現最差點</td><td>提高頻寬、閘極驅動跟隨 V<sub>IN</sub>（前饋抵消）</td></tr>
+  <tr><td>高頻（&gt; 數 MHz）</td><td>迴路已無增益，靠 C<sub>OUT</sub> 與寄生電容分壓；PMOS 的 C<sub>gs</sub> 把輸入直接耦合過來</td><td>大 C<sub>OUT</sub>、低 ESL、NMOS 傳輸元件、串接 RC 濾波</td></tr>
+</table></div>
+<ul>
+  <li><b>壓差裕度</b>：V<sub>IN</sub> − V<sub>OUT</sub> 太小時傳輸元件進入線性區，PSRR 可能掉 20–40 dB。後級 LDO 接在 Buck 後面，要留 200–500 mV 的裕度。</li>
+  <li><b>負載電流</b>：重載時傳輸元件 r<sub>o</sub> 下降，低頻 PSRR 通常變差。</li>
+  <li><b>DC-DC 後級濾波</b>：Buck 切換頻率 2 MHz 時，要看 LDO 在 2 MHz 與其諧波的 PSRR，不是 1 kHz 的數字。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#psrr">PSRR 頻率響應與 Buck 漣波抑制</a></div>
+
+<h2 id="noise">輸出雜訊</h2>
+<p>LDO 的輸出雜訊大多來自<b>參考電壓與 EA 輸入級</b>，再被回授分壓放大 (1 + R1/R2) 倍。所以同一顆 LDO，3.3 V 輸出的雜訊會比 1.2 V 大。</p>
+<ul>
+  <li><b>NR / SS 腳</b>：參考電壓後接外部電容做 RC 低通，把參考雜訊濾掉；同時兼做軟啟動，電容越大啟動越慢。</li>
+  <li><b>前饋電容 C<sub>FF</sub></b>：跨在 R1 上，讓高頻時回授增益變 1，雜訊不再被放大；同時在迴路中增加一組零極點，可以改善暫態，但也可能改變相位裕度。</li>
+  <li><b>1/f 雜訊</b>：低頻雜訊由 MOS 的閃爍雜訊主導，BJT 或大面積 MOS 輸入級較佳；斬波可以消除，但會帶來斬波頻率的漣波。</li>
+  <li><b>用途</b>：PLL、VCO、高解析度 ADC、影像感測器、音訊對雜訊敏感，10 Hz–100 kHz 積分雜訊 &lt; 10 µV<sub>RMS</sub> 是常見要求。</li>
+</ul>
+
+<h2 id="transient">負載暫態</h2>
+<p>負載電流在 1 µs 內從 1 mA 跳到 500 mA 時，迴路來不及反應，這段時間的電流全部由輸出電容提供：</p>
+<div class="eq">ΔV<sub>OUT</sub> ≈ ΔI · ESR + ΔI · t<sub>resp</sub> / C<sub>OUT</sub>　　t<sub>resp</sub> ≈ 1/(2π·f<sub>UGB</sub>) + C<sub>gate</sub>·ΔV<sub>gate</sub>/I<sub>slew</sub></div>
+<ul>
+  <li><b>迴路頻寬</b>：越高反應越快，但與穩定度互相拉扯。</li>
+  <li><b>閘極迴轉率</b>：大傳輸元件的閘極電容可達數百 pF，EA 輸出電流不夠時，閘極要花很久才能轉到新的電壓。常見解法是在 EA 與傳輸元件間加緩衝級，或用動態偏壓（重載或偵測到暫態時暫時加大偏壓電流）。</li>
+  <li><b>輕載到重載最難</b>：輕載時 I<sub>Q</sub> 低、閘極驅動弱、輸出極點低，是暫態最差的情況。低 I<sub>Q</sub> 與快速暫態是 LDO 設計最典型的取捨。</li>
+  <li><b>過衝</b>：重載突然卸載時，傳輸元件無法立即關斷，多餘電流灌進 C<sub>OUT</sub> 造成過衝；有些 LDO 加了主動放電或下拉電路吸收。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#transient">負載暫態：頻寬、電容與 ESR</a></div>
+
+<h2 id="bandgap">帶隙參考</h2>
+<p>BJT 的 V<sub>BE</sub> 約 0.6–0.7 V，溫度係數約 −2 mV/°C（CTAT）；兩顆電流密度不同的 BJT 的 ΔV<sub>BE</sub> = (kT/q)·ln(N) 與絕對溫度成正比（PTAT）。把兩者按比例相加，就能在某個溫度附近讓溫度係數為零，總和約 1.2 V，接近矽的帶隙電壓。</p>
+<div class="eq">V<sub>REF</sub> = V<sub>BE</sub> + K · (kT/q)·ln(N) ≈ 1.2 V　（K 由電阻比決定）</div>
+<ul>
+  <li><b>曲率</b>：V<sub>BE</sub> 本身不是完美線性，一階補償後仍有拋物線形的殘餘誤差，全溫約 10–30 ppm/°C；高階補償可再降低。</li>
+  <li><b>次 1 V 帶隙</b>：低電壓系統改用電流模式，把 CTAT 與 PTAT 電流相加後流過電阻，輸出可設成任意值（例如 0.5 V）。</li>
+  <li><b>誤差來源</b>：運放偏移（被 ln 項的增益放大）、電阻比、BJT 面積比、封裝應力、基板注入。偏移是最大項，所以帶隙通常需要修調（見<a href="process.html#trim-fuse">製程 · 修調</a>）。</li>
+  <li><b>啟動電路</b>：帶隙有一個「全部電流為零」的穩定點，必須有啟動電路把它推出來。啟動電路失效會造成「偶發無輸出」，是很難重現的問題。</li>
+</ul>
+
+<h2 id="protection">保護電路</h2>
+<div class="tblwrap"><table>
+  <tr><th>保護</th><th>做法</th><th>設計重點 / 常見陷阱</th></tr>
+  <tr><td>限流（定電流）</td><td>偵測傳輸元件電流（鏡像 sense FET），超過門檻就限制閘極</td><td>短路時功耗 = V<sub>IN</sub>·I<sub>LIM</sub>，很快就熱關機</td></tr>
+  <tr><td>折返限流（foldback）</td><td>V<sub>OUT</sub> 越低，允許電流越小</td><td>降低短路功耗；但<b>重載或大電容負載可能啟動不起來</b>（卡在低電壓狀態）</td></tr>
+  <tr><td>熱關機（TSD）</td><td>晶片上的溫度感測，常見 150–170 °C 觸發、10–20 °C 遲滯</td><td>遲滯太小會快速開關造成振盪；感測器要放在最熱的傳輸元件旁</td></tr>
+  <tr><td>欠壓鎖定（UVLO）</td><td>V<sub>IN</sub> 低於門檻時關閉輸出，帶遲滯</td><td>遲滯不足時，電池內阻造成「開—掉電—關—回升」的反覆重啟</td></tr>
+  <tr><td>過壓保護（OVP）</td><td>輸入或輸出過壓時關閉</td><td>車用要承受拋負載（load dump）與反接</td></tr>
+  <tr><td>反灌電流保護</td><td>V<sub>OUT</sub> &gt; V<sub>IN</sub> 時切換 PMOS 的 body 連接或關閉</td><td>PMOS 體二極體會讓輸出往輸入灌電流；多電源系統常見</td></tr>
+  <tr><td>軟啟動</td><td>參考電壓以斜坡上升</td><td>限制湧入電流 I = C<sub>OUT</sub>·dV/dt；太快觸發限流，太慢超過系統時序</td></tr>
+  <tr><td>主動放電</td><td>關閉時用電阻把 C<sub>OUT</sub> 放電</td><td>避免殘留電壓讓下游 IC 進入未定義狀態</td></tr>
+  <tr><td>Power Good（PG）</td><td>比較 V<sub>FB</sub> 與門檻，開汲極輸出</td><td>要有去彈跳與延遲；開汲極需外部上拉</td></tr>
+</table></div>
+<div class="callout"><b>保護電路是客訴熱點</b>　大部分「IC 壞了」的客訴，最後查出來是保護電路正常動作：熱關機、限流、UVLO。設計時要讓這些狀態可觀測（例如 PMIC 的故障暫存器、PG 腳），應用文件要寫清楚觸發條件。見<a href="issues.html#symptoms">常見問題 · 症狀索引</a>。</div>
+
+<h2 id="dcdc-control">DC-DC 控制模式</h2>
+<div class="tblwrap"><table>
+  <tr><th>控制模式</th><th>原理</th><th>優點</th><th>缺點</th></tr>
+  <tr><td>電壓模式（VM）</td><td>誤差電壓與固定斜坡比較產生 PWM</td><td>抗雜訊、輕載穩定</td><td>LC 雙極點需 Type III 補償，暫態較慢</td></tr>
+  <tr><td>峰值電流模式（PCM）</td><td>電感電流峰值與誤差電壓比較</td><td>內建逐週期限流、補償簡單（Type II）、易多相均流</td><td>D &gt; 50% 時次諧波振盪，需斜率補償；需電流偵測與遮蔽時間</td></tr>
+  <tr><td>谷值電流模式</td><td>偵測電感電流谷值</td><td>適合低 D（高降壓比）</td><td>D 小時的次諧波問題</td></tr>
+  <tr><td>固定導通時間（COT）</td><td>V<sub>OUT</sub> 降到門檻時觸發固定 t<sub>ON</sub></td><td>暫態極快、輕載效率好、不需補償網路</td><td>頻率隨負載變化；需要漣波注入以免與 MLCC 低 ESR 衝突而抖動</td></tr>
+  <tr><td>遲滯（hysteretic）</td><td>V<sub>OUT</sub> 在上下門檻間切換</td><td>最快、最簡單</td><td>頻率不固定、EMI 難控制</td></tr>
+</table></div>
+<div class="eq">斜率補償條件（峰值電流模式）：S<sub>e</sub> ≥ (S<sub>f</sub> − S<sub>n</sub>)/2，常取 S<sub>e</sub> ≈ S<sub>f</sub>/2 ~ S<sub>f</sub></div>
+
+<h2 id="compensation">補償網路</h2>
+<ul>
+  <li><b>交越頻率</b>：一般取 f<sub>c</sub> ≤ f<sub>SW</sub>/10（電流模式可到 f<sub>SW</sub>/5），Boost / Buck-Boost 還要低於 RHPZ 頻率的 1/3–1/5。</li>
+  <li><b>Type II</b>（一零兩極）：電流模式常用，零點放在功率級主極點附近，高頻極點放在 ESR 零點或 f<sub>SW</sub>/2。</li>
+  <li><b>Type III</b>（兩零三極）：電壓模式用來補償 LC 雙極點造成的 180° 相位急轉。</li>
+  <li><b>內部補償</b>：許多整合 Buck 把補償做在晶片內，換取簡單，但限制了可用的 L、C 範圍，客戶用錯電感電容就可能不穩定。</li>
+  <li><b>量測驗證</b>：實驗室用網路分析儀在回授路徑注入訊號（例如 10–50 Ω 注入電阻）量 Bode 圖，或用負載暫態波形的振鈴程度估計相位裕度（見<a href="test.html#bench">測試 · 特性化</a>）。</li>
+</ul>
+
+<h2 id="gate-drive">閘極驅動、死區與自舉</h2>
+<ul>
+  <li><b>自舉（bootstrap）</b>：N 型高側開關的閘極要比 SW 高 V<sub>GS</sub>，用一顆電容在低側導通時充電，高側導通時「浮」在 SW 上。100% duty 時自舉電容無法補充，需要定期強制低側導通或內建電荷泵。</li>
+  <li><b>死區時間</b>：防止上下管同時導通。太長時體二極體導通時間增加，損失變大且加重基板注入；太短則有 shoot-through 風險。自適應死區偵測對方閘極已關斷才開啟。</li>
+  <li><b>切換速度與 EMI</b>：SW 節點 dV/dt 越快，切換損失越小，但振鈴與 EMI 越大。可分段驅動、可調斜率，或在 BOOT 腳串電阻（應用端常用的手段）。</li>
+  <li><b>最小導通 / 關斷時間</b>：t<sub>ON,min</sub> 限制了最大降壓比（例如 2 MHz、t<sub>ON,min</sub> = 60 ns，D<sub>min</sub> = 12%，12 V 最低只能降到約 1.4 V），超過時轉換器會跳脈衝。</li>
+</ul>
+
+<h2 id="pmic-digital">PMIC 的數位部分</h2>
+<ul>
+  <li><b>上電 / 斷電時序器</b>：依 OTP 設定的順序與延遲開啟每一路電源，並等待前一路 PG 才開下一路。斷電時序同樣重要，錯誤時可能損壞處理器或造成閂鎖。</li>
+  <li><b>介面</b>：I²C、SPI、SPMI（行動裝置）、PMBus（伺服器）、SVID / SVI3（x86 處理器），用來讀寫電壓、模式、故障狀態與遙測值。</li>
+  <li><b>DVS</b>：收到新電壓命令後以設定的斜率（例如 10 mV/µs）調整參考電壓，迴路要在整個過程中保持穩定；降壓時若轉換器不吸電流（PFM），電壓會降得比命令慢。</li>
+  <li><b>故障處理狀態機</b>：發生 OCP、OVP、UVP、熱警告時要決定「只關這一路」、「關全部」、「打嗝重啟（hiccup）」還是「鎖住等待重置」，並把原因記錄在暫存器中，方便事後分析。</li>
+  <li><b>OTP 與料號</b>：預設電壓、時序、保護門檻、I²C 位址寫在 OTP 中。設計時要有 OTP 讀回校驗（CRC / parity）與燒錄後驗證流程。</li>
+  <li><b>功能安全（車用）</b>：獨立的第二參考與監控比較器、看門狗、內建自我測試（BIST）、故障注入路徑，以符合 ISO 26262 ASIL 等級。</li>
+</ul>
+
+<h2 id="verification">設計驗證</h2>
+<div class="tblwrap"><table>
+  <tr><th>項目</th><th>內容</th></tr>
+  <tr><td>PVT 角落</td><td>製程角（TT / FF / SS / FS / SF）× 電壓 × 溫度（−40 / 25 / 125 / 150 °C）</td></tr>
+  <tr><td>蒙地卡羅</td><td>偏移、精度、修調前後的分佈，估計良率與修調範圍是否足夠</td></tr>
+  <tr><td>穩定度掃描</td><td>負載 0–I<sub>max</sub> × C<sub>OUT</sub>（含 DC bias 衰減）× ESR × ESL × 溫度，所有組合的相位裕度</td></tr>
+  <tr><td>暫態與啟動</td><td>軟啟動、短路後恢復、熱關機遲滯、V<sub>IN</sub> 慢升 / 快升 / 掉電（brown-out）、熱插拔</td></tr>
+  <tr><td>EM / IR</td><td>功率路徑電流密度、via 數量、金屬壓降</td></tr>
+  <tr><td>ESD / latch-up</td><td>ESD 路徑檢查、保護環規則、基板注入模擬</td></tr>
+  <tr><td>老化</td><td>熱載子、NBTI 對偏移與 R<sub>DS(on)</sub> 的影響</td></tr>
+  <tr><td>混合訊號</td><td>數位時序器 + 類比模型的協同模擬（AMS），所有時序與故障情境</td></tr>
+  <tr><td>FMEDA（車用）</td><td>每個失效模式的偵測覆蓋率，計算 SPFM / LFM / PMHF</td></tr>
+</table></div>
+<div class="callout"><b>不要相信只在典型條件下穩定的 LDO</b>　應用工程最常聽到的振盪問題，幾乎都是「客戶的電容 + DC bias + 低溫 + 輕載」這種角落組合。穩定度掃描要把電容的 DC bias 與溫度特性一起放進去，而不是只掃標稱值。</div>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>相位裕度 PM</dt><dd>增益降到 0 dB 時，相位距離 −180° 還有多少度。</dd></div>
+  <div><dt>UGB</dt><dd>Unity-Gain Bandwidth，迴路增益為 1 的頻率，即交越頻率。</dd></div>
+  <div><dt>ESR / ESL</dt><dd>電容的等效串聯電阻 / 電感。</dd></div>
+  <div><dt>Miller 補償</dt><dd>在放大級跨接電容，利用米勒效應把主極點移到低頻並分離極點。</dd></div>
+  <div><dt>C<sub>FF</sub></dt><dd>Feedforward capacitor，跨在上分壓電阻的前饋電容。</dd></div>
+  <div><dt>Foldback</dt><dd>折返限流：輸出電壓下降時限流值跟著降低。</dd></div>
+  <div><dt>Hiccup</dt><dd>打嗝模式：故障時關閉一段時間再嘗試重啟。</dd></div>
+  <div><dt>Slope compensation</dt><dd>斜率補償，防止峰值電流模式在 D &gt; 50% 時的次諧波振盪。</dd></div>
+  <div><dt>COT</dt><dd>Constant On-Time，固定導通時間控制。</dd></div>
+  <div><dt>PTAT / CTAT</dt><dd>與絕對溫度成正比 / 成反比的電壓或電流。</dd></div>
+  <div><dt>SPMI</dt><dd>System Power Management Interface，MIPI 制定的行動裝置電源管理匯流排。</dd></div>
+  <div><dt>FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis，功能安全分析方法。</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test &amp; Qualification · PMIC Notes</title>
+<meta name="description" content="Power IC test: how LDO and DC-DC parameters are measured, ATE production test, design for test, Kelvin sensing, correlation and GR&R, bench characterisation, AEC-Q100 qualification, ESD and latch-up, functional safety.">
+<link rel="alternate" hreflang="zh-Hant" href="../test.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="test" data-ch="tst">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Chapter 5 · Test &amp; qualification</div>
+<h1>Test: you only know it is good if you measure it right</h1>
+<p class="lead">Power-IC testing comes in three kinds: screening bad parts on ATE in the shortest possible time; measuring every parameter under every condition on the bench (characterisation); and proving with accelerated stress that the part will outlive the product (qualification). The three sets of numbers must agree, or nobody can convince anybody when a complaint arrives.</p>
+
+<h2 id="ldo-params">How LDO parameters are measured</h2>
+<div class="tblwrap"><table>
+  <tr><th>Parameter</th><th>Method</th><th>Traps</th></tr>
+  <tr><td>Output accuracy</td><td>Fixed V<sub>IN</sub> and load; measure V<sub>OUT</sub></td><td>Kelvin-sense at the pin, or trace drop is included</td></tr>
+  <tr><td>Line regulation</td><td>Sweep V<sub>IN</sub> min to max; ΔV<sub>OUT</sub>/ΔV<sub>IN</sub></td><td>Minimum V<sub>IN</sub> must stay out of dropout</td></tr>
+  <tr><td>Load regulation</td><td>Load from min to max; ΔV<sub>OUT</sub>/ΔI<sub>OUT</sub></td><td>Self-heating shifts V<sub>OUT</sub> at high current; pulse to separate electrical and thermal effects</td></tr>
+  <tr><td>Dropout V<sub>DO</sub></td><td>Lower V<sub>IN</sub> until V<sub>OUT</sub> falls by a set amount (e.g. −2% or −100 mV) and record V<sub>IN</sub> − V<sub>OUT</sub>; or set V<sub>IN</sub> to a fixed fraction of V<sub>OUT(nom)</sub> and measure</td><td>Definitions vary between vendors; read the conditions when comparing datasheets</td></tr>
+  <tr><td>I<sub>Q</sub> / I<sub>GND</sub></td><td>V<sub>IN</sub> pin current minus load current</td><td>nA–µA levels need long settling; range changes disturb the measurement</td></tr>
+  <tr><td>Shutdown current</td><td>EN = 0, measure V<sub>IN</sub> current</td><td>Hot leakage can be one or two orders of magnitude higher</td></tr>
+  <tr><td>Current limit / short circuit</td><td>Raise load until V<sub>OUT</sub> collapses, or short and measure</td><td>A sustained short trips thermal shutdown; production uses short pulses</td></tr>
+  <tr><td>EN / UVLO thresholds</td><td>Sweep the input and record the trip points and hysteresis</td><td>Sweeping too fast measures delay, not threshold</td></tr>
+  <tr><td>PSRR</td><td>Superimpose a sine on V<sub>IN</sub>; measure that frequency on V<sub>OUT</sub></td><td>Production tests one or two frequencies; the full curve comes from characterisation</td></tr>
+  <tr><td>Output noise</td><td>Low-noise preamp + spectrum analyser, integrated 10 Hz–100 kHz</td><td>The measurement chain must be 10 dB quieter than the DUT; run from batteries to avoid supply noise</td></tr>
+  <tr><td>Thermal shutdown</td><td>Usually not tested in production (design-guaranteed), or via a test mode reading the on-chip sensor</td><td>Actually heating parts to 160 °C takes too long</td></tr>
+</table></div>
+
+<h2 id="dcdc-params">DC-DC parameters</h2>
+<ul>
+  <li><b>Efficiency</b>: η = P<sub>OUT</sub>/P<sub>IN</sub>, with four-wire voltage sensing, precision shunts and thermal equilibrium at each load point. A 1% measurement error is enough to make efficiency curves "look" different.</li>
+  <li><b>R<sub>DS(on)</sub></b>: hold the high or low side on in a test mode, force a known current and Kelvin-measure the drop.</li>
+  <li><b>Switching frequency and minimum on-time</b>: measure SW; production can use a divided-down output of the internal oscillator instead of a large inductor.</li>
+  <li><b>Peak / valley current limit</b>: cycle-by-cycle thresholds, needing a real inductor or a test mode.</li>
+  <li><b>Light-load mode threshold</b>, <b>ripple</b> and <b>load transient</b>: mostly characterisation items; production only checks function.</li>
+</ul>
+
+<h2 id="ate">ATE production test</h2>
+<p>A power-IC ATE (e.g. a mixed-signal tester) has several DPS (device power supplies), PMUs (precision measurement units), high-current / high-voltage sources, digital channels and digitisers. The core challenge of production test is <b>measuring every guaranteed parameter in 0.5 s without giving up accuracy</b>.</p>
+<ul>
+  <li><b>Settling time</b>: with a large output capacitor, each change of condition needs ms to tens of ms. Production load boards use smaller capacitors or relay switching.</li>
+  <li><b>Test modes</b>: a special pin sequence or I²C command enters test mode, routing internal nodes (reference, bias current, oscillator) to an analogue mux for direct measurement, and can disable soft start or protection to save time.</li>
+  <li><b>Multi-site</b>: 4–32 sites in parallel; shared resources (such as precision digitisers) reduce parallel efficiency.</li>
+  <li><b>Load-board design</b>: parasitic resistance and inductance of high-current paths, relay life and thermal design all affect measurement. Load boards need their own periodic verification and maintenance.</li>
+  <li><b>Test-program version control</b>: every change to limits, items or algorithms is recorded and correlation-checked; automotive products also notify customers.</li>
+</ul>
+
+<h2 id="dft">Design for test (DFT)</h2>
+<ul>
+  <li><b>Analogue test bus</b>: key internal nodes are muxed to a test pin or a functional pin.</li>
+  <li><b>"Trial trim" in registers</b>: write the trim code to a register first (without burning), measure, and only then program OTP — fewer programming errors.</li>
+  <li><b>Protection bypass</b>: test mode temporarily disables UVLO, soft start or thermal-shutdown delays.</li>
+  <li><b>Digital scan chains</b>: the PMIC sequencer and registers are scan-tested, targeting &gt; 95% coverage.</li>
+  <li><b>Test-mode safety</b>: it must not be entered by noise or a stray I²C command in the customer's system. Products have entered test mode from pin noise at power-up, causing abnormal outputs in the field.</li>
+</ul>
+
+<h2 id="kelvin">Kelvin sensing and high current</h2>
+<p>When testing a 30 mΩ switch, socket contact resistance alone may be 20–50 mΩ and rises with use. The answer is <b>Kelvin (four-wire) measurement</b>: one pair of force wires carries current, another pair of sense wires measures voltage at the pins; with almost no current in the sense wires, contact resistance does not affect the reading.</p>
+<ul>
+  <li><b>Socket wear</b>: contact resistance creeps up and R<sub>DS(on)</sub> or load-regulation distributions shift until yield drops or testers disagree. Check with a golden unit every shift and set replacement counts.</li>
+  <li><b>Pulsed test</b>: high-current tests use 0.1–1 ms pulses to avoid self-heating, and reduce socket arcing and burning.</li>
+  <li><b>In-package resistance</b>: measured R<sub>DS(on)</sub> includes bond wires and lead frame. Datasheets usually quote "including package"; the test must state the measurement point.</li>
+</ul>
+
+<h2 id="correlation">Correlation and GR&amp;R</h2>
+<p>The same chip measured at CP, FT, on the bench and on the customer's line will not read exactly the same. <b>Correlation</b> proves that the differences are known and acceptable.</p>
+<ul>
+  <li><b>Golden units</b>: a set of samples precisely measured on the bench, used to verify every tester and load board.</li>
+  <li><b>GR&amp;R</b> (measurement-system analysis): repeatability (same tester) and reproducibility (different testers / operators) as a share of tolerance; &lt; 10% good, 10–30% conditional, &gt; 30% unacceptable.</li>
+  <li><b>Tester to tester</b>: offsets between testers must be a small part of the guard band, or one tester's yield will be systematically low or high.</li>
+  <li><b>CP vs FT</b>: pair each die's CP and FT data to compute package shift and recalibrate the CP trim target (see <a href="production.html#cp-trim">Production · CP trim</a>).</li>
+  <li><b>With customers</b>: when a customer's line reads "out of spec", first compare methods — load, temperature, measurement point and timing versus the datasheet conditions.</li>
+</ul>
+
+<h2 id="bench">Bench characterisation</h2>
+<div class="tblwrap"><table>
+  <tr><th>Item</th><th>Method and equipment</th></tr>
+  <tr><td>Parameters over temperature</td><td>Thermostream or chamber, −40 to 150 °C, waiting for equilibrium at each point</td></tr>
+  <tr><td>Loop Bode plot</td><td>Network analyser + injection transformer / resistor in the feedback path; sweep load and capacitance</td></tr>
+  <tr><td>Load transient</td><td>Fast electronic load or MOSFET-switched resistor, &lt; 1 µs edge; probe with a short ground spring</td></tr>
+  <tr><td>PSRR</td><td>Line injector or power amplifier adds a sine to V<sub>IN</sub>; network analyser measures the ratio</td></tr>
+  <tr><td>Noise</td><td>Battery supply, shielded box, low-noise preamp, spectrum analyser</td></tr>
+  <tr><td>Efficiency and thermal</td><td>Four-wire measurement, power analyser, thermal camera, thermocouples</td></tr>
+  <tr><td>EMI</td><td>Near-field probe pre-scans, LISN for conducted EMI, radiated chamber</td></tr>
+  <tr><td>Process-corner samples</td><td>Skew lots with deliberately shifted process parameters to verify design margin</td></tr>
+</table></div>
+<div class="callout"><b>The probe-ground lesson</b>　Measuring buck output ripple with a scope's long ground lead lets the loop pick up the SW node's magnetic field and shows spikes of hundreds of mV that are not real ripple. Use a ground spring, coax, or 50 Ω termination straight across the capacitor. Many "ripple too high" complaints turn out to be measurement problems.</div>
+
+<h2 id="qual">Reliability qualification: AEC-Q100</h2>
+<p>The automotive IC standard is AEC-Q100; consumer and industrial products are often based on JEDEC JESD47. The typical requirement is <b>3 lots × 77 units, zero failures</b>, with pre/post parameter comparison.</p>
+<div class="tblwrap"><table>
+  <tr><th>Test</th><th>Conditions (typical)</th><th>Failure mechanisms targeted</th></tr>
+  <tr><td>HTOL high-temperature operating life</td><td>T<sub>J</sub> 125–150 °C, max operating voltage, 1000 h</td><td>Oxide, hot carriers, electromigration, parametric drift</td></tr>
+  <tr><td>ELFR early-life failure rate</td><td>Short high-temperature bias, large sample</td><td>Infant mortality from process defects</td></tr>
+  <tr><td>TC temperature cycling</td><td>−55/−65 ↔ 150 °C, 500–1000 cycles</td><td>Bond wires, die attach, solder joints, interface delamination</td></tr>
+  <tr><td>THB / HAST</td><td>85 °C / 85% RH biased for 1000 h, or 130 °C pressurised for 96 h</td><td>Moisture corrosion, ion migration</td></tr>
+  <tr><td>uHAST / AC</td><td>Unbiased high temperature and humidity / autoclave</td><td>Package integrity</td></tr>
+  <tr><td>HTSL high-temperature storage</td><td>150–175 °C, 1000 h</td><td>Intermetallics, wire-bond joints</td></tr>
+  <tr><td>PTC power temperature cycling</td><td>Power cycling causing die self-heating cycles</td><td>Metal and wire fatigue in power devices</td></tr>
+  <tr><td>ESD HBM / CDM</td><td>Per AEC-Q100-002 / -011</td><td>Electrostatic discharge robustness</td></tr>
+  <tr><td>Latch-up</td><td>AEC-Q100-004 (JESD78), current / voltage injection</td><td>Parasitic SCR triggering</td></tr>
+  <tr><td>Preconditioning (PC)</td><td>MSL soak + 3 reflows, before TC / THB / HAST</td><td>Simulates customer assembly</td></tr>
+</table></div>
+<ul>
+  <li><b>Temperature grades</b>: Grade 0 (−40 to 150 °C), Grade 1 (−40 to 125 °C), Grade 2 (−40 to 105 °C), Grade 3 (−40 to 85 °C).</li>
+  <li><b>Acceleration models</b>: Arrhenius (thermal, E<sub>a</sub> about 0.7 eV), Peck (humidity), Coffin-Manson (temperature cycling) convert stress time to field life.</li>
+  <li><b>Parametric drift</b>: beyond zero failures, pre/post changes must be within limits, e.g. output-voltage drift &lt; 0.5%.</li>
+  <li><b>Power-IC specific items</b>: short-circuit robustness (AEC-Q100-012, repeated shorts on smart power devices), SOA verification, high-voltage stress.</li>
+</ul>
+
+<h2 id="esd-lu">ESD and latch-up</h2>
+<div class="tblwrap"><table>
+  <tr><th>Model</th><th>Simulates</th><th>Typical level</th></tr>
+  <tr><td>HBM (human body model)</td><td>A charged person touching a pin, 100 pF / 1.5 kΩ</td><td>±2 kV (general), ±4 kV (common in automotive)</td></tr>
+  <tr><td>CDM (charged device model)</td><td>The charged chip itself touching ground through one pin; ns-scale high current</td><td>±500 V, corner pins ±750 V</td></tr>
+  <tr><td>System-level IEC 61000-4-2</td><td>A person touching the finished product; far more energy than HBM</td><td>±8 kV contact / ±15 kV air (product level)</td></tr>
+</table></div>
+<ul>
+  <li><b>Passing HBM ≠ passing system level</b>: an IC's ±2 kV HBM does not mean it survives ±8 kV on a USB or battery terminal; the system needs an external TVS. Customers often confuse the two, leading to "static killed the IC" complaints.</li>
+  <li><b>ESD challenges in power ICs</b>: high-voltage pins cannot use ordinary clamps (the trigger must exceed the operating voltage), and LDMOS snapback must be handled carefully or the device burns locally during ESD.</li>
+  <li><b>Latch-up</b>: a parasitic PNPN structure, once triggered by injected current, conducts until power is removed. Switching nodes and substrate injection make power ICs especially susceptible (see <a href="process.html#substrate-injection">Process · substrate injection</a>).</li>
+</ul>
+
+<h2 id="safety">Functional-safety testing</h2>
+<ul>
+  <li><b>Power-on self-test</b>: monitor comparators, references and watchdog check themselves at every power-up; failure blocks release.</li>
+  <li><b>Fault injection</b>: switches designed into the monitor paths let production and the field verify that the monitors themselves work (latent faults).</li>
+  <li><b>ATE coverage</b>: functional safety requires production test to cover the safety mechanisms themselves, or hardware defects in them go unnoticed.</li>
+</ul>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>ATE</dt><dd>Automatic test equipment.</dd></div>
+  <div><dt>DPS / PMU</dt><dd>Device power supply / precision measurement unit on a tester.</dd></div>
+  <div><dt>Load board</dt><dd>The interface board between tester and device.</dd></div>
+  <div><dt>Kelvin</dt><dd>Four-wire measurement with separate force and sense.</dd></div>
+  <div><dt>Golden unit</dt><dd>A reference sample used to verify a measurement system.</dd></div>
+  <div><dt>GR&amp;R</dt><dd>Gage repeatability and reproducibility of a measurement system.</dd></div>
+  <div><dt>HTOL</dt><dd>High-temperature operating life test.</dd></div>
+  <div><dt>HAST</dt><dd>Highly accelerated stress test (temperature and humidity).</dd></div>
+  <div><dt>HBM / CDM</dt><dd>Human body model / charged device model, two ESD models.</dd></div>
+  <div><dt>Skew lot</dt><dd>A qualification lot with process parameters deliberately at the corners.</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>生產 · PMIC Notes</title>
+<meta name="description" content="電源 IC 生產：製造流程、WAT、CP 測試與修調、封裝型式與熱阻、FT、良率、Cpk 與 SPC、PAT 與零缺陷、追溯、PCN 變更管理與產能。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="mfg" data-ch="mfg">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Chapter 4 · Production</div>
+<h1>生產：從晶圓到一卷卷的料帶</h1>
+<p class="lead">電源 IC 單價常只有幾毛到幾美元，出貨量卻是每年數億顆。要賺錢就必須讓每一步的良率高、測試時間短、變異小；要讓客戶放心，又必須每一顆都可追溯、每一次變更都通知。這一章走一遍量產流程，以及產品工程師（PE）每天在看的數字。</p>
+
+<h2 id="flow">生產流程</h2>
+<figure>
+<svg viewBox="0 0 640 170" role="img" aria-label="電源 IC 生產流程：晶圓製造、WAT、CP 與修調、封裝、FT、品保抽檢、出貨">
+  <g class="ts">
+  <rect class="c5" x="10"  y="30" width="80" height="50" rx="6"/><text x="50"  y="52" text-anchor="middle">晶圓製造</text><text x="50" y="68" text-anchor="middle" class="t-mut">BCD fab</text>
+  <rect class="c5" x="100" y="30" width="80" height="50" rx="6"/><text x="140" y="52" text-anchor="middle">WAT</text><text x="140" y="68" text-anchor="middle" class="t-mut">電性監控</text>
+  <rect class="c6" x="190" y="30" width="80" height="50" rx="6"/><text x="230" y="52" text-anchor="middle">CP</text><text x="230" y="68" text-anchor="middle" class="t-mut">測試 + 修調</text>
+  <rect class="c1" x="280" y="30" width="80" height="50" rx="6"/><text x="320" y="52" text-anchor="middle">封裝</text><text x="320" y="68" text-anchor="middle" class="t-mut">研磨 切割 打線</text>
+  <rect class="c4" x="370" y="30" width="80" height="50" rx="6"/><text x="410" y="52" text-anchor="middle">FT</text><text x="410" y="68" text-anchor="middle" class="t-mut">冷 / 常 / 熱測</text>
+  <rect class="c3" x="460" y="30" width="80" height="50" rx="6"/><text x="500" y="52" text-anchor="middle">QA 抽測</text><text x="500" y="68" text-anchor="middle" class="t-mut">外觀 + 電性</text>
+  <rect class="c2" x="550" y="30" width="80" height="50" rx="6"/><text x="590" y="52" text-anchor="middle">包裝出貨</text><text x="590" y="68" text-anchor="middle" class="t-mut">T&amp;R 乾燥包</text>
+  </g>
+  <path class="wm" d="M90 55h10M180 55h10M270 55h10M360 55h10M450 55h10M540 55h10"/>
+  <text x="50" y="110" text-anchor="middle" class="ts t-mut">8–12 週</text>
+  <text x="230" y="110" text-anchor="middle" class="ts t-mut">良率 92–99%</text>
+  <text x="320" y="110" text-anchor="middle" class="ts t-mut">2–4 週</text>
+  <text x="410" y="110" text-anchor="middle" class="ts t-mut">良率 97–99.5%</text>
+  <text x="590" y="110" text-anchor="middle" class="ts t-mut">MSL 等級</text>
+  <path class="wd" d="M230 120 V145 H410 V120"/><text x="320" y="160" text-anchor="middle" class="ts t-mut">資料以 lot / wafer / X-Y 串接：追溯、PAT、相關性分析</text>
+</svg>
+<figcaption>典型流程與量級。總週期約 3–5 個月，產能吃緊時晶圓段可拉長到半年以上。</figcaption>
+</figure>
+
+<h2 id="wat">WAT：晶圓出廠前的電性體檢</h2>
+<p>晶圓允收測試（WAT，又稱 PCM）在切割道上的測試鍵量測基本元件參數：V<sub>T</sub>、I<sub>DSAT</sub>、片電阻、接觸電阻、BJT β、LDMOS R<sub>sp</sub> 與崩潰電壓、電容值、氧化層崩潰等。</p>
+<ul>
+  <li><b>允收</b>：每片量 5–9 點，超出規格的晶圓不出貨或降級處理。</li>
+  <li><b>和產品參數的關聯</b>：帶隙的修調前分佈和 BJT V<sub>BE</sub>、電阻片電阻高度相關；R<sub>DS(on)</sub> 和 LDMOS 的 R<sub>sp</sub> 相關。PE 會建立 WAT 與 CP 參數的相關模型，提早預警。</li>
+  <li><b>製程飄移</b>：WAT 落在規格內但偏向一邊（例如片電阻偏高 2σ）時，產品可能出現修調碼用到極限、良率下降。</li>
+</ul>
+
+<h2 id="cp-trim">CP 測試與修調</h2>
+<p>晶圓測試（CP，chip probing）用探針卡接觸每顆晶粒的焊墊。電源 IC 的 CP 有兩個特殊任務：<b>修調</b>，以及<b>在探針接觸電阻存在下量測大電流參數</b>。</p>
+<ol class="steps">
+  <li><b>開短路與漏電</b>確認探針接觸與 ESD 結構正常。</li>
+  <li><b>量修調前參數</b>：帶隙電壓、振盪頻率、偏壓電流、限流門檻等。</li>
+  <li><b>計算修調碼</b>：依修調前值與目標值，查表或公式算出每一組熔絲 / OTP 位元。</li>
+  <li><b>燒錄</b>：熔絲燒斷或寫入 OTP，記錄修調碼。</li>
+  <li><b>修調後驗證</b>：重新量測，確認落在窄規格內；燒不斷或修調後仍超規的晶粒判為失效。</li>
+  <li><b>其他參數</b>：I<sub>Q</sub>、UVLO 門檻、R<sub>DS(on)</sub>（低電流量測）、邏輯功能、OTP 讀回。</li>
+</ol>
+<ul>
+  <li><b>修調碼分佈</b>是重要監控指標：碼集中在中央表示製程正常；靠近兩端表示製程偏移、修調範圍快不夠用。</li>
+  <li><b>封裝偏移預補償</b>：若封裝後平均偏移 +0.3%，CP 修調目標就設在 −0.3%。這個值需要定期以 CP / FT 配對資料重新校正。</li>
+  <li><b>大電流限制</b>：探針每針能承受的電流有限（約 0.5–1 A），量 3 A 限流要用多針並聯或留到 FT；探針接觸電阻 0.1–1 Ω 也讓 CP 的 R<sub>DS(on)</sub> 只能用 Kelvin 方式量。</li>
+  <li><b>多站同測</b>（multi-site）：一次測 4–32 顆，降低成本；站與站間的相關性要定期驗證。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#trim">修調位元數、步階與良率 / Cpk</a></div>
+
+<h2 id="assembly">封裝</h2>
+<div class="tblwrap"><table>
+  <tr><th>封裝</th><th>θ<sub>JA</sub>（JEDEC 板，量級）</th><th>特點</th><th>典型用途</th></tr>
+  <tr><td>SOT-23 / SC-70</td><td>180–250 °C/W</td><td>便宜、好焊、好目檢</td><td>小電流 LDO、負載開關</td></tr>
+  <tr><td>SOIC / MSOP（含 exposed pad）</td><td>40–120 °C/W</td><td>引腳外露，車用目檢容易</td><td>車用 LDO、工業</td></tr>
+  <tr><td>DFN / QFN（裸露散熱墊）</td><td>30–60 °C/W</td><td>散熱墊焊在 PCB 上導熱；引腳側面需可濕潤側翼（wettable flank）才能做 AOI</td><td>Buck、PMIC、中功率 LDO</td></tr>
+  <tr><td>WLCSP</td><td>50–100 °C/W</td><td>最小、寄生最小；晶片背面裸露，易受光與機械應力影響</td><td>手機、穿戴</td></tr>
+  <tr><td>覆晶 QFN（FCQFN / HotRod）</td><td>25–45 °C/W</td><td>凸塊取代打線，寄生電感與電阻小</td><td>大電流 Buck</td></tr>
+  <tr><td>電源模組 / SiP</td><td>依設計</td><td>電感、電容與 IC 封在一起</td><td>FPGA、伺服器、空間受限應用</td></tr>
+</table></div>
+<ul>
+  <li><b>θ<sub>JA</sub> 不是元件常數</b>：它是在 JEDEC 標準測試板（JESD51）上量的，客戶板子的銅面積、層數、過孔數不同，實際值可差 2 倍。熱設計要用 Ψ<sub>JT</sub>、θ<sub>JC</sub> 搭配板子模擬（見<a href="application.html#thermal">應用 · 熱設計</a>）。</li>
+  <li><b>銲料空洞</b>：散熱墊下的焊錫空洞 &gt; 30–50% 會明顯提高熱阻。黏晶（die attach）空洞同理，是封裝廠 X-ray 抽檢項目。</li>
+  <li><b>打線</b>：金線逐漸被銅線取代以降成本；銅線硬、易造成焊墊下方破裂（cratering），且對腐蝕（氯、硫）較敏感。</li>
+  <li><b>濕敏等級 MSL</b>：塑封會吸濕，回焊時水氣膨脹造成分層或爆米花破裂。依 J-STD-020 分級，MSL 3 表示拆封後 168 小時內要上件，否則需烘烤。</li>
+</ul>
+
+<h2 id="ft">FT 最終測試</h2>
+<p>封裝後的最終測試（FT）在 handler 上自動上下料，量測規格書上的保證參數。和 CP 相比，FT 可以測大電流、實際切換、熱特性，也能抓到封裝造成的問題。</p>
+<ul>
+  <li><b>溫度</b>：消費性產品常只測常溫，用設計與特性化資料保證全溫；車用通常要求冷（−40 °C）/ 常 / 熱（125 °C 以上）三溫測試或至少兩溫。</li>
+  <li><b>測試時間</b>：一顆 LDO 約 0.3–1 秒，大型 PMIC 可達 5–20 秒。每秒測試成本約數美分，對單價低的產品影響很大，所以測試項目與穩定等待時間都要精算。</li>
+  <li><b>功能測試</b>：PMIC 要走過上電時序、I²C 讀寫、每一路的開關與電壓、故障觸發與旗標。</li>
+  <li><b>封裝後修調</b>：OTP 或齊納修調在 FT 進行，可補償封裝應力，但需要 FT 測試機有對應的高壓源。</li>
+</ul>
+
+<h2 id="yield">良率</h2>
+<div class="eq">總良率 Y = Y<sub>fab</sub> × Y<sub>CP</sub> × Y<sub>assy</sub> × Y<sub>FT</sub>　　Y<sub>CP</sub> ≈ e<sup>−A·D<sub>0</sub></sup> × Y<sub>param</sub></div>
+<ul>
+  <li><b>缺陷良率</b>：與晶粒面積和缺陷密度有關。電源 IC 晶粒小（1–10 mm²），缺陷良率通常很高。</li>
+  <li><b>參數良率</b>：常常才是主要損失來源，例如修調範圍不足、I<sub>Q</sub> 偏高、UVLO 門檻超規。</li>
+  <li><b>良率損失柏拉圖</b>：每週依失效 bin 排序，前三名通常佔 70–80% 損失，是改善的起點。</li>
+  <li><b>晶圓圖</b>：邊緣低良率、環狀、刮痕、特定曝光區塊（reticle）的模式，可以直接指向製程或探針卡問題。</li>
+  <li><b>重測</b>：接觸不良造成的假失效可用重測救回，但重測率太高要先修探針卡或 socket，否則會掩蓋真正的失效。</li>
+</ul>
+
+<h2 id="cpk">Cpk 與 SPC</h2>
+<div class="eq">Cp = (USL − LSL) / 6σ　　Cpk = min(USL − μ, μ − LSL) / 3σ</div>
+<div class="tblwrap"><table>
+  <tr><th>Cpk</th><th>超規比例（常態分佈、單邊）</th><th>一般解讀</th></tr>
+  <tr><td class="n">1.00</td><td class="n">≈ 1350 ppm</td><td>不足</td></tr>
+  <tr><td class="n">1.33</td><td class="n">≈ 32 ppm</td><td>消費性常見最低要求</td></tr>
+  <tr><td class="n">1.67</td><td class="n">≈ 0.3 ppm</td><td>車用常見要求（關鍵參數）</td></tr>
+  <tr><td class="n">2.00</td><td class="n">≈ 0.001 ppm</td><td>六標準差等級</td></tr>
+</table></div>
+<ul>
+  <li><b>測試極限與規格極限</b>：測試極限（test limit）通常比規格書極限更緊，中間的差是 guard band，用來涵蓋測試機誤差、溫度差、長期漂移。</li>
+  <li><b>SPC 管制圖</b>：監控每批的平均值與標準差；違反 Western Electric 規則（例如連續 7 點在同一側）就觸發 OCAP（異常處理計畫）。</li>
+  <li><b>分佈不是常態時</b>：修調後的分佈常是均勻或多峰的，直接套 Cpk 會誤判；應看實際超規率或用非參數方法。</li>
+</ul>
+
+<h2 id="pat">PAT 與零缺陷</h2>
+<p>車用客戶的目標是 &lt; 1 DPPM（每百萬顆不到一顆不良），甚至零缺陷。只看規格界限不夠，因為一顆「通過規格但明顯偏離同批」的晶片，往往帶有潛在缺陷。</p>
+<ul>
+  <li><b>部件平均測試（PAT）</b>：依 AEC-Q001，以同批或同晶圓的分佈計算動態界限（例如 μ ± 6σ 的穩健估計），落在外面的離群值即使在規格內也剔除。</li>
+  <li><b>地理位置篩選</b>：GDBN（good die in bad neighborhood）把被大量失效晶粒包圍的良品也剔除；也會剔除整片晶圓的特定區域或整片低良率晶圓。</li>
+  <li><b>I<sub>DDQ</sub> 與漏電</b>：漏電略高的晶片可能有閘極氧化層或接面缺陷，常是早期失效的前兆。</li>
+  <li><b>代價</b>：PAT 通常會多剔除 0.5–2% 的良品，是車用晶片較貴的原因之一。</li>
+</ul>
+
+<h2 id="traceability">追溯</h2>
+<p>客訴發生時第一個問題是「這顆是哪一批、哪一片、哪個位置做的」。追溯鏈通常是：</p>
+<ul>
+  <li><b>封裝打印</b>：料號 + 日期碼 + 批號代碼（小封裝空間有限，可能只有 3–4 個字元）。</li>
+  <li><b>晶片內 ECID</b>：在 CP 時把 lot / wafer / X-Y 寫入 OTP，事後可透過介面讀出。PMIC 與車用產品常見。</li>
+  <li><b>資料庫串接</b>：WAT、CP、FT、修調碼、測試機與探針卡編號、封裝批次、材料批號全部以批號串起來，才能做客訴時的「同批風險評估」。</li>
+  <li><b>保存期限</b>：車用通常要求生產資料保存 15 年以上。</li>
+</ul>
+
+<h2 id="pcn">PCN 與變更管理</h2>
+<p>任何可能影響形狀、適配、功能、品質或可靠度的變更，都要提前通知客戶（依 JESD46，通常至少 90 天），重大變更要附上驗證資料，讓客戶評估或重新認證。</p>
+<div class="tblwrap"><table>
+  <tr><th>變更類型</th><th>例子</th><th>通常需要</th></tr>
+  <tr><td>晶圓廠 / 製程</td><td>換廠、換節點、光罩改版、製程步驟調整</td><td>完整或部分 AEC-Q100 重新驗證、特性化比較</td></tr>
+  <tr><td>設計</td><td>電路修正、修調演算法變更</td><td>特性化與驗證</td></tr>
+  <tr><td>封裝</td><td>換封裝廠、金線改銅線、導線架電鍍、塑封料</td><td>封裝相關可靠度（溫度循環、THB / HAST、MSL）</td></tr>
+  <tr><td>測試</td><td>換測試機、測試程式或測試極限調整</td><td>相關性報告；車用通常也需通知</td></tr>
+  <tr><td>停產</td><td>EOL，依 JESD48 提供最後購買（LTB）時間</td><td>替代料建議</td></tr>
+</table></div>
+<div class="callout"><b>沒有通知的變更最危險</b>　許多嚴重客訴的根因是「我們覺得沒影響所以沒通知」：例如換了塑封料，常溫測試完全一樣，但在客戶高溫高濕環境下出現分層或漂移。變更管理的原則是：只要不確定，就評估並通知。</div>
+
+<h2 id="capacity">產能、交期與雙來源</h2>
+<ul>
+  <li><b>8 吋晶圓廠</b>：大量電源 IC 仍在 8 吋 BCD 產線上生產。2020–2022 年的缺貨潮中，8 吋產能是最緊的瓶頸之一，交期拉長到 40–52 週以上。</li>
+  <li><b>雙來源</b>（second source）：大客戶要求同一料號在兩個晶圓廠或兩個封裝廠都有產能。每個來源都要完成驗證，並證明特性一致。</li>
+  <li><b>腳位相容替代</b>：短缺時客戶常改用其他廠商的腳位相容料，但補償方式、軟啟動、PG 時序、穩定電容範圍不同，換料後的振盪、啟動問題是常見的應用支援工作。</li>
+</ul>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>WAT / PCM</dt><dd>Wafer Acceptance Test / Process Control Monitor，晶圓允收測試。</dd></div>
+  <div><dt>CP</dt><dd>Chip Probing，晶圓針測。</dd></div>
+  <div><dt>FT</dt><dd>Final Test，封裝後的最終測試。</dd></div>
+  <div><dt>Bin</dt><dd>測試結果分類，例如 Bin 1 良品、其他 bin 代表各種失效。</dd></div>
+  <div><dt>Guard band</dt><dd>測試極限比規格界限內縮的裕度。</dd></div>
+  <div><dt>OCAP</dt><dd>Out-of-Control Action Plan，製程失控時的處理計畫。</dd></div>
+  <div><dt>PAT</dt><dd>Part Average Testing，以同批分佈剔除離群值。</dd></div>
+  <div><dt>DPPM</dt><dd>Defective Parts Per Million，每百萬顆不良數。</dd></div>
+  <div><dt>MSL</dt><dd>Moisture Sensitivity Level，濕敏等級。</dd></div>
+  <div><dt>ECID</dt><dd>Electronic Chip ID，寫在晶片內的唯一識別碼。</dd></div>
+  <div><dt>PCN / EOL / LTB</dt><dd>產品變更通知 / 停產 / 最後購買。</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

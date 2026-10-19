@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>架構 · PMIC Notes</title>
+<meta name="description" content="電源 IC 架構：線性與切換式穩壓、LDO 方塊圖與傳輸元件、壓差與效率、Buck / Boost / Buck-Boost、電荷泵、PMIC 整合與關鍵規格。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="arch" data-ch="arc">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Chapter 1 · Architecture</div>
+<h1>架構：把一個電壓變成另一個電壓</h1>
+<p class="lead">電池是 3.0–4.4 V、USB 是 5–20 V、車用電瓶是 9–16 V（冷啟動掉到 3 V、拋負載衝到 40 V 以上），但 SoC 核心要 0.6–1.0 V、DDR 要 1.1 V、類比電路要乾淨的 1.8 V 或 3.3 V。電源 IC 的工作，就是在各種輸入和負載條件下，把電壓穩穩地轉成每一個負載要的值。</p>
+
+<h2 id="why-regulate">為什麼需要穩壓</h2>
+<p>負載電流會在幾奈秒內從微安跳到數安培，輸入電壓會隨電池放電、充電器插拔或引擎啟動而變化。穩壓器是一個<b>負回授系統</b>：量測輸出、和參考電壓比較，再調整傳輸元件，讓輸出維持在設定值。評估一顆穩壓器，看的就是它在這些擾動下輸出偏了多少、多久回來、花了多少能量。</p>
+<div class="tblwrap"><table>
+  <tr><th>擾動</th><th>對應規格</th><th>典型量級</th></tr>
+  <tr><td>負載電流緩慢變化</td><td>負載調節率（load regulation）</td><td>0.1–1 %/A</td></tr>
+  <tr><td>輸入電壓緩慢變化</td><td>線性調節率（line regulation）</td><td>0.01–0.1 %/V</td></tr>
+  <tr><td>負載電流快速跳變</td><td>負載暫態（load transient）</td><td>數十 mV 下衝，數 µs 恢復</td></tr>
+  <tr><td>輸入上的漣波與雜訊</td><td>電源抑制比 PSRR</td><td>1 kHz 時 60–80 dB</td></tr>
+  <tr><td>溫度、製程、老化</td><td>輸出精度（accuracy）</td><td>±0.5–2 %（全溫、全負載）</td></tr>
+</table></div>
+
+<h2 id="linear-vs-switching">線性穩壓 vs 切換式穩壓</h2>
+<p><b>線性穩壓器</b>讓傳輸元件工作在飽和 / 線性區，相當於一個由回授控制的可變電阻。多出來的電壓 (V<sub>IN</sub> − V<sub>OUT</sub>) 乘上電流，全部變成熱。好處是簡單、安靜、反應快、沒有電感。</p>
+<p><b>切換式穩壓器</b>讓開關只在完全導通或完全截止兩種狀態間切換，理想情況下開關本身不消耗功率，再用電感與電容把脈衝濾成直流。效率高，但有切換漣波、EMI，外部元件也多。</p>
+<div class="eq">η<sub>LDO</sub> = (V<sub>OUT</sub>·I<sub>OUT</sub>) / (V<sub>IN</sub>·(I<sub>OUT</sub> + I<sub>Q</sub>)) ≈ V<sub>OUT</sub> / V<sub>IN</sub></div>
+<p>從 3.6 V 降到 1.8 V，LDO 效率最多 50%；降到 0.8 V 只剩 22%。所以大電流、壓差大的軌道用 DC-DC；需要乾淨電源、壓差小或電流小的地方用 LDO。實務上最常見的組合是 <b>DC-DC 先降到接近目標電壓，再用 LDO 做後級濾波</b>（post-regulation）。</p>
+
+<h2 id="ldo-block">LDO 方塊圖</h2>
+<figure>
+<svg viewBox="0 0 640 300" role="img" aria-label="LDO 方塊圖：傳輸元件、誤差放大器、參考電壓、回授分壓與輸出電容">
+  <line class="w" x1="40" y1="50" x2="250" y2="50"/><text x="40" y="40">V<tspan baseline-shift="sub" font-size="10">IN</tspan></text>
+  <circle class="fi" cx="40" cy="50" r="3"/>
+  <line class="w" x1="80" y1="50" x2="80" y2="80"/><rect class="box" x="68" y="80" width="24" height="10"/><line class="w" x1="68" y1="90" x2="92" y2="90"/><line class="w" x1="80" y1="90" x2="80" y2="110"/>
+  <text x="96" y="92" class="ts t-mut">C<tspan baseline-shift="sub" font-size="8">IN</tspan></text>
+  <!-- PMOS pass device -->
+  <rect class="c1" x="250" y="30" width="90" height="44" rx="6"/>
+  <text x="295" y="50" text-anchor="middle" class="tl">PMOS</text><text x="295" y="66" text-anchor="middle" class="ts t-mut">傳輸元件</text>
+  <line class="w" x1="340" y1="50" x2="600" y2="50"/><text x="560" y="40">V<tspan baseline-shift="sub" font-size="10">OUT</tspan></text>
+  <circle class="fi" cx="600" cy="50" r="3"/>
+  <!-- divider -->
+  <line class="w" x1="430" y1="50" x2="430" y2="90"/>
+  <rect class="box" x="420" y="90" width="20" height="44" rx="3"/><text x="448" y="116" class="ts">R1</text>
+  <line class="w" x1="430" y1="134" x2="430" y2="160"/>
+  <rect class="box" x="420" y="160" width="20" height="44" rx="3"/><text x="448" y="186" class="ts">R2</text>
+  <line class="w" x1="430" y1="204" x2="430" y2="260"/>
+  <circle class="fa" cx="430" cy="147" r="3"/><text x="392" y="151" class="ts" text-anchor="end">V<tspan baseline-shift="sub" font-size="8">FB</tspan></text>
+  <!-- output cap with ESR -->
+  <line class="w" x1="530" y1="50" x2="530" y2="100"/>
+  <rect class="box" x="520" y="100" width="20" height="30" rx="3"/><text x="546" y="120" class="ts">ESR</text>
+  <line class="w" x1="530" y1="130" x2="530" y2="160"/>
+  <line class="wt" x1="514" y1="160" x2="546" y2="160"/><line class="wt" x1="514" y1="170" x2="546" y2="170"/>
+  <text x="552" y="170" class="ts">C<tspan baseline-shift="sub" font-size="8">OUT</tspan></text>
+  <line class="w" x1="530" y1="170" x2="530" y2="260"/>
+  <!-- load -->
+  <line class="w" x1="600" y1="50" x2="600" y2="140"/><circle class="box" cx="600" cy="160" r="18"/><path class="w" d="M600 150v20m-5-6 5 6 5-6"/><text x="600" y="198" text-anchor="middle" class="ts">負載</text>
+  <line class="w" x1="600" y1="178" x2="600" y2="260"/>
+  <!-- error amp -->
+  <path class="c3" d="M250 130 L250 210 L320 170 Z"/><text x="262" y="158" class="ts">−</text><text x="262" y="196" class="ts">+</text>
+  <text x="285" y="230" text-anchor="middle" class="ts">誤差放大器 EA</text>
+  <line class="w" x1="430" y1="147" x2="360" y2="147"/><line class="w" x1="360" y1="147" x2="360" y2="120"/><line class="w" x1="360" y1="120" x2="230" y2="120"/><line class="w" x1="230" y1="120" x2="230" y2="153"/><line class="w" x1="230" y1="153" x2="250" y2="153"/>
+  <line class="w" x1="320" y1="170" x2="345" y2="170"/><line class="w" x1="345" y1="170" x2="345" y2="96"/><line class="w" x1="345" y1="96" x2="295" y2="96"/><line class="w" x1="295" y1="96" x2="295" y2="74"/>
+  <text x="352" y="92" class="ts t-mut">閘極驅動</text>
+  <!-- reference -->
+  <rect class="c2" x="130" y="170" width="80" height="40" rx="6"/><text x="170" y="195" text-anchor="middle" class="ts">V<tspan baseline-shift="sub" font-size="8">REF</tspan> 帶隙</text>
+  <line class="w" x1="210" y1="190" x2="250" y2="190"/>
+  <!-- ground -->
+  <line class="w" x1="80" y1="260" x2="600" y2="260"/><line class="w" x1="170" y1="210" x2="170" y2="260"/><line class="w" x1="80" y1="110" x2="80" y2="260"/>
+  <text x="330" y="280" text-anchor="middle" class="ts t-mut">GND</text>
+</svg>
+<figcaption>PMOS LDO：誤差放大器比較 V<sub>FB</sub> 與帶隙參考，調整傳輸元件閘極，使 V<sub>OUT</sub> = V<sub>REF</sub>·(1 + R1/R2)。C<sub>OUT</sub> 與它的 ESR 會參與迴路的極零點。</figcaption>
+</figure>
+<ul>
+  <li><b>參考電壓</b>：通常是帶隙（bandgap），溫度係數 &lt; 50 ppm/°C，決定輸出的精度。</li>
+  <li><b>誤差放大器</b>：增益決定調節率，頻寬決定暫態，輸出擺幅決定能不能把傳輸元件完全打開（影響壓差）。</li>
+  <li><b>傳輸元件</b>：大尺寸 PMOS 或 NMOS，面積可能佔整顆 LDO 的一半以上，閘極電容也最大。</li>
+  <li><b>回授分壓</b>：決定輸出電壓；固定輸出版本直接做在晶片內，可調版本把 FB 腳拉出來。</li>
+  <li><b>保護電路</b>：限流、熱關機、欠壓鎖定（UVLO）、軟啟動、主動放電，詳見<a href="design.html#protection">設計 · 保護電路</a>。</li>
+</ul>
+
+<h2 id="pass-device">傳輸元件：PMOS、NMOS 還是 PNP</h2>
+<div class="tblwrap"><table>
+  <tr><th>傳輸元件</th><th>最小壓差</th><th>閘極驅動</th><th>迴路特性</th><th>典型用途</th></tr>
+  <tr><td>PMOS（共源極）</td><td>I·R<sub>DS(on)</sub>，可到 50–200 mV</td><td>拉低閘極即可，無需高於 V<sub>IN</sub></td><td>輸出阻抗高，主極點在輸出，需靠 C<sub>OUT</sub> / ESR 穩定</td><td>通用 LDO，手機、IoT</td></tr>
+  <tr><td>NMOS（源極隨耦）</td><td>需 V<sub>GS</sub>，除非有偏壓軌或電荷泵</td><td>閘極要高於 V<sub>OUT</sub> + V<sub>GS</sub>，需 V<sub>BIAS</sub> 或內建電荷泵</td><td>輸出阻抗低（≈1/g<sub>m</sub>），暫態好、PSRR 高、易穩定</td><td>低電壓大電流（0.8 V / 3 A）、SoC 核心</td></tr>
+  <tr><td>PNP（傳統）</td><td>V<sub>CE(sat)</sub> ≈ 0.2–0.5 V</td><td>需基極電流，I<sub>Q</sub> 隨負載上升</td><td>與 PMOS 類似</td><td>舊型、高壓車用</td></tr>
+  <tr><td>NPN 達靈頓（如 78xx）</td><td>≈ 1.5–2 V</td><td>簡單</td><td>非常穩定，但不是「低壓差」</td><td>舊型標準穩壓器</td></tr>
+</table></div>
+<div class="callout"><b>為什麼叫「低壓差」</b>　早期的 78xx 系列需要 2 V 以上的壓差。把傳輸元件從 NPN 達靈頓換成單一 PNP 或 PMOS 後，壓差降到數百 mV 甚至數十 mV，才有「Low Dropout」這個名字。</div>
+
+<h2 id="dropout">壓差、效率與功耗</h2>
+<p><b>壓差（dropout voltage, V<sub>DO</sub>）</b>是輸出開始跟不上設定值時的最小 V<sub>IN</sub> − V<sub>OUT</sub>，通常定義在輸出掉 1–2% 或 100 mV 的點。PMOS LDO 進入壓差區時，傳輸元件完全打開，等同一顆電阻：</p>
+<div class="eq">V<sub>DO</sub> ≈ I<sub>OUT</sub> · R<sub>DS(on)</sub>　　P<sub>D</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·I<sub>OUT</sub> + V<sub>IN</sub>·I<sub>Q</sub>　　T<sub>J</sub> = T<sub>A</sub> + P<sub>D</sub>·θ<sub>JA</sub></div>
+<p>例：5 V 降 3.3 V、500 mA，P<sub>D</sub> = 0.85 W。SOT-23 的 θ<sub>JA</sub> 約 200 °C/W，會升溫 170 °C，必定熱關機；改用 θ<sub>JA</sub> ≈ 45 °C/W 的 DFN 加散熱銅箔才可行。LDO 選型時，<b>熱往往比電流規格更早成為限制</b>。</p>
+<ul>
+  <li><b>壓差區 PSRR 會崩潰</b>：傳輸元件進入線性區，增益掉光，輸入漣波直接穿過去。規格書的 PSRR 通常在 V<sub>IN</sub> − V<sub>OUT</sub> ≥ 0.5–1 V 量測。</li>
+  <li><b>壓差隨溫度上升</b>：R<sub>DS(on)</sub> 的溫度係數約 +0.3–0.5 %/°C，高溫時壓差大 30–50%。</li>
+  <li><b>電池應用的「末段」</b>：電池電壓接近 V<sub>OUT</sub> 時，LDO 進入 100% duty 的導通狀態，壓差越小，可用的電池容量越多。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#thermal">壓差、功耗與接面溫度</a></div>
+
+<h2 id="ldo-specs">LDO 關鍵規格</h2>
+<dl class="terms">
+  <div><dt>輸出精度</dt><dd>包含參考、分壓電阻、EA 偏移、溫度、線性 / 負載調節的總和，常見 ±1%（25 °C）或 ±2%（全溫）。</dd></div>
+  <div><dt>靜態電流 I<sub>Q</sub></dt><dd>無負載時 LDO 自己消耗的電流。穿戴與 IoT 要 &lt; 1 µA，高 PSRR、高頻寬的 LDO 可能要數十到數百 µA。</dd></div>
+  <div><dt>接地電流 I<sub>GND</sub></dt><dd>有負載時流到地的電流，PMOS LDO 接近 I<sub>Q</sub>，PNP LDO 會隨負載增加。</dd></div>
+  <div><dt>關斷電流 I<sub>SD</sub></dt><dd>EN 拉低時的漏電，決定待機時電池壽命，常見 &lt; 100 nA。</dd></div>
+  <div><dt>PSRR</dt><dd>輸入漣波被抑制的程度，以 dB 表示，隨頻率下降。詳見<a href="design.html#psrr">設計 · PSRR</a>。</dd></div>
+  <div><dt>輸出雜訊</dt><dd>10 Hz–100 kHz 的積分雜訊，以 µV<sub>RMS</sub> 表示。低雜訊 LDO 可達 &lt; 5 µV<sub>RMS</sub>。</dd></div>
+  <div><dt>穩定電容範圍</dt><dd>規格書列出的 C<sub>OUT</sub> 最小值與 ESR 範圍。超出範圍可能振盪，這是最常見的應用問題。</dd></div>
+  <div><dt>限流 / 短路電流</dt><dd>輸出短路時的最大電流，可能是定電流或折返式（foldback）。</dd></div>
+</dl>
+
+<h2 id="buck">Buck 降壓轉換器</h2>
+<figure>
+<svg viewBox="0 0 640 220" role="img" aria-label="同步 Buck 轉換器：高側與低側開關、電感、輸出電容">
+  <line class="w" x1="40" y1="50" x2="160" y2="50"/><text x="40" y="40">V<tspan baseline-shift="sub" font-size="10">IN</tspan></text>
+  <rect class="c1" x="160" y="34" width="70" height="32" rx="5"/><text x="195" y="55" text-anchor="middle" class="ts">高側 HS</text>
+  <line class="w" x1="230" y1="50" x2="280" y2="50"/><line class="w" x1="280" y1="50" x2="280" y2="100"/>
+  <circle class="fa" cx="280" cy="100" r="3.5"/><text x="288" y="94" class="ts">SW</text>
+  <line class="w" x1="280" y1="100" x2="280" y2="130"/><rect class="c1" x="245" y="130" width="70" height="32" rx="5"/><text x="280" y="151" text-anchor="middle" class="ts">低側 LS</text>
+  <line class="w" x1="280" y1="162" x2="280" y2="195"/>
+  <line class="w" x1="280" y1="100" x2="340" y2="100"/>
+  <path class="w" d="M340 100c0-14 20-14 20 0c0-14 20-14 20 0c0-14 20-14 20 0c0-14 20-14 20 0"/><text x="380" y="80" text-anchor="middle" class="ts">L</text>
+  <line class="w" x1="420" y1="100" x2="580" y2="100"/><text x="560" y="90">V<tspan baseline-shift="sub" font-size="10">OUT</tspan></text>
+  <line class="w" x1="480" y1="100" x2="480" y2="135"/><line class="wt" x1="464" y1="135" x2="496" y2="135"/><line class="wt" x1="464" y1="145" x2="496" y2="145"/><line class="w" x1="480" y1="145" x2="480" y2="195"/>
+  <text x="502" y="145" class="ts">C<tspan baseline-shift="sub" font-size="8">OUT</tspan></text>
+  <line class="w" x1="40" y1="195" x2="580" y2="195"/><text x="310" y="214" text-anchor="middle" class="ts t-mut">GND</text>
+  <rect class="c3" x="60" y="110" width="110" height="50" rx="6"/><text x="115" y="132" text-anchor="middle" class="ts">控制器 + 驅動</text><text x="115" y="148" text-anchor="middle" class="ts t-mut">PWM / 死區</text>
+  <line class="wd" x1="170" y1="125" x2="195" y2="66"/><line class="wd" x1="170" y1="145" x2="245" y2="146"/>
+</svg>
+<figcaption>同步 Buck：高側導通時 SW = V<sub>IN</sub>，電感電流上升；低側導通時 SW = 0，電感電流下降。平均值就是 D·V<sub>IN</sub>。</figcaption>
+</figure>
+<div class="eq">D = V<sub>OUT</sub>/V<sub>IN</sub>（理想）　ΔI<sub>L</sub> = V<sub>OUT</sub>(1 − D) / (L·f<sub>SW</sub>)　ΔV<sub>OUT</sub> ≈ ΔI<sub>L</sub> / (8·f<sub>SW</sub>·C<sub>OUT</sub>) + ΔI<sub>L</sub>·ESR</div>
+<ul>
+  <li><b>同步 vs 非同步</b>：低側用 MOSFET（同步）取代蕭特基二極體，省掉 0.3–0.5 V 的二極體壓降，低輸出電壓時效率差很多。代價是需要<b>死區時間</b>避免上下管同時導通（shoot-through）。</li>
+  <li><b>CCM / DCM</b>：電感電流始終大於零是連續導通（CCM）；輕載時電流降到零是不連續（DCM）。同步 Buck 輕載若強制 CCM（FPWM），電流會反向，效率低但漣波固定。</li>
+  <li><b>輕載模式</b>：PFM / 跳脈衝（pulse skipping）在輕載降低切換次數，效率從 50% 拉到 85% 以上，代價是漣波變大、頻率不固定，可能落到音頻或 RF 敏感頻段。</li>
+  <li><b>切換頻率</b>：頻率越高，電感電容越小，但切換損失與驅動損失越大。手機 PMIC 常見 1.5–4 MHz，車用常避開 AM 頻段（530–1700 kHz）而選 400 kHz 或 2.1 MHz。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#buck">Buck 電感漣波與輸出漣波</a></div>
+
+<h2 id="boost-bb">Boost、Buck-Boost 與反相</h2>
+<div class="tblwrap"><table>
+  <tr><th>拓撲</th><th>理想轉換比</th><th>特性</th><th>典型用途</th></tr>
+  <tr><td>Boost</td><td>V<sub>OUT</sub>/V<sub>IN</sub> = 1/(1−D)</td><td>輸出電流不連續，輸出電容漣波大；有右半平面零點（RHPZ），頻寬受限；關斷時輸入經電感與二極體直通輸出，需 true shutdown</td><td>單節電池升 5 V、LED 背光、閃光燈</td></tr>
+  <tr><td>四開關 Buck-Boost</td><td>可升可降</td><td>V<sub>IN</sub> ≈ V<sub>OUT</sub> 時在 buck / boost 間切換，過渡區要處理好</td><td>電池 3.0–4.4 V 輸出 3.3 V、USB PD</td></tr>
+  <tr><td>反相 Buck-Boost</td><td>V<sub>OUT</sub> = −D/(1−D)·V<sub>IN</sub></td><td>輸出負電壓</td><td>OLED 負偏壓、運放負電源</td></tr>
+  <tr><td>Flyback / Forward</td><td>依匝數比</td><td>隔離型，需變壓器</td><td>AC-DC 充電器、工業隔離電源</td></tr>
+</table></div>
+
+<h2 id="charge-pump">電荷泵（切換電容）</h2>
+<p>電荷泵只用開關與電容轉換電壓，沒有電感。轉換比固定（×2、×1.5、÷2、−1），在比例「剛好」時效率很高；比例不對時，多出的電壓仍然會像 LDO 一樣變成損耗。</p>
+<ul>
+  <li><b>2:1 分壓電荷泵</b>：手機快充把 USB 輸入的 2 倍電池電壓直接對半轉換，效率可達 97–98%，比 Buck 充電器省很多熱。</li>
+  <li><b>倍壓與負壓</b>：給 NMOS 傳輸元件或高側開關的閘極驅動、LCD 偏壓、RS-232 介面。</li>
+  <li><b>混合式（hybrid）</b>：電荷泵加電感（例如 3-level buck、Dickson + 電感），用在 48 V → 低壓的伺服器電源，降低開關耐壓與電感體積。</li>
+</ul>
+
+<h2 id="pmic">PMIC：把整套電源放進一顆晶片</h2>
+<p>PMIC 把多路 Buck、LDO、Boost、負載開關、上電時序控制、監控 ADC、看門狗、RTC、充電器、數位介面整合在一起。好處是面積小、時序和監控由同一顆晶片負責；挑戰是多個切換電源與敏感的類比電路共用基板，熱與雜訊耦合、測試複雜度都大幅增加。</p>
+<div class="tblwrap"><table>
+  <tr><th>領域</th><th>典型配置</th><th>重點</th></tr>
+  <tr><td>手機 / 平板</td><td>6–12 路 Buck、20–30 路 LDO、充電器、電量計、RTC</td><td>極低 I<sub>Q</sub>、DVS 動態調壓、SPMI / I²C、多 PMIC 協同</td></tr>
+  <tr><td>應用處理器 / FPGA</td><td>4–8 路 Buck、數路 LDO、時序器</td><td>大電流核心軌、上電順序、遙測（telemetry）</td></tr>
+  <tr><td>車用（ADAS、座艙、MCU）</td><td>前級高壓 Buck、後級 Buck / LDO、看門狗、電壓監控</td><td>AEC-Q100、ISO 26262 功能安全、獨立監控、冗餘參考</td></tr>
+  <tr><td>SSD / DDR5 模組</td><td>DDR5 PMIC（模組上 VDD / VDDQ / VPP）、SSD 多路電源</td><td>JEDEC PMIC 規範、高效率、斷電保護</td></tr>
+  <tr><td>穿戴 / IoT</td><td>1–2 路 Buck、數路 LDO、負載開關、充電器</td><td>nA 級 I<sub>Q</sub>、極小封裝（WLCSP）</td></tr>
+</table></div>
+<figure>
+<svg viewBox="0 0 640 230" role="img" aria-label="典型手機 PMIC 方塊圖">
+  <rect class="box" x="20" y="20" width="600" height="190" rx="10"/><text x="34" y="40" class="tl">PMIC</text>
+  <rect class="c1" x="40" y="56" width="110" height="40" rx="5"/><text x="95" y="80" text-anchor="middle" class="ts">Buck ×8</text>
+  <rect class="c3" x="40" y="106" width="110" height="40" rx="5"/><text x="95" y="130" text-anchor="middle" class="ts">LDO ×24</text>
+  <rect class="c2" x="40" y="156" width="110" height="40" rx="5"/><text x="95" y="180" text-anchor="middle" class="ts">Boost / 負載開關</text>
+  <rect class="c5" x="170" y="56" width="130" height="40" rx="5"/><text x="235" y="80" text-anchor="middle" class="ts">帶隙 / 偏壓 / 時脈</text>
+  <rect class="c5" x="170" y="106" width="130" height="40" rx="5"/><text x="235" y="130" text-anchor="middle" class="ts">上電時序器</text>
+  <rect class="c5" x="170" y="156" width="130" height="40" rx="5"/><text x="235" y="180" text-anchor="middle" class="ts">UVLO / OVP / 熱監控</text>
+  <rect class="c4" x="320" y="56" width="130" height="40" rx="5"/><text x="385" y="80" text-anchor="middle" class="ts">ADC / 遙測</text>
+  <rect class="c4" x="320" y="106" width="130" height="40" rx="5"/><text x="385" y="130" text-anchor="middle" class="ts">SPMI / I²C 暫存器</text>
+  <rect class="c4" x="320" y="156" width="130" height="40" rx="5"/><text x="385" y="180" text-anchor="middle" class="ts">OTP / trim</text>
+  <rect class="c6" x="470" y="56" width="130" height="40" rx="5"/><text x="535" y="80" text-anchor="middle" class="ts">充電器 / 電量計</text>
+  <rect class="c6" x="470" y="106" width="130" height="40" rx="5"/><text x="535" y="130" text-anchor="middle" class="ts">RTC / 32 kHz</text>
+  <rect class="c6" x="470" y="156" width="130" height="40" rx="5"/><text x="535" y="180" text-anchor="middle" class="ts">看門狗 / 重置</text>
+</svg>
+<figcaption>手機 PMIC 的典型組成：電源輸出（左）、共用基礎電路（中左）、數位與量測（中右）、系統功能（右）。OTP 讓同一顆晶片依客戶出廠設定不同電壓與時序。</figcaption>
+</figure>
+<ul>
+  <li><b>DVS / AVS</b>：處理器依負載與頻率即時調整核心電壓，PMIC 要在數 µs 內以固定斜率升降電壓，並配合處理器的命令（SPMI、I²C、PMBus、SVID / SVI3）。</li>
+  <li><b>多相 Buck</b>：大電流核心軌（10–100 A 以上）用多相交錯，降低漣波、分散熱，並支援依負載切換相數（phase shedding）。</li>
+  <li><b>OTP 配置</b>：同一顆矽晶片透過 OTP 熔絲設定輸出電壓、時序、保護門檻，形成多個料號；OTP 燒錄錯誤是常見的客訴來源（見<a href="complaints.html#cases">客訴 · 案例</a>）。</li>
+</ul>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>LDO</dt><dd>Low Dropout regulator，低壓差線性穩壓器。</dd></div>
+  <div><dt>PMIC</dt><dd>Power Management IC，整合多路電源與管理功能的晶片。</dd></div>
+  <div><dt>V<sub>DO</sub></dt><dd>Dropout voltage，維持穩壓所需的最小輸入輸出壓差。</dd></div>
+  <div><dt>I<sub>Q</sub></dt><dd>Quiescent current，靜態電流。</dd></div>
+  <div><dt>Duty cycle D</dt><dd>高側開關導通時間佔切換週期的比例。</dd></div>
+  <div><dt>CCM / DCM</dt><dd>Continuous / Discontinuous Conduction Mode，電感電流連續或不連續。</dd></div>
+  <div><dt>PFM</dt><dd>Pulse Frequency Modulation，輕載時降低切換頻率以提高效率。</dd></div>
+  <div><dt>Shoot-through</dt><dd>上下管同時導通，造成 V<sub>IN</sub> 直接對地短路。</dd></div>
+  <div><dt>RHPZ</dt><dd>Right Half-Plane Zero，Boost / Buck-Boost 特有的右半平面零點，限制迴路頻寬。</dd></div>
+  <div><dt>DVS</dt><dd>Dynamic Voltage Scaling，動態調壓。</dd></div>
+  <div><dt>Post-regulation</dt><dd>DC-DC 之後再接 LDO，用 LDO 的 PSRR 濾掉切換漣波。</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

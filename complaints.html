@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>客訴處理 · PMIC Notes</title>
+<meta name="description" content="電源 IC 客訴處理：處理流程與時限、要向客戶收集的資訊、失效分析步驟、失效分類、8D 報告、根因分析工具、典型客訴案例（EOS、MLCC 振盪、OTP、測試漏網、分層、NTF、未通知變更、系統 ESD、仿冒品）與溝通方式。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="complaints" data-ch="rel">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Customer complaints · 客訴處理</div>
+<h1>客訴處理：從客戶來信到 8D 結案</h1>
+<p class="lead">客訴通常從一封很短的信開始：「你們的 LDO 在我們產線上壞了 12 顆」。接下來的幾天到幾週，品質、產品、測試、設計、應用工程要一起回答三個問題：<b>是不是我們的問題？影響範圍多大？怎麼確保不再發生？</b>這一頁整理處理流程、失效分析步驟、8D 報告，以及電源 IC 最典型的客訴情境。</p>
+<div class="callout"><b>關於案例</b>　本頁的案例是業界常見情境的綜合整理，用來說明分析思路，不代表任何特定公司或產品。</div>
+
+<h2 id="flow">處理流程與時限</h2>
+<ol class="steps">
+  <li><b>受理與確認（24 小時內）</b>：回覆收到、建立客訴編號，指定負責人。</li>
+  <li><b>初步圍堵（24–72 小時）</b>：評估是否需要凍結庫存、篩選在途品、通知同批次的其他客戶。</li>
+  <li><b>收集資訊</b>：失效率、批號 / 日期碼、使用條件、失效模式、照片與波形（見<a href="#info">要問的資訊</a>）。</li>
+  <li><b>取得樣品</b>：失效品與同批良品，以及失效板（若可能）。要求客戶不要再通電試修。</li>
+  <li><b>失效驗證</b>：在 ATE 與實驗室重現失效。無法重現就是 NTF，要回頭看應用條件。</li>
+  <li><b>失效分析（FA）</b>：由非破壞到破壞，找出物理失效位置與機制（見<a href="#fa">FA 流程</a>）。</li>
+  <li><b>根因與影響範圍</b>：把物理失效連結到製程、封裝、測試、設計或應用的根因，判斷哪些批次受影響。</li>
+  <li><b>矯正與預防</b>：短期對策、永久對策、橫向展開（其他產品是否有同樣風險）。</li>
+  <li><b>8D 結案</b>：驗證對策有效、客戶同意結案。</li>
+</ol>
+<p>常見時程要求：<b>3D</b>（含圍堵）在 24–48 小時內、<b>完整 8D</b> 在 10–30 個工作天內，車用客戶通常更嚴。FA 時間是最大的變數，複雜的晶片內部失效可能要數週。</p>
+
+<h2 id="info">要向客戶收集的資訊</h2>
+<div class="tblwrap"><table>
+  <tr><th>類別</th><th>問題</th></tr>
+  <tr><td>識別</td><td>完整料號、打印（日期碼、批號）、購買管道（原廠、代理、現貨市場）</td></tr>
+  <tr><td>數量</td><td>失效數 / 使用總數、失效在哪個階段（進料檢驗、SMT 後、功能測試、老化、出貨後、現場）</td></tr>
+  <tr><td>失效模式</td><td>無輸出、輸出偏移、振盪、過熱、短路、漏電、間歇性？是否可恢復？</td></tr>
+  <tr><td>應用條件</td><td>原理圖、V<sub>IN</sub> 來源與範圍、負載、輸入輸出電容實際料號、佈局、環境溫度</td></tr>
+  <tr><td>變化</td><td>最近是否改了設計、換了電容 / 電感 / 適配器供應商、換了 SMT 廠或回焊曲線、換了 IC 批次</td></tr>
+  <tr><td>事件</td><td>失效前有沒有熱插拔、ESD 測試、雷擊、短路、操作錯誤</td></tr>
+  <tr><td>證據</td><td>波形（V<sub>IN</sub>、V<sub>OUT</sub>、SW）、熱像、失效板照片、X-ray</td></tr>
+</table></div>
+<div class="callout"><b>「最近改了什麼」是最有價值的問題</b>　量產很久都沒事、突然開始出問題，答案通常藏在某個變化裡：客戶換了電容廠商、我們換了測試程式、代理商從現貨市場補貨。把變化點和失效開始的時間對齊，常常就找到方向。</div>
+
+<h2 id="fa">失效分析流程</h2>
+<ol class="steps">
+  <li><b>外觀檢查</b>：光學顯微鏡看封裝破裂、燒焦、腳位損傷、焊錫殘留、打印是否正確（仿冒品檢查）。</li>
+  <li><b>X-ray</b>：打線斷裂、偏移、焊錫空洞、晶片破裂。</li>
+  <li><b>C-SAM 超音波掃描</b>：封裝內部分層、空洞。</li>
+  <li><b>電性驗證</b>：ATE 完整測試程式、實驗室在客戶條件下重現；比較同批良品。</li>
+  <li><b>腳對腳 I-V 曲線</b>（curve trace）：找出哪兩支腳之間短路、漏電或開路，與良品比較。</li>
+  <li><b>開封（decap）</b>：化學或雷射去除塑封，露出晶片。</li>
+  <li><b>熱點定位</b>：EMMI（光發射）、OBIRCH（雷射加熱電阻變化）、鎖相熱成像，找出漏電或短路位置。</li>
+  <li><b>逐層去除與觀察</b>：去層（delayering）、SEM、FIB 截面、EDX 成分分析，確認物理缺陷。</li>
+  <li><b>結論</b>：失效位置、機制、可能的根因，並附照片與數據。</li>
+</ol>
+<p>原則是<b>先非破壞、後破壞</b>：一旦開封或去層，就無法回到前一步。每一步之前都要拍照記錄。</p>
+
+<h2 id="classification">失效分類</h2>
+<div class="tblwrap"><table>
+  <tr><th>分類</th><th>典型 FA 發現</th><th>責任與方向</th></tr>
+  <tr><td>EOS 電性過應力</td><td>大面積熔融金屬、燒穿的功率元件、封裝燒焦</td><td>多為應用端瞬態；要找出能量來源</td></tr>
+  <tr><td>ESD</td><td>ESD 結構或輸入級的微小燒熔點</td><td>產線靜電防護、系統級 ESD 設計</td></tr>
+  <tr><td>NTF 未發現異常</td><td>ATE 與實驗室全部正常</td><td>回到應用條件、焊接、板子、量測方法</td></tr>
+  <tr><td>晶圓製程缺陷</td><td>氧化層缺陷、微粒、金屬短路</td><td>晶圓廠，評估同批風險</td></tr>
+  <tr><td>封裝缺陷</td><td>打線、分層、黏晶空洞、異物</td><td>封裝廠</td></tr>
+  <tr><td>測試漏網</td><td>失效可在 ATE 以特定條件重現，但量產程式未涵蓋</td><td>測試工程，補測試項目</td></tr>
+  <tr><td>設計問題</td><td>在特定條件下可重現，所有批次都有</td><td>設計，可能需要改版或規格書修訂</td></tr>
+  <tr><td>應用問題</td><td>IC 正常，使用條件超出規格或不在建議範圍</td><td>應用工程協助客戶修正</td></tr>
+  <tr><td>仿冒 / 翻新</td><td>晶片標識不符、打印異常、內部晶片不同</td><td>購買管道</td></tr>
+</table></div>
+<p>在電源 IC 的退貨中，EOS 與 NTF 通常是最大的兩類。真正的晶片本身缺陷比例不高，但每一件都要認真處理，因為它可能代表整批的風險。</p>
+
+<h2 id="eight-d">8D 報告</h2>
+<div class="tblwrap"><table>
+  <tr><th>步驟</th><th>內容</th><th>常見問題</th></tr>
+  <tr><td>D0 準備</td><td>判斷是否需要 8D、緊急應變</td><td></td></tr>
+  <tr><td>D1 團隊</td><td>跨部門小組：品質、產品、測試、設計、應用、製造</td><td>只有品質部門自己寫</td></tr>
+  <tr><td>D2 問題描述</td><td>用 5W2H 描述：什麼、哪裡、何時、多少、怎麼發現</td><td>描述太模糊，例如「IC 不良」</td></tr>
+  <tr><td>D3 圍堵</td><td>隔離庫存、篩選、替代出貨，並驗證圍堵有效</td><td>只寫「加強檢驗」</td></tr>
+  <tr><td>D4 根因</td><td><b>發生根因</b>（為什麼會產生）與<b>流出根因</b>（為什麼沒被抓到）都要找</td><td>只找發生原因，忽略流出原因</td></tr>
+  <tr><td>D5 永久對策</td><td>針對兩種根因各自的對策</td><td>對策是「教育訓練」</td></tr>
+  <tr><td>D6 實施與驗證</td><td>導入並以數據證明有效</td><td>沒有驗證數據</td></tr>
+  <tr><td>D7 預防再發</td><td>更新 FMEA、管制計畫、設計規範、測試程式；橫向展開到其他產品</td><td>沒有橫向展開</td></tr>
+  <tr><td>D8 結案</td><td>客戶確認、團隊總結</td><td></td></tr>
+</table></div>
+<div class="callout"><b>流出根因常常比發生根因更重要</b>　缺陷總會偶爾發生，但為什麼測試沒有抓到它？例如低溫才出現的 UVLO 異常，發生根因是製程偏移，流出根因是 FT 只測常溫。只修製程不補測試，下次換一種偏移又會流出去。</div>
+
+<h2 id="tools">根因分析工具</h2>
+<ul>
+  <li><b>5 Why</b>：連續追問「為什麼」，直到找到可以改變的系統原因，而不是停在「操作員疏失」。</li>
+  <li><b>魚骨圖</b>（石川圖）：從人、機、料、法、環、測（6M）列出可能原因，避免遺漏。</li>
+  <li><b>Is / Is-not 分析</b>：哪些批次、哪些客戶、哪些條件有問題？哪些<b>沒有</b>？差異點就是線索。</li>
+  <li><b>故障樹（FTA）</b>：從頂端失效事件往下展開所有可能路徑，逐一以數據排除。</li>
+  <li><b>資料分析</b>：把失效品的批號對回 CP / FT 資料，看它們在分佈中的位置；常會發現失效品原本就是邊緣值或 PAT 離群值。</li>
+</ul>
+
+<h2 id="cases">典型客訴案例</h2>
+
+<div class="case" id="c-eos"><div class="case-h"><span class="tag rel">EOS</span><b>熱插拔尖峰燒毀 Buck 輸入</b><small>消費性 · 12 V 適配器</small></div><dl>
+<div><dt>現象</dt><dd>產品在使用者端偶發無法開機，退回的 Buck 晶片 V<sub>IN</sub> 對地短路，失效率約 0.1%。</dd></div>
+<div><dt>分析</dt><dd>FA 看到高側開關大面積熔融，屬典型 EOS。在客戶板上以長線插拔 12 V 適配器，量到 V<sub>IN</sub> 尖峰 23 V，超過 IC 絕對最大額定 20 V。</dd></div>
+<div><dt>根因</dt><dd>輸入只有陶瓷電容，與適配器線材電感形成低阻尼 LC 諧振；新設計拿掉了原本的電解電容以節省成本。</dd></div>
+<div><dt>對策</dt><dd>輸入加 TVS 與電解電容阻尼；長期改用 28 V 耐壓的料號。應用文件加入熱插拔說明。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>EOS 不是結論而是起點；要找出能量從哪裡來，並在客戶板上重現。</dd></div></dl></div>
+
+<div class="case" id="c-mlcc"><div class="case-h"><span class="tag use">應用</span><b>換了電容供應商，LDO 開始振盪</b><small>工業 · 3.3 V LDO</small></div><dl>
+<div><dt>現象</dt><dd>量產兩年沒問題，某月起產線功能測試出現 3% 的 ADC 讀值異常，客戶認為 LDO 批次有問題。</dd></div>
+<div><dt>分析</dt><dd>退回的 LDO 全部通過測試（NTF）。在失效板上量到 LDO 輸出 400 kHz 振盪。交換法：好 IC 放到壞板仍振盪。</dd></div>
+<div><dt>根因</dt><dd>客戶的採購換了一家 0402、6.3 V 的 2.2 µF MLCC，在 3.3 V 偏壓下只剩約 0.8 µF，低於 LDO 最小穩定電容 1 µF。部分板子再加上電容公差就振盪。</dd></div>
+<div><dt>對策</dt><dd>改用 0603、10 V 額定電容；客戶 BOM 把電容的 DC bias 規格寫進認證條件。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>「IC 批次問題」常常是「其他料批次問題」；客戶的變更點要主動問。</dd></div></dl></div>
+
+<div class="case" id="c-otp"><div class="case-h"><span class="tag mfg">生產</span><b>OTP 設定錯誤，輸出電壓不對</b><small>PMIC · 料號配置</small></div><dl>
+<div><dt>現象</dt><dd>客戶收到一卷 PMIC，其中某一路輸出是 1.8 V 而非 1.2 V，造成 SoC 損壞。</dd></div>
+<div><dt>分析</dt><dd>讀出 OTP 內容，發現是同一顆晶片的另一個料號的設定。追溯到 FT 換料號時，測試程式切換後燒錄檔沒有同步更新。</dd></div>
+<div><dt>根因</dt><dd>發生：料號切換流程靠人工確認。流出：FT 只驗證「燒錄成功」，沒有比對燒錄內容與料號的對應。</dd></div>
+<div><dt>對策</dt><dd>測試程式依料號自動載入燒錄檔；燒錄後讀回 OTP 並與料號主檔比對 CRC；同期批次全部回收篩選。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>可配置晶片的風險在「設定管理」，燒錄後驗證要驗內容而不只是驗動作。</dd></div></dl></div>
+
+<div class="case" id="c-escape"><div class="case-h"><span class="tag tst">測試</span><b>低溫 UVLO 門檻漏網</b><small>車用 · LDO</small></div><dl>
+<div><dt>現象</dt><dd>冬季冷啟動時，少數車輛的 ECU 重置。退回的 LDO 在常溫正常。</dd></div>
+<div><dt>分析</dt><dd>在 −40 °C 量測，失效品的 UVLO 上升門檻比規格高 150 mV；同批其他晶片正常。CP 資料顯示失效品在常溫已是分佈的極端值。</dd></div>
+<div><dt>根因</dt><dd>發生：晶圓局部製程偏移造成 UVLO 比較器的溫度係數異常。流出：FT 只測常溫與高溫，且 UVLO 參數沒有納入 PAT。</dd></div>
+<div><dt>對策</dt><dd>增加冷測，或以常溫值加入 PAT 動態界限剔除離群值；檢討其他溫度敏感參數的測試溫度覆蓋。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>離群值常是潛在缺陷的訊號；測試溫度的選擇要依參數的溫度行為，而不是一體適用。</dd></div></dl></div>
+
+<div class="case" id="c-delam"><div class="case-h"><span class="tag mfg">封裝</span><b>違反 MSL 造成分層</b><small>消費性 · QFN PMIC</small></div><dl>
+<div><dt>現象</dt><dd>SMT 後功能測試失效率突然上升到 0.5%，失效為輸出電壓偏移與間歇性開路。</dd></div>
+<div><dt>分析</dt><dd>C-SAM 顯示晶片表面與塑封料間分層；未上件的同批料正常。追查發現該批料拆封後在產線放置超過兩週。</dd></div>
+<div><dt>根因</dt><dd>MSL 3 元件超過車間壽命（168 小時）未烘烤，回焊時吸收的水氣汽化造成分層，拉扯打線並改變晶片應力。</dd></div>
+<div><dt>對策</dt><dd>客戶導入濕敏元件管制（拆封時間紀錄、乾燥櫃、超時烘烤）。供應商端在包裝標示加強提醒。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>不是所有失效都發生在晶片廠內；客戶的製程管制也是可靠度的一部分。</dd></div></dl></div>
+
+<div class="case" id="c-ntf"><div class="case-h"><span class="tag rel">NTF</span><b>退回品全部正常：焊接問題</b><small>穿戴 · WLCSP LDO</small></div><dl>
+<div><dt>現象</dt><dd>產品經落摔測試後部分輸出異常，客戶退回 20 顆 LDO 要求分析。</dd></div>
+<div><dt>分析</dt><dd>20 顆全部通過 ATE 與實驗室測試。要求客戶提供失效板，截面分析發現 WLCSP 焊球與 PCB 焊墊之間有裂縫。</dd></div>
+<div><dt>根因</dt><dd>PCB 焊墊設計與底部填充（underfill）未依建議，落摔時應力集中在焊點。</dd></div>
+<div><dt>對策</dt><dd>依建議修正焊墊尺寸並加 underfill；後續 NTF 案件標準流程要求附失效板。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>NTF 不等於「沒問題」；把 IC 拆下來時可能剛好把證據也毀了。</dd></div></dl></div>
+
+<div class="case" id="c-pcn"><div class="case-h"><span class="tag mfg">變更</span><b>未通知的塑封料變更</b><small>工業 · 精密 LDO</small></div><dl>
+<div><dt>現象</dt><dd>客戶的高溫高濕老化測試中，LDO 輸出電壓漂移 0.8%，超過系統允許的 0.5%；舊批次沒有這個現象。</dd></div>
+<div><dt>分析</dt><dd>比較新舊批次，封裝廠為了供貨更換了同等級的塑封料，內部判定「不影響規格」而未發 PCN。新塑封料吸濕後應力變化較大。</dd></div>
+<div><dt>根因</dt><dd>變更管理的影響評估只看常溫電性，未考慮濕度應力對精密參數的影響。</dd></div>
+<div><dt>對策</dt><dd>回復原塑封料；變更管理規範中，凡影響晶片應力的材料變更都需做溫濕度後漂移驗證並通知客戶。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>「不影響規格」要用驗證資料證明；有疑慮時就發 PCN。</dd></div></dl></div>
+
+<div class="case" id="c-esd"><div class="case-h"><span class="tag tst">ESD</span><b>系統 ESD 測試打壞 IC</b><small>消費性 · USB 端口電源開關</small></div><dl>
+<div><dt>現象</dt><dd>客戶在 IEC 61000-4-2 ±8 kV 接觸放電測試後，負載開關損壞；客戶認為規格書寫 ±2 kV HBM 不夠。</dd></div>
+<div><dt>分析</dt><dd>FA 看到輸入 ESD 結構熔毀。IC 的 HBM 與 CDM 等級符合規格；系統級放電的能量與電流遠大於 HBM。</dd></div>
+<div><dt>根因</dt><dd>USB 端口沒有外部 TVS，系統 ESD 能量全部進入 IC。</dd></div>
+<div><dt>對策</dt><dd>端口加 TVS 並靠近連接器；應用文件說明 HBM 與系統級 ESD 的差異。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>元件級與系統級 ESD 是不同的規格；連接外部世界的腳位需要系統保護。</dd></div></dl></div>
+
+<div class="case" id="c-counterfeit"><div class="case-h"><span class="tag rel">仿冒</span><b>現貨市場買到的仿冒品</b><small>缺貨期間 · LDO</small></div><dl>
+<div><dt>現象</dt><dd>缺貨期間客戶從非授權管道補貨，新批次 I<sub>Q</sub> 偏高、壓差大，部分無法穩定。</dd></div>
+<div><dt>分析</dt><dd>打印字型與原廠不同、日期碼與批號對不上原廠紀錄；開封後晶片標識屬於另一家廠商的低階產品。</dd></div>
+<div><dt>根因</dt><dd>非授權管道的重新打印仿冒品。</dd></div>
+<div><dt>對策</dt><dd>客戶只向原廠或授權代理採購；原廠提供批號驗證服務。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>處理客訴的第一步之一是確認購買管道；不是原廠出的貨，就不是原廠的品質問題，但仍要協助客戶辨識。</dd></div></dl></div>
+
+<div class="case" id="c-foldback"><div class="case-h"><span class="tag des">設計</span><b>折返限流讓 LDO 無法啟動</b><small>工業 · FPGA 輔助電源</small></div><dl>
+<div><dt>現象</dt><dd>部分板子上電後輸出停在 0.6 V，無法升到 2.5 V；重新上電有時可以。</dd></div>
+<div><dt>分析</dt><dd>負載的 FPGA 輔助電源在低電壓時就開始吸大電流，LDO 的折返限流在低 V<sub>OUT</sub> 時只允許 200 mA，無法同時供應負載與對 100 µF 輸出電容充電。</dd></div>
+<div><dt>根因</dt><dd>應用條件與折返限流特性不相容，規格書雖有折返曲線但應用說明未提醒。</dd></div>
+<div><dt>對策</dt><dd>改用定電流限流的料號，或以 PG 延後啟動負載；規格書應用章節加入啟動注意事項。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>保護電路的行為也是規格的一部分，要寫清楚它在什麼條件下會「保護過頭」。</dd></div></dl></div>
+
+<h2 id="communication">與客戶溝通</h2>
+<ul>
+  <li><b>先回應，再分析</b>：24 小時內給一份初步回覆，說明已收到、接下來的步驟與時程，比沉默三天後給完整報告更好。</li>
+  <li><b>用數據說話</b>：「IC 沒問題」要附上測試資料、交換法結果、量測波形，而不是只給結論。</li>
+  <li><b>不要急著歸責</b>：EOS 或應用問題的結論，也要提出具體的能量來源或條件，並提供改善建議。客戶需要的是解決方案，不是責任判定。</li>
+  <li><b>階段性報告</b>：長時間的 FA 每隔幾天更新一次進度。</li>
+  <li><b>一個窗口</b>：客戶對口統一，避免不同部門給出不一致的說法。</li>
+  <li><b>結案後追蹤</b>：確認對策在客戶端有效，失效率回到基準。</li>
+</ul>
+
+<h2 id="metrics">品質指標</h2>
+<div class="tblwrap"><table>
+  <tr><th>指標</th><th>定義</th><th>典型目標</th></tr>
+  <tr><td>DPPM</td><td>客戶端確認不良數 / 出貨數 × 10<sup>6</sup></td><td>消費性 &lt; 10–50；車用 &lt; 1</td></tr>
+  <tr><td>初回應時間</td><td>收到客訴到第一次回覆</td><td>&lt; 24 小時</td></tr>
+  <tr><td>8D 週期</td><td>收到客訴到 8D 結案</td><td>&lt; 30 天</td></tr>
+  <tr><td>FA 週期</td><td>收到樣品到 FA 報告</td><td>1–3 週</td></tr>
+  <tr><td>再發率</td><td>同一根因再次發生的比例</td><td>0</td></tr>
+  <tr><td>RMA</td><td>退貨授權的數量與原因分佈</td><td>依原因追蹤趨勢</td></tr>
+</table></div>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>8D</dt><dd>Eight Disciplines，八個步驟的問題解決與報告格式。</dd></div>
+  <div><dt>FA</dt><dd>Failure Analysis，失效分析。</dd></div>
+  <div><dt>NTF / NFF</dt><dd>No Trouble Found / No Fault Found，未發現異常。</dd></div>
+  <div><dt>RMA</dt><dd>Return Material Authorization，退貨授權。</dd></div>
+  <div><dt>C-SAM</dt><dd>C-mode Scanning Acoustic Microscopy，超音波掃描顯微鏡，看封裝分層。</dd></div>
+  <div><dt>EMMI</dt><dd>Emission Microscopy，偵測缺陷處的微弱光發射。</dd></div>
+  <div><dt>OBIRCH</dt><dd>Optical Beam Induced Resistance Change，雷射加熱造成的電阻變化定位。</dd></div>
+  <div><dt>FIB</dt><dd>Focused Ion Beam，聚焦離子束，用於截面與電路修改。</dd></div>
+  <div><dt>Containment</dt><dd>圍堵，防止可疑品繼續流到客戶端的短期措施。</dd></div>
+  <div><dt>Escape</dt><dd>流出 / 漏網，缺陷品通過測試流到客戶端。</dd></div>
+  <div><dt>FMEA</dt><dd>Failure Mode and Effects Analysis，失效模式與影響分析。</dd></div>
+</dl>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

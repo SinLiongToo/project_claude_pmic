@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>測試 · PMIC Notes</title>
+<meta name="description" content="電源 IC 測試：LDO 與 DC-DC 參數的量測方法、ATE 量產測試、可測試性設計、Kelvin 量測、測試相關性與 GR&R、實驗室特性化、AEC-Q100 可靠度驗證、ESD 與 latch-up、功能安全。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="test" data-ch="tst">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Chapter 5 · Test &amp; qualification</div>
+<h1>測試：量得準，才知道它好不好</h1>
+<p class="lead">電源 IC 的測試分三種：量產時在 ATE 上用最短時間篩出壞品；在實驗室把每個參數在所有條件下量清楚（特性化）；以及用加速應力證明它能活過產品壽命（可靠度驗證）。三者量到的數字要能互相對得起來，否則客訴時誰也說服不了誰。</p>
+
+<h2 id="ldo-params">LDO 參數怎麼量</h2>
+<div class="tblwrap"><table>
+  <tr><th>參數</th><th>量測方法</th><th>陷阱</th></tr>
+  <tr><td>輸出電壓精度</td><td>固定 V<sub>IN</sub>、負載，量 V<sub>OUT</sub></td><td>要用 Kelvin 量在接腳，否則量到走線壓降</td></tr>
+  <tr><td>線性調節率</td><td>V<sub>IN</sub> 從最小掃到最大，ΔV<sub>OUT</sub>/ΔV<sub>IN</sub></td><td>V<sub>IN</sub> 最小值要離開壓差區</td></tr>
+  <tr><td>負載調節率</td><td>負載從最小到最大，ΔV<sub>OUT</sub>/ΔI<sub>OUT</sub></td><td>大電流時自熱會改變 V<sub>OUT</sub>；用脈衝量測區分電氣與熱效應</td></tr>
+  <tr><td>壓差 V<sub>DO</sub></td><td>降低 V<sub>IN</sub> 直到 V<sub>OUT</sub> 掉到標稱值的某比例（如 −2% 或 −100 mV），記錄 V<sub>IN</sub> − V<sub>OUT</sub>；或設 V<sub>IN</sub> = V<sub>OUT(nom)</sub> × 某比例直接量</td><td>定義各家不同，比較規格書時要看清楚條件</td></tr>
+  <tr><td>I<sub>Q</sub> / I<sub>GND</sub></td><td>量 V<sub>IN</sub> 腳電流減去負載電流</td><td>nA–µA 等級要等夠長的穩定時間，量測範圍切換會造成擾動</td></tr>
+  <tr><td>關斷電流</td><td>EN = 0，量 V<sub>IN</sub> 電流</td><td>高溫漏電可大一兩個數量級</td></tr>
+  <tr><td>限流 / 短路電流</td><td>逐步增加負載直到 V<sub>OUT</sub> 掉落；或直接短路量電流</td><td>持續短路會熱關機，量產用短脈衝</td></tr>
+  <tr><td>EN / UVLO 門檻</td><td>掃描輸入，記錄輸出翻轉點與遲滯</td><td>掃描速度太快會量到延遲而非門檻</td></tr>
+  <tr><td>PSRR</td><td>在 V<sub>IN</sub> 疊加正弦波，量 V<sub>OUT</sub> 上的同頻成分</td><td>量產通常只測一兩個頻點，完整曲線靠特性化</td></tr>
+  <tr><td>輸出雜訊</td><td>低雜訊前置放大 + 頻譜分析，積分 10 Hz–100 kHz</td><td>量測系統本身雜訊要比待測物低 10 dB 以上；用電池供電避免電源雜訊</td></tr>
+  <tr><td>熱關機</td><td>量產多半不測，靠設計保證；或用測試模式量內部溫度感測器</td><td>真的把晶片加熱到 160 °C 很耗時</td></tr>
+</table></div>
+
+<h2 id="dcdc-params">DC-DC 參數</h2>
+<ul>
+  <li><b>效率</b>：η = P<sub>OUT</sub>/P<sub>IN</sub>，四線量測電壓、精密分流量電流，每個負載點等熱平衡。1% 的量測誤差就足以讓效率曲線「看起來」不同。</li>
+  <li><b>R<sub>DS(on)</sub></b>：用測試模式把高側或低側固定導通，灌入已知電流，以 Kelvin 量測跨壓。</li>
+  <li><b>切換頻率與最小導通時間</b>：量 SW 波形；量產可用內部振盪器的分頻輸出，避免接大電感。</li>
+  <li><b>峰值 / 谷值限流</b>：逐週期限流門檻，需要實際電感或測試模式。</li>
+  <li><b>輕載模式切換點</b>、<b>漣波</b>、<b>負載暫態</b>：多數屬於特性化項目，量產只做功能確認。</li>
+</ul>
+
+<h2 id="ate">ATE 量產測試</h2>
+<p>電源 IC 的 ATE（例如混合訊號測試機）有多組 DPS（裝置電源）、PMU（精密量測單元）、高電流 / 高電壓源、數位通道與數位化器（digitizer）。量產測試的核心問題是<b>在 0.5 秒內量完所有保證參數，又不能犧牲精度</b>。</p>
+<ul>
+  <li><b>穩定時間</b>：LDO 輸出接大電容時，每改一次條件都要等數 ms 到數十 ms。量產測試通常在 load board 上用較小的電容，或用繼電器切換。</li>
+  <li><b>測試模式</b>：透過特殊腳位序列或 I²C 命令進入測試模式，把內部節點（參考電壓、偏壓電流、振盪器）接到類比多工器輸出，直接量測，也可以關閉軟啟動或保護以縮短時間。</li>
+  <li><b>多站</b>：4–32 站平行測試；站間共用資源（例如精密數位化器）會讓平行效率下降。</li>
+  <li><b>Load board 設計</b>：大電流路徑的寄生電阻與電感、繼電器壽命、熱設計都影響量測。load board 本身也要做定期驗證與保養。</li>
+  <li><b>測試程式版本管理</b>：每次修改測試極限、項目或演算法都要記錄並驗證相關性，車用產品還要通知客戶。</li>
+</ul>
+
+<h2 id="dft">可測試性設計（DFT）</h2>
+<ul>
+  <li><b>類比測試匯流排</b>：把關鍵內部節點透過多工器引到一支測試腳或功能腳。</li>
+  <li><b>修調暫存器的「試修」</b>：先把修調碼寫入暫存器（不燒錄）量測結果，確定正確後才燒 OTP，降低燒錄錯誤。</li>
+  <li><b>保護電路旁路</b>：測試模式下暫時關閉 UVLO、軟啟動或熱關機延遲。</li>
+  <li><b>數位掃描鏈</b>：PMIC 的時序器與暫存器以 scan 測試，涵蓋率目標 &gt; 95%。</li>
+  <li><b>測試模式的安全性</b>：要防止在客戶系統中被雜訊或錯誤的 I²C 命令誤觸。曾有產品因為上電時腳位雜訊誤入測試模式，造成現場輸出異常。</li>
+</ul>
+
+<h2 id="kelvin">Kelvin 量測與大電流</h2>
+<p>測一顆 R<sub>DS(on)</sub> 30 mΩ 的開關時，socket 的接觸電阻可能就有 20–50 mΩ，而且會隨使用次數增加。解法是 <b>Kelvin（四線）量測</b>：一對 force 線送電流，另一對 sense 線在接腳上量電壓，sense 線幾乎沒有電流，接觸電阻不影響讀值。</p>
+<ul>
+  <li><b>Socket 磨耗</b>：接觸電阻慢慢上升，R<sub>DS(on)</sub> 或負載調節率的分佈往一邊移動，最後造成良率下降或測試機之間不一致。要以 golden unit 每班檢查並設定更換次數。</li>
+  <li><b>脈衝測試</b>：大電流測試用 0.1–1 ms 脈衝，避免晶片自熱影響結果；也降低 socket 電弧與燒蝕。</li>
+  <li><b>封裝內電阻</b>：量到的 R<sub>DS(on)</sub> 包含打線與導線架。規格書通常列「包含封裝」的值，測試要說明量測點。</li>
+</ul>
+
+<h2 id="correlation">相關性與 GR&amp;R</h2>
+<p>同一顆晶片在 CP、FT、實驗室、客戶產線上量到的值不會完全相同。<b>相關性</b>（correlation）就是要證明差異是已知且可接受的。</p>
+<ul>
+  <li><b>Golden unit</b>：一組已在實驗室精確量測的樣品，用來校驗每台測試機、每個 load board。</li>
+  <li><b>GR&amp;R</b>（量測系統分析）：重複性（同一台重測）與再現性（不同台 / 不同人）佔公差的比例，&lt; 10% 為佳，10–30% 視情況可接受，&gt; 30% 不可接受。</li>
+  <li><b>Tester-to-tester</b>：不同測試機的偏移要小於 guard band 的一部分，否則某台機台的良率會系統性偏低或偏高。</li>
+  <li><b>CP 對 FT</b>：配對每顆晶粒的 CP 與 FT 資料，計算封裝偏移，用來校正 CP 修調目標（見<a href="production.html#cp-trim">生產 · CP 修調</a>）。</li>
+  <li><b>對客戶</b>：客戶產線量到「超規」時，第一步是比較量測方法：負載、溫度、量測點、量測時間是否與規格書條件一致。</li>
+</ul>
+
+<h2 id="bench">實驗室特性化</h2>
+<div class="tblwrap"><table>
+  <tr><th>項目</th><th>方法與設備</th></tr>
+  <tr><td>全溫參數</td><td>熱流罩（thermostream）或溫箱，−40 至 150 °C，每點等待熱平衡</td></tr>
+  <tr><td>迴路 Bode 圖</td><td>網路分析儀 + 注入變壓器 / 注入電阻，在回授路徑注入訊號；掃不同負載與電容</td></tr>
+  <tr><td>負載暫態</td><td>快速電子負載或 MOSFET 切換電阻，上升時間 &lt; 1 µs；探棒用短接地彈簧</td></tr>
+  <tr><td>PSRR</td><td>線路注入器或功率放大器在 V<sub>IN</sub> 疊加正弦波，網路分析儀量比值</td></tr>
+  <tr><td>雜訊</td><td>電池供電、屏蔽盒、低雜訊前置放大、頻譜分析儀</td></tr>
+  <tr><td>效率與熱</td><td>四線量測、功率分析儀、熱像儀、熱電偶</td></tr>
+  <tr><td>EMI</td><td>預掃描的近場探棒、傳導 EMI 的 LISN、輻射暗室</td></tr>
+  <tr><td>製程角樣品</td><td>用刻意偏移製程參數的 skew lot 驗證設計餘裕</td></tr>
+</table></div>
+<div class="callout"><b>探棒接地的教訓</b>　用示波器的長接地線量 Buck 輸出漣波，會因為接地迴路拾取 SW 節點的磁場而看到數百 mV 的尖峰，那不是真正的漣波。應使用接地彈簧、同軸探量，或 50 Ω 端接直接連到電容兩端。很多「漣波太大」的客訴，最後是量測方法問題。</div>
+
+<h2 id="qual">可靠度驗證：AEC-Q100</h2>
+<p>車用 IC 的標準是 AEC-Q100，消費性與工業產品常以 JEDEC JESD47 為基礎。典型要求是 <b>3 個批次 × 77 顆，零失效</b>，前後量測參數並比較漂移。</p>
+<div class="tblwrap"><table>
+  <tr><th>測試</th><th>條件（典型）</th><th>針對的失效機制</th></tr>
+  <tr><td>HTOL 高溫工作壽命</td><td>T<sub>J</sub> 125–150 °C，最大工作電壓，1000 h</td><td>氧化層、熱載子、電遷移、參數漂移</td></tr>
+  <tr><td>ELFR 早期失效率</td><td>短時間高溫偏壓，大樣本</td><td>製程缺陷造成的早夭</td></tr>
+  <tr><td>TC 溫度循環</td><td>−55/−65 ↔ 150 °C，500–1000 循環</td><td>打線、黏晶、焊點、介面分層</td></tr>
+  <tr><td>THB / HAST</td><td>85 °C / 85% RH 偏壓 1000 h，或 130 °C 高壓加速 96 h</td><td>濕氣腐蝕、離子遷移</td></tr>
+  <tr><td>uHAST / AC</td><td>無偏壓高溫高濕 / 高壓蒸煮</td><td>封裝密封性</td></tr>
+  <tr><td>HTSL 高溫儲存</td><td>150–175 °C，1000 h</td><td>金屬間化合物、打線接點</td></tr>
+  <tr><td>PTC 功率溫度循環</td><td>通斷電造成晶片自熱循環</td><td>功率元件的金屬與打線疲勞</td></tr>
+  <tr><td>ESD HBM / CDM</td><td>依 AEC-Q100-002 / -011</td><td>靜電放電耐受</td></tr>
+  <tr><td>Latch-up</td><td>AEC-Q100-004（JESD78），I/V 注入</td><td>寄生 SCR 觸發</td></tr>
+  <tr><td>預處理（PC）</td><td>MSL 吸濕 + 3 次回焊，在 TC / THB / HAST 前執行</td><td>模擬客戶上件</td></tr>
+</table></div>
+<ul>
+  <li><b>溫度等級</b>：Grade 0（−40 至 150 °C）、Grade 1（−40 至 125 °C）、Grade 2（−40 至 105 °C）、Grade 3（−40 至 85 °C）。</li>
+  <li><b>加速模型</b>：Arrhenius（熱活化，E<sub>a</sub> 約 0.7 eV）、Peck（濕度）、Coffin-Manson（溫度循環）把試驗時間換算成現場壽命。</li>
+  <li><b>參數漂移</b>：零失效之外，還要看前後參數變化是否在允許範圍，例如輸出電壓漂移 &lt; 0.5%。</li>
+  <li><b>電源 IC 特有項目</b>：短路耐受（AEC-Q100-012，智慧功率元件的反覆短路）、SOA 驗證、高電壓應力。</li>
+</ul>
+
+<h2 id="esd-lu">ESD 與 latch-up</h2>
+<div class="tblwrap"><table>
+  <tr><th>模型</th><th>模擬什麼</th><th>典型等級</th></tr>
+  <tr><td>HBM（人體放電）</td><td>帶電人體接觸接腳，100 pF / 1.5 kΩ</td><td>±2 kV（一般）、±4 kV（車用常見）</td></tr>
+  <tr><td>CDM（帶電元件）</td><td>晶片本身帶電後一支腳接觸接地，ns 級大電流</td><td>±500 V，角落腳 ±750 V</td></tr>
+  <tr><td>系統級 IEC 61000-4-2</td><td>成品被人碰觸，能量遠大於 HBM</td><td>±8 kV 接觸 / ±15 kV 空氣（成品層級）</td></tr>
+</table></div>
+<ul>
+  <li><b>HBM 合格 ≠ 系統級合格</b>：IC 的 ±2 kV HBM 不代表接在 USB 或電池端子能承受 ±8 kV。系統需要外部 TVS。客戶常把兩者混淆，造成「靜電打壞 IC」的客訴。</li>
+  <li><b>電源 IC 的 ESD 難點</b>：高壓腳不能用一般 ESD 鉗位（觸發電壓要高於工作電壓），LDMOS 本身的 snapback 特性要謹慎設計，否則 ESD 時局部燒毀。</li>
+  <li><b>Latch-up</b>：寄生 PNPN 結構被注入電流觸發後持續導通，直到斷電。電源 IC 的切換節點與基板注入讓它特別敏感（見<a href="process.html#substrate-injection">製程 · 基板注入</a>）。</li>
+</ul>
+
+<h2 id="safety">功能安全測試</h2>
+<ul>
+  <li><b>上電自我測試</b>：監控比較器、參考電壓、看門狗在每次上電時自我檢查，失敗就不放行。</li>
+  <li><b>故障注入</b>：設計時在監控路徑上留下可注入故障的開關，量產與現場都能驗證監控電路本身沒壞（潛在故障）。</li>
+  <li><b>ATE 涵蓋率</b>：功能安全要求量產測試涵蓋安全機制本身，否則安全機制的硬體缺陷不會被發現。</li>
+</ul>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>ATE</dt><dd>Automatic Test Equipment，自動測試設備。</dd></div>
+  <div><dt>DPS / PMU</dt><dd>Device Power Supply / Precision Measurement Unit，測試機的電源與精密量測單元。</dd></div>
+  <div><dt>Load board</dt><dd>測試機與待測物之間的介面板。</dd></div>
+  <div><dt>Kelvin</dt><dd>四線量測，force 與 sense 分開。</dd></div>
+  <div><dt>Golden unit</dt><dd>用於校驗量測系統的參考樣品。</dd></div>
+  <div><dt>GR&amp;R</dt><dd>Gage Repeatability &amp; Reproducibility，量測系統的重複性與再現性。</dd></div>
+  <div><dt>HTOL</dt><dd>High Temperature Operating Life，高溫工作壽命測試。</dd></div>
+  <div><dt>HAST</dt><dd>Highly Accelerated Stress Test，高加速溫濕度應力測試。</dd></div>
+  <div><dt>HBM / CDM</dt><dd>Human Body Model / Charged Device Model，兩種 ESD 模型。</dd></div>
+  <div><dt>Skew lot</dt><dd>刻意把製程參數做到角落的驗證批。</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

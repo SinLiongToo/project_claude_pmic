@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PMIC Notes · 電源管理 IC 知識地圖</title>
+<meta name="description" content="LDO 與 PMIC 的知識地圖：從架構、BCD 製程、電路設計、晶圓生產、測試與驗證到系統應用，加上常見問題排查、客訴處理與互動實驗室。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="index">
+<main class="hub">
+  <div class="eyebrow">PMIC Notes · 電源管理 IC 知識地圖</div>
+  <h1>LDO 與 PMIC：從一顆誤差放大器到客戶的板子上</h1>
+  <p class="lead">線性穩壓器（LDO）、DC-DC 轉換器與整合式電源管理 IC（PMIC）的整理筆記。沿著一顆電源 IC 從架構、BCD 製程、電路設計、晶圓生產、測試與驗證，一路走到系統應用；最後整理現場最常遇到的問題和客訴處理流程。每一章附圖解、名詞解釋，並連到可以動手調參數的互動實驗。</p>
+  <button class="hero-find" type="button" data-open-find>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <span>搜尋主題或名詞：dropout、相位裕度、trim、MLCC DC bias、8D…</span><kbd>Ctrl K</kbd>
+  </button>
+
+  <nav class="flow" aria-label="知識流程">
+    <a href="architecture.html" style="--c:var(--arc)"><span class="st">01 · ARCHITECTURE</span><b>架構</b><small>LDO、Buck、Boost、電荷泵、PMIC 方塊圖</small></a>
+    <a href="process.html" style="--c:var(--fab)"><span class="st">02 · PROCESS</span><b>製程</b><small>BCD、LDMOS、隔離、被動元件、熔絲</small></a>
+    <a href="design.html" style="--c:var(--des)"><span class="st">03 · DESIGN</span><b>設計</b><small>迴路穩定度、PSRR、雜訊、保護、控制</small></a>
+    <a href="production.html" style="--c:var(--mfg)"><span class="st">04 · PRODUCTION</span><b>生產</b><small>晶圓、CP trim、封裝、FT、良率、變更管理</small></a>
+    <a href="test.html" style="--c:var(--tst)"><span class="st">05 · TEST</span><b>測試</b><small>參數測試、特性化、AEC-Q100、ESD</small></a>
+    <a href="application.html" style="--c:var(--use)"><span class="st">06 · APPLICATION</span><b>應用</b><small>電源樹、電容選擇、熱、佈局、EMI</small></a>
+  </nav>
+
+  <h2 class="grp-h">知識章節</h2>
+  <div class="cards">
+    <a class="card" href="architecture.html" style="--c:var(--arc)"><span class="k">Chapter 1 · Architecture</span><h3>架構：把一個電壓變成另一個電壓</h3>
+      <p>線性與切換式穩壓的差別，LDO 方塊圖、PMOS / NMOS 傳輸元件，Buck / Boost / Buck-Boost、電荷泵，PMIC 的整合方式與關鍵規格。</p>
+      <ul><li>Dropout</li><li>效率</li><li>I<sub>Q</sub></li><li>CCM / DCM</li></ul></a>
+    <a class="card" href="process.html" style="--c:var(--fab)"><span class="k">Chapter 2 · Process</span><h3>製程：BCD，在同一片矽上放三種電晶體</h3>
+      <p>Bipolar-CMOS-DMOS 整合、LDMOS 與 R<sub>DS(on)</sub>·面積、隔離與寄生、電阻與電容、厚金屬、熔絲 / OTP、匹配與應力。</p>
+      <ul><li>LDMOS</li><li>DTI</li><li>R<sub>sp</sub></li><li>Poly fuse</li></ul></a>
+    <a class="card" href="design.html" style="--c:var(--des)"><span class="k">Chapter 3 · Circuit design</span><h3>設計：穩定、安靜、又能保護自己</h3>
+      <p>LDO 迴路與極零點、ESR 穩定窗口、無電容 LDO、PSRR、雜訊、帶隙參考、限流與熱保護、DC-DC 控制模式、補償、PMIC 時序與數位介面。</p>
+      <ul><li>相位裕度</li><li>Bandgap</li><li>Foldback</li><li>COT</li></ul></a>
+    <a class="card" href="production.html" style="--c:var(--mfg)"><span class="k">Chapter 4 · Production</span><h3>生產：從晶圓到一卷卷的料帶</h3>
+      <p>製造流程與 WAT、CP 與 trim、封裝型式與熱阻、FT、良率與 Cpk、SPC、PAT、追溯、產能，以及 PCN 與製程變更管理。</p>
+      <ul><li>Trim</li><li>QFN</li><li>Cpk</li><li>PCN</li></ul></a>
+    <a class="card" href="test.html" style="--c:var(--tst)"><span class="k">Chapter 5 · Test &amp; qualification</span><h3>測試：量得準，才知道它好不好</h3>
+      <p>LDO / DC-DC 參數怎麼量、ATE 量產測試、實驗室特性化、Kelvin 量測與相關性、可靠度驗證 AEC-Q100、ESD 與 latch-up、功能安全。</p>
+      <ul><li>Load reg</li><li>Correlation</li><li>HTOL</li><li>HBM / CDM</li></ul></a>
+    <a class="card" href="application.html" style="--c:var(--use)"><span class="k">Chapter 6 · Applications</span><h3>應用：在客戶的板子上活下來</h3>
+      <p>SoC 電源樹與上電時序、選 LDO 還是 DC-DC、電容與 DC bias、熱設計、PCB 佈局、EMI、車用、手機、工業與 AI 伺服器電源。</p>
+      <ul><li>Power tree</li><li>θ<sub>JA</sub></li><li>Layout</li><li>CISPR 25</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">問題與客訴</h2>
+  <div class="cards">
+    <a class="card" href="issues.html" style="--c:var(--rel)"><span class="k">Troubleshooting · 常見問題</span><h3>板子上出事了，先查哪裡</h3>
+      <p>振盪、啟動失敗、輸出過衝、熱關機、雜訊、效率不如預期、反灌電流、EMI 超標……依「現象 → 可能原因 → 怎麼查 → 對策」整理成排查表。</p>
+      <ul><li>症狀索引</li><li>量測技巧</li><li>設計 / 製程 / 測試問題</li></ul></a>
+    <a class="card" href="complaints.html" style="--c:var(--rel)"><span class="k">Customer complaints · 客訴處理</span><h3>從客戶來信到 8D 結案</h3>
+      <p>客訴處理流程、失效分析（FA）步驟、8D 報告、典型客訴案例（EOS、焊接、MLCC、測試漏網、封裝分層），以及怎麼和客戶溝通。</p>
+      <ul><li>8D</li><li>FA 流程</li><li>NTF</li><li>案例</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">互動工具與學習</h2>
+  <div class="cards">
+    <a class="card tool wide" href="lab.html" style="--c:var(--accent)">
+      <svg class="ic" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 20h14l8 24 8-36 8 28h14"/><path d="M6 56h52M6 8v48" opacity=".4"/></svg>
+      <div><span class="k">PMIC Lab · 互動實驗室</span><h3>動手調參數，看穩壓器怎麼穩定、怎麼失控</h3>
+      <p>七個即時模擬：LDO 迴路 Bode 圖與 ESR 穩定窗口、PSRR 頻率響應、負載暫態、壓差與熱、Buck 漣波與電感選擇、MLCC DC bias 有效電容，以及 CP trim 與良率 / Cpk。</p>
+      <ul><li>Bode / 相位裕度</li><li>PSRR</li><li>負載暫態</li><li>熱與 T<sub>J</sub></li><li>Buck 漣波</li><li>MLCC DC bias</li><li>Trim 良率</li></ul></div></a>
+    <a class="card" href="roles.html" style="--c:var(--mfg)"><span class="k">Career map · 職務地圖</span><h3>每個職位要先讀哪幾節</h3>
+      <p>類比設計、佈局、應用（AE / FAE）、產品、測試、製程整合、品質可靠度（QRA）、客訴工程：做什麼、必讀章節、工具與面試題。</p>
+      <ul><li>Design</li><li>AE / FAE</li><li>PE</li><li>TE</li><li>QRA</li></ul></a>
+    <a class="card" href="quiz.html" style="--c:var(--tst)"><span class="k">Quiz · 測驗</span><h3>考考自己</h3>
+      <p>八個主題的選擇題，可選章節與題數；每題附解析與複習連結，結束後列出答錯的題目。</p>
+      <ul><li>即時解析</li><li>鍵盤作答</li><li>複習連結</li></ul></a>
+  </div>
+
+  <h2 class="grp-h">一張表看懂四種穩壓方式</h2>
+  <div class="tblwrap"><table>
+    <tr><th></th><th>LDO</th><th>Buck（降壓）</th><th>Boost（升壓）</th><th>電荷泵</th></tr>
+    <tr><td>原理</td><td>傳輸元件當可變電阻，多的電壓變成熱</td><td>開關 + 電感，把能量一包一包送過去</td><td>電感儲能後疊加在輸入上</td><td>開關 + 飛跨電容，倍壓或分壓</td></tr>
+    <tr><td>輸出範圍</td><td>V<sub>OUT</sub> &lt; V<sub>IN</sub> − V<sub>DO</sub></td><td>V<sub>OUT</sub> &lt; V<sub>IN</sub></td><td>V<sub>OUT</sub> &gt; V<sub>IN</sub></td><td>固定比例（×2、÷2、−1）</td></tr>
+    <tr><td>效率</td><td>≈ V<sub>OUT</sub>/V<sub>IN</sub></td><td>85–95%</td><td>80–93%</td><td>比例剛好時高，否則低</td></tr>
+    <tr><td>雜訊 / 漣波</td><td>極低，還能濾掉輸入雜訊</td><td>有切換漣波與 EMI</td><td>有，且電流不連續的一側更吵</td><td>中等</td></tr>
+    <tr><td>外部元件</td><td>1–2 顆電容</td><td>電感 + 電容</td><td>電感 + 電容（+ 二極體）</td><td>數顆電容，無電感</td></tr>
+    <tr><td>典型用途</td><td>RF、ADC、感測器、PLL、小電流後級</td><td>SoC 核心、DDR、主電源軌</td><td>電池升壓、LED、USB 5 V</td><td>顯示偏壓、快充分壓、小電流負壓</td></tr>
+  </table></div>
+
+  <h2 class="grp-h">建議閱讀路線</h2>
+  <div class="cards">
+    <a class="card" href="design.html#ldo-loop" style="--c:var(--des)"><span class="k">類比設計</span><h3>LDO 設計入門</h3>
+      <p>架構 · LDO 方塊圖 → 設計 · 迴路穩定度、PSRR、雜訊 → 實驗室 · Bode 圖、PSRR → 製程 · 匹配與 trim。</p></a>
+    <a class="card" href="application.html#power-tree" style="--c:var(--use)"><span class="k">應用 / FAE</span><h3>幫客戶把電源做對</h3>
+      <p>應用 · 電源樹、電容、熱、佈局 → 實驗室 · MLCC DC bias、熱 → 常見問題 · 振盪與啟動 → 客訴處理。</p></a>
+    <a class="card" href="production.html#cp-trim" style="--c:var(--mfg)"><span class="k">產品 / 測試</span><h3>從良率到 Cpk</h3>
+      <p>生產 · CP trim、良率、Cpk → 測試 · ATE 與相關性 → 實驗室 · Trim 良率 → 客訴 · 測試漏網案例。</p></a>
+    <a class="card" href="complaints.html#flow" style="--c:var(--rel)"><span class="k">品質 / QRA</span><h3>可靠度與客訴</h3>
+      <p>測試 · AEC-Q100、ESD → 生產 · PCN 與追溯 → 客訴 · FA 與 8D → 常見問題 · 製程與封裝類。</p></a>
+  </div>
+
+  <p class="foot">教學用途的整理筆記。數值為量級參考，實際規格以各廠商資料手冊與 JEDEC / AEC 標準為準。按 <kbd>Ctrl</kbd> + <kbd>K</kbd> 或 <kbd>/</kbd> 開啟全站搜尋。</p>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

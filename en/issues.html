@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Troubleshooting · PMIC Notes</title>
+<meta name="description" content="Troubleshooting LDOs and PMICs: oscillation, start-up failure, overshoot and undershoot, thermal shutdown, noise and ripple, efficiency, reverse current, EMI, plus design, process / package and test issues and measurement tips.">
+<link rel="alternate" hreflang="zh-Hant" href="../issues.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="issues" data-ch="rel">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Troubleshooting</div>
+<h1>Troubleshooting: something broke on the board — where to look first</h1>
+<p class="lead">Power problems share one trait: "similar symptoms, many causes". An unstable output could be an unstable loop, thermal shutdown cycling, or just a long probe ground. This page starts with a symptom index, then lists "symptom → likely cause → how to check → fix" by category, and ends with design, process and test issues and debugging tips.</p>
+<div class="callout"><b>Rule one</b>　First confirm the measurement is right, then confirm the operating conditions are within spec, and only then suspect the chip. More than half of power "failures" are solved in the first two steps.</div>
+
+<h2 id="symptoms">Symptom index</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Most common causes (by likelihood)</th><th>Look at</th></tr>
+  <tr><td>Output oscillates continuously</td><td>Too little effective C<sub>OUT</sub> (DC bias), ESR out of range, wrong C<sub>FF</sub>, high source impedance</td><td><a href="#oscillation">Oscillation</a></td></tr>
+  <tr><td>Output periodically drops and recovers</td><td>Thermal-shutdown cycling, hiccup current limit, repeated UVLO</td><td><a href="#thermal-shutdown">Thermal</a>, <a href="#startup">Start-up</a></td></tr>
+  <tr><td>No output after power-up</td><td>EN not high, UVLO not cleared, stuck in foldback, pre-bias, wrong OTP</td><td><a href="#startup">Start-up</a></td></tr>
+  <tr><td>Overshoot at power-up</td><td>Soft start too fast, too little phase margin, pre-bias, EA saturation recovery</td><td><a href="#overshoot">Overshoot / undershoot</a></td></tr>
+  <tr><td>Large undershoot on a load step</td><td>Too little C<sub>OUT</sub>, too little bandwidth, low light-load bias, slow PFM response</td><td><a href="#overshoot">Overshoot / undershoot</a></td></tr>
+  <tr><td>Too much ripple / noise</td><td>Measurement method, poor PSRR at that frequency, too little headroom, layout coupling</td><td><a href="#noise-ripple">Noise and ripple</a></td></tr>
+  <tr><td>IC is very hot</td><td>Wrong dissipation estimate, too little copper, voids, extra loss from oscillation</td><td><a href="#thermal-shutdown">Thermal</a></td></tr>
+  <tr><td>Efficiency below datasheet</td><td>Wrong inductor, measurement method, light-load mode, dead time / body diode</td><td><a href="#efficiency">Efficiency</a></td></tr>
+  <tr><td>Voltage remains after shutdown</td><td>Back-feeding, another supply through I/Os, no active discharge</td><td><a href="#reverse-current">Reverse current</a></td></tr>
+  <tr><td>EMI test fails</td><td>Hot loop too large, SW edges too fast, frequency in a sensitive band</td><td><a href="#emi-issues">EMI</a></td></tr>
+  <tr><td>Only a few boards fail</td><td>Component tolerance corners, soldering, lot differences, EOS damage</td><td><a href="complaints.html#flow">Complaint handling</a></td></tr>
+  <tr><td>Capacitor or inductor makes noise</td><td>PFM / pulse skipping in the audio band, MLCC piezo effect</td><td><a href="#noise-ripple">Noise and ripple</a></td></tr>
+</table></div>
+
+<h2 id="oscillation">Oscillation</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>How to check</th><th>Fix</th></tr>
+  <tr><td>LDO output oscillates sinusoidally (tens of kHz–MHz)</td><td>Effective capacitance below minimum: MLCC DC bias, temperature, small 0402 case</td><td>Check the capacitor's DC-bias curve; try a larger case or one more in parallel</td><td>Higher-rated, larger-case capacitor; confirm worst-case effective value</td></tr>
+  <tr><td>Old LDO oscillates after switching to ceramics</td><td>That LDO needs an ESR zero to be stable</td><td>The datasheet ESR stability chart</td><td>Add 0.2–1 Ω in series, use tantalum, or switch to a ceramic-stable LDO</td></tr>
+  <tr><td>Oscillates only at light or only at heavy load</td><td>The output pole moves with load; phase margin is short over part of the range</td><td>Sweep load current; measure a Bode plot</td><td>Adjust capacitance per datasheet; add a minimum (dummy) load</td></tr>
+  <tr><td>Oscillates only when cold</td><td>Capacitance falls and ESR rises when cold (electrolytic / tantalum)</td><td>Chamber or freeze spray</td><td>X7R, more capacitance</td></tr>
+  <tr><td>Oscillates or rings after adding C<sub>FF</sub></td><td>C<sub>FF</sub> pole-zero misplaced</td><td>Compare with C<sub>FF</sub> removed</td><td>Recalculate from datasheet value or formula</td></tr>
+  <tr><td>The input oscillates too</td><td>High source impedance (long leads, input LC filter) interacting with the regulator's negative input impedance</td><td>Add bulk or electrolytic capacitance at the IC input and see if it improves</td><td>Damping capacitor at the input; filter design per Middlebrook criterion</td></tr>
+  <tr><td>Buck frequency jitters, SW pulses irregular</td><td>Too little COT ripple, noise coupled into FB, subharmonic oscillation</td><td>Look for alternating big / small SW pulses (subharmonic); check FB routing near SW</td><td>Adjust ripple injection, FB routing, inductance (vs slope compensation)</td></tr>
+  <tr><td>Slow "hiccup" at tens of Hz</td><td>Thermal shutdown or hiccup current limit, not loop oscillation</td><td>Measure die temperature and input-current waveform</td><td>See <a href="#thermal-shutdown">Thermal</a></td></tr>
+</table></div>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#bode">LDO Bode plot and ESR window</a>, <a href="lab.html#mlcc">MLCC DC bias</a></div>
+
+<h2 id="startup">Start-up failure and abnormal start-up</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>How to check</th><th>Fix</th></tr>
+  <tr><td>No output at all</td><td>EN floating or below threshold; V<sub>IN</sub> below UVLO; PMIC sequence waiting on a PG</td><td>Measure EN and V<sub>IN</sub> at the IC pins; read fault registers</td><td>Pull up / divide EN; check sequencing settings</td></tr>
+  <tr><td>Output stuck at a low voltage</td><td>Foldback limit + heavy or high-capacitance load; load draws heavily at low voltage</td><td>Does it start with no load?</td><td>Delay the load, reduce C<sub>OUT</sub>, choose a constant-current-limit IC</td></tr>
+  <tr><td>Repeated start and drop</td><td>High battery / adapter resistance; inrush pulls V<sub>IN</sub> below UVLO</td><td>Measure V<sub>IN</sub> and V<sub>OUT</sub> together</td><td>Longer soft start, more input capacitance, more UVLO hysteresis</td></tr>
+  <tr><td>Abnormal start with residual output voltage</td><td>Pre-bias mishandled; synchronous buck low side sinks</td><td>Does it start normally after discharging?</td><td>Pre-bias-capable IC; active discharge</td></tr>
+  <tr><td>Abnormal start with slow V<sub>IN</sub> ramp</td><td>Internal bias / bandgap undefined at low voltage; start-up circuit problem</td><td>Test different V<sub>IN</sub> slew rates</td><td>Delay start with EN; report to vendor (possibly a design issue)</td></tr>
+  <tr><td>Wrong output voltage on some parts</td><td>Wrong OTP configuration, mixed part numbers</td><td>Read OTP / registers, check marking</td><td>See <a href="complaints.html#c-otp">Complaints · OTP case</a></td></tr>
+  <tr><td>Downstream IC locks up at start</td><td>Wrong power-up order, non-monotonic ramps</td><td>Measure all rails on a multi-channel scope</td><td>Fix sequencing, chain PGs</td></tr>
+</table></div>
+
+<h2 id="overshoot">Overshoot and undershoot</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+  <tr><td>Overshoot at power-up</td><td>Soft start too fast; EA saturates during start and overshoots on recovery; too little phase margin</td><td>Larger soft-start capacitor; confirm stability</td></tr>
+  <tr><td>Large undershoot on load rise</td><td>Too little C<sub>OUT</sub>; low loop bandwidth; PFM takes time to return to PWM</td><td>More capacitance (mind DC bias), forced PWM, retune compensation</td></tr>
+  <tr><td>Large overshoot on load release</td><td>LDO pass device cannot turn off fast; buck cannot sink (DCM / PFM)</td><td>More capacitance, minimum load, FPWM, active pull-down</td></tr>
+  <tr><td>Overshoot when leaving dropout</td><td>As V<sub>IN</sub> rises back above V<sub>OUT</sub> the EA is saturated and the pass device fully on</td><td>An LDO with dropout-recovery control; more C<sub>OUT</sub></td></tr>
+  <tr><td>Voltage falls too slowly during DVS down-steps</td><td>Light load and the converter does not sink</td><td>Force PWM during DVS; active discharge</td></tr>
+</table></div>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#transient">load transient</a></div>
+
+<h2 id="thermal-shutdown">Overheating and thermal shutdown</h2>
+<ul>
+  <li><b>Symptom</b>: the output drops and recovers every tens of ms to seconds, the package is too hot to touch, and it goes away with less load or lower V<sub>IN</sub>.</li>
+  <li><b>Calculate first</b>: P<sub>D</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·I<sub>OUT</sub>; estimate T<sub>J</sub> with the real board's thermal resistance. Often one calculation shows it is over the limit.</li>
+  <li><b>Common causes</b>:
+    <ul>
+      <li>V<sub>IN</sub> higher than designed (e.g. a 12 V adapter instead of 5 V).</li>
+      <li>Exposed pad not soldered, excessive voids (check by X-ray), too few thermal vias.</li>
+      <li>2-layer board or cut-up copper; real θ<sub>JA</sub> far above the datasheet.</li>
+      <li>Loop oscillation adding loss.</li>
+      <li>Shorted output or abnormal load: in current limit, all of V<sub>IN</sub>·I<sub>LIM</sub> is dissipated on the chip.</li>
+    </ul></li>
+  <li><b>Fixes</b>: lower V<sub>IN</sub> (pre-regulate), add a series input resistor to share dissipation, choose a lower-θ package, add copper and vias, or switch to DC-DC.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#thermal">dropout, dissipation and junction temperature</a></div>
+
+<h2 id="noise-ripple">Noise and ripple</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+  <tr><td>Buck output shows hundreds of mV of spikes</td><td>Long scope ground lead pickup (artefact); or ESL, layout</td><td>Ground spring, measure across the capacitor; add a small high-frequency capacitor</td></tr>
+  <tr><td>Buck ripple still visible after the LDO</td><td>LDO PSRR too low at the switching frequency; too little headroom; layout couples SW noise to the LDO output</td><td>More headroom, RC / LC before the LDO, an LDO with better high-frequency PSRR</td></tr>
+  <tr><td>Ripple grows and frequency falls at light load</td><td>PFM / pulse-skipping mode</td><td>Force PWM, or accept lower efficiency</td></tr>
+  <tr><td>1/f or broadband noise in ADC / audio</td><td>LDO noise too high, no NR capacitor, output set too high</td><td>Low-noise LDO, add NR / C<sub>FF</sub></td></tr>
+  <tr><td>RF spurs</td><td>Switching frequency and harmonics in RF bands; spread spectrum adds broadband noise</td><td>Move frequency, synchronise converters, add LDO post-regulation</td></tr>
+  <tr><td>Audible whine</td><td>PFM frequency in 20 Hz–20 kHz; MLCC piezo effect</td><td>Ultrasonic PFM mode, soft-termination capacitors, FPWM</td></tr>
+</table></div>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#psrr">PSRR versus frequency</a></div>
+
+<h2 id="efficiency">Efficiency below expectation</h2>
+<ul>
+  <li><b>Measurement</b>: is voltage four-wire measured at the IC pins? Are the meter shunt and lead drops included in P<sub>IN</sub>?</li>
+  <li><b>Inductor</b>: DCR too high, saturation, AC loss; compare with the datasheet's recommended inductor.</li>
+  <li><b>Light load</b>: is it in FPWM mode? (Poor light-load efficiency is then normal.)</li>
+  <li><b>Frequency</b>: externally set higher than intended, increasing switching loss.</li>
+  <li><b>Body-diode conduction</b>: dead time too long or an unsuitable external low-side MOSFET.</li>
+  <li><b>Heat</b>: hot R<sub>DS(on)</sub> rises and efficiency falls — positive feedback.</li>
+</ul>
+
+<h2 id="reverse-current">Reverse current and leakage</h2>
+<ul>
+  <li><b>Voltage remains after shutdown</b>: another supply feeds this rail through I/O ESD diodes, or the load holds stored energy. Enable active discharge at shutdown, or avoid it in the system sequence.</li>
+  <li><b>LDO input off, output held by a battery or big capacitor</b>: the PMOS body diode passes current from output to input, possibly damaging the LDO or upsetting the upstream rail. Use an LDO with reverse-current protection, or a series / ideal diode.</li>
+  <li><b>Standby current too high</b>: floating EN half-enabling the part, pull-ups, PG pull-ups, divider leakage, hot leakage; disconnect one by one and measure.</li>
+  <li><b>Unpowered PMIC fed by I²C pull-ups</b>: digital-pin ESD diodes half-power the PMIC, which may get stuck in an unknown state and fail to start properly later.</li>
+</ul>
+
+<h2 id="emi-issues">EMI failures</h2>
+<ul>
+  <li><b>Conducted EMI (150 kHz–108 MHz)</b>: mainly the switching frequency and harmonics leaving through the input. Bigger input filter, spread spectrum, a different frequency.</li>
+  <li><b>Radiated EMI (above 30 MHz)</b>: hot-loop area and SW ringing. Shrink the hot loop, add small (0402 / 0201) input capacitors, a BOOT resistor or an RC snubber.</li>
+  <li><b>Near-field scanning</b> finds hot spots far faster than trial and error in the chamber.</li>
+  <li><b>Cables and enclosure</b>: long output leads are antennas too; common-mode chokes and grounding often help more than changing IC settings.</li>
+</ul>
+
+<h2 id="design-issues">Design issues (on the chip)</h2>
+<div class="tblwrap"><table>
+  <tr><th>Issue</th><th>Symptom</th><th>Root cause</th><th>Prevention</th></tr>
+  <tr><td>Substrate injection</td><td>Bad ADC readings at heavy load, comparator false triggers, random resets</td><td>Minority-carrier injection when SW goes below ground</td><td>Guard rings, DTI, shorter dead time, layout isolation</td></tr>
+  <tr><td>Start-up circuit failure</td><td>Very rarely no output at power-up; recovers on re-power</td><td>Bandgap or bias has a zero-current stable state the start-up circuit cannot escape at some corner</td><td>Start-up simulation at all corners, V<sub>IN</sub> slew sweeps</td></tr>
+  <tr><td>Mode-transition glitch</td><td>Output jumps on PFM ↔ PWM transitions</td><td>Bias points of the two modes are discontinuous</td><td>Preset the EA state on transition, hysteresis</td></tr>
+  <tr><td>Insufficient OTP read margin</td><td>Configuration misread when hot or at low voltage; wrong output voltage or sequence</td><td>Weak OTP sense amplifier, fuse regrowth</td><td>Read-margin testing, CRC check, double read</td></tr>
+  <tr><td>Accidental test-mode entry</td><td>Occasional abnormal outputs in the field</td><td>Power-up noise matches the test-mode entry sequence</td><td>Multi-step unlock, lock after power-up</td></tr>
+  <tr><td>Fault-flag race</td><td>Cannot read the right cause after a fault</td><td>Asynchronous faults vs register-clear timing</td><td>Latch faults; read before clear</td></tr>
+  <tr><td>Too little thermal-shutdown hysteresis</td><td>Rapid on/off and noise when hot</td><td>Hysteresis design / sensor placement</td><td>15–20 °C hysteresis, sensor near the heat source</td></tr>
+</table></div>
+
+<h2 id="process-issues">Process and package issues</h2>
+<div class="tblwrap"><table>
+  <tr><th>Issue</th><th>Symptom</th><th>Root cause</th><th>How to catch it</th></tr>
+  <tr><td>Package-stress shift</td><td>FT output mean shifted from CP, or varies with mould-compound lot</td><td>Mould shrinkage stress shifts bandgap and resistors via the piezoresistive effect</td><td>Paired CP / FT analysis, post-package trim</td></tr>
+  <tr><td>Drift after reflow</td><td>Accuracy worse after the customer mounts the part</td><td>Reflow thermal stress, moisture-related stress change</td><td>Measure after preconditioning + reflow</td></tr>
+  <tr><td>Fuse regrowth</td><td>Trim value changes months after shipment</td><td>Fuse not fully blown, reconnects via electromigration or heat</td><td>Post-blow resistance limit, retest after HTSL</td></tr>
+  <tr><td>Delamination / popcorn</td><td>Opens, leakage, parametric shifts after reflow</td><td>Moisture absorbed beyond MSL limits</td><td>C-SAM acoustic scan</td></tr>
+  <tr><td>Copper-wire corrosion</td><td>Opens after hot, humid stress</td><td>Halogen / sulphur in mould compound, intermetallic corrosion</td><td>HAST / THB, material control</td></tr>
+  <tr><td>WLCSP cracking</td><td>Failure after board flex or drop</td><td>Die-edge chipping, bump stress</td><td>Visual inspection, drop and bend tests</td></tr>
+  <tr><td>WLCSP light sensitivity</td><td>I<sub>Q</sub> or output abnormal under strong light</td><td>Unshielded die back / sides, photocurrent</td><td>Back-side coating; shield in the application</td></tr>
+  <tr><td>Exposed-pad voids</td><td>Thermal shutdown trips early</td><td>Paste and stencil design, vias wicking solder</td><td>X-ray inspection</td></tr>
+</table></div>
+
+<h2 id="test-issues">Test issues</h2>
+<div class="tblwrap"><table>
+  <tr><th>Issue</th><th>Symptom</th><th>Root cause</th><th>Fix</th></tr>
+  <tr><td>Socket wear</td><td>A parameter distribution slowly shifts, yield drops, retest recovery high</td><td>Contact resistance rising</td><td>Golden unit every shift, usage-count control, Kelvin</td></tr>
+  <tr><td>Tester-to-tester differences</td><td>One tester has systematically lower yield</td><td>Calibration, load board, relays</td><td>Tester correlation, periodic calibration</td></tr>
+  <tr><td>Too little guard band</td><td>Shipped parts measure out of spec at the customer</td><td>Test error and temperature differences not covered</td><td>Set from GR&amp;R and temperature correlation</td></tr>
+  <tr><td>Test escape</td><td>Functional failure at the customer, yet FT passed</td><td>Insufficient coverage, room temperature only, too little settling</td><td>Add test items after FA — see <a href="complaints.html#c-escape">Complaints · escape case</a></td></tr>
+  <tr><td>Overkill</td><td>Low yield but most pass on retest</td><td>Limits too tight, noise, too little settling</td><td>Analyse retest data, adjust waits</td></tr>
+  <tr><td>Self-heating in measurements</td><td>High-current parameters depend on pulse width</td><td>The die warms during the test</td><td>Pulsed measurement, fixed ordering</td></tr>
+</table></div>
+
+<h2 id="debug-tips">Measurement and debugging tips</h2>
+<ol class="steps">
+  <li><b>Confirm conditions</b>: V<sub>IN</sub> (at the IC pins), load, temperature, EN and the actual external component values, compared with datasheet conditions.</li>
+  <li><b>Measure correctly</b>: ground spring or coax on the scope; 20 MHz bandwidth limit for ripple, full bandwidth for spikes; a current probe for inductor current.</li>
+  <li><b>Watch several signals at once</b>: V<sub>IN</sub>, V<sub>OUT</sub>, SW, I<sub>L</sub>, EN and PG together, to see what moves first.</li>
+  <li><b>ABA swap</b>: put the suspect IC on a good board and a good IC on the problem board; if the problem follows the IC it is the chip, if it stays with the board it is the application.</li>
+  <li><b>Change one variable</b>: capacitor, load, temperature — one at a time.</li>
+  <li><b>Thermal camera</b>: find abnormal hot spots, including neighbouring parts.</li>
+  <li><b>Read fault registers</b>: PMICs usually record the last shutdown cause.</li>
+  <li><b>Preserve the evidence</b>: do not keep powering a failed board to "fix" it; secondary damage spoils later failure analysis.</li>
+</ol>
+
+<p class="foot">These are general industry practices, not tied to any company or product. Datasheets and vendor application notes are authoritative.</p>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

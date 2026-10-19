@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>常見問題與排查 · PMIC Notes</title>
+<meta name="description" content="LDO 與 PMIC 常見問題排查：振盪、啟動失敗、過衝下衝、熱關機、雜訊漣波、效率、反灌、EMI，以及設計、製程封裝、測試類問題與量測除錯技巧。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="issues" data-ch="rel">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Troubleshooting · 常見問題</div>
+<h1>常見問題與排查：板子上出事了，先查哪裡</h1>
+<p class="lead">電源問題的特徵是「症狀很像，原因很多」：輸出不穩，可能是迴路不穩定，也可能是熱關機在反覆觸發，或只是探棒接地太長。這一頁先給症狀索引，再依類別整理「現象 → 可能原因 → 怎麼查 → 對策」，最後是設計、製程、測試端的常見問題與除錯技巧。</p>
+<div class="callout"><b>排查的第一原則</b>　先確認量測是對的，再確認使用條件在規格內，最後才懷疑晶片。超過一半的電源「異常」在前兩步就解決了。</div>
+
+<h2 id="symptoms">症狀索引</h2>
+<div class="tblwrap"><table>
+  <tr><th>症狀</th><th>最常見的原因（依機率）</th><th>先看</th></tr>
+  <tr><td>輸出持續振盪</td><td>有效 C<sub>OUT</sub> 不足（DC bias）、ESR 不在範圍、C<sub>FF</sub> 不當、輸入源阻抗高</td><td><a href="#oscillation">振盪</a></td></tr>
+  <tr><td>輸出週期性掉電再恢復</td><td>熱關機循環、hiccup 限流、UVLO 反覆觸發</td><td><a href="#thermal-shutdown">熱</a>、<a href="#startup">啟動</a></td></tr>
+  <tr><td>上電後沒有輸出</td><td>EN 未拉高、UVLO 未過、foldback 卡住、預偏壓、OTP 設定錯誤</td><td><a href="#startup">啟動</a></td></tr>
+  <tr><td>上電輸出過衝</td><td>軟啟動太快、迴路相位裕度不足、預偏壓、EA 飽和恢復</td><td><a href="#overshoot">過衝下衝</a></td></tr>
+  <tr><td>負載跳變時下衝太大</td><td>C<sub>OUT</sub> 不足、頻寬不足、輕載偏壓太低、PFM 模式反應慢</td><td><a href="#overshoot">過衝下衝</a></td></tr>
+  <tr><td>漣波 / 雜訊太大</td><td>量測方法、PSRR 在該頻率不足、壓差太小、佈局耦合</td><td><a href="#noise-ripple">雜訊漣波</a></td></tr>
+  <tr><td>IC 很燙</td><td>功耗計算錯誤、散熱銅箔不足、空洞、振盪造成額外損失</td><td><a href="#thermal-shutdown">熱</a></td></tr>
+  <tr><td>效率低於規格書</td><td>電感選錯、量測方法、輕載模式、死區 / 體二極體</td><td><a href="#efficiency">效率</a></td></tr>
+  <tr><td>關機後輸出仍有電壓</td><td>反灌、其他電源經 I/O 灌入、無主動放電</td><td><a href="#reverse-current">反灌</a></td></tr>
+  <tr><td>EMI 測試失敗</td><td>熱迴路太大、SW 邊緣太快、頻率落在敏感頻段</td><td><a href="#emi-issues">EMI</a></td></tr>
+  <tr><td>只有少數板子出問題</td><td>元件公差角落、焊接、批次差異、EOS 損傷</td><td><a href="complaints.html#flow">客訴處理</a></td></tr>
+  <tr><td>電容或電感發出聲音</td><td>PFM / 跳脈衝落在音頻、MLCC 壓電效應</td><td><a href="#noise-ripple">雜訊漣波</a></td></tr>
+</table></div>
+
+<h2 id="oscillation">振盪</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>可能原因</th><th>怎麼查</th><th>對策</th></tr>
+  <tr><td>LDO 輸出持續正弦振盪（數十 kHz–數 MHz）</td><td>有效電容低於最小值；MLCC DC bias、溫度、0402 小封裝</td><td>查電容規格的 DC bias 曲線；換大一號封裝或並聯一顆看是否消失</td><td>選額定電壓較高、封裝較大的電容；確認最差情況有效容值</td></tr>
+  <tr><td>舊型 LDO 換陶瓷電容後振盪</td><td>該 LDO 需要 ESR 零點才穩定</td><td>規格書的 ESR 穩定區域圖</td><td>串聯 0.2–1 Ω 小電阻、改用鉭電容，或換成支援陶瓷電容的 LDO</td></tr>
+  <tr><td>只在輕載或只在重載振盪</td><td>輸出極點隨負載移動，某段負載相位裕度不足</td><td>掃描負載電流觀察；量 Bode 圖</td><td>依規格書調整電容；加最小負載（假負載）</td></tr>
+  <tr><td>只在低溫振盪</td><td>電容低溫容值下降、ESR 上升（電解 / 鉭）</td><td>溫箱或冷噴驗證</td><td>X7R、更大電容</td></tr>
+  <tr><td>加了 C<sub>FF</sub> 後振盪或振鈴</td><td>C<sub>FF</sub> 零極點位置不當</td><td>移除 C<sub>FF</sub> 比較</td><td>依規格書建議值或公式重新計算</td></tr>
+  <tr><td>輸入端也一起振盪</td><td>輸入源阻抗高（長線、輸入 LC 濾波），與穩壓器負輸入阻抗交互作用</td><td>在 IC 輸入端加大電容或電解電容看是否改善</td><td>輸入端加阻尼電容；濾波器設計符合 Middlebrook 準則</td></tr>
+  <tr><td>Buck 切換頻率抖動、SW 脈衝不規則</td><td>COT 漣波不足、雜訊耦合到 FB、次諧波振盪</td><td>觀察 SW 是否成對大小交替（次諧波）；FB 走線是否靠近 SW</td><td>調整漣波注入、FB 走線、電感值（斜率補償配合）</td></tr>
+  <tr><td>大約數十 Hz 的緩慢「打嗝」</td><td>熱關機或 hiccup 限流，不是迴路振盪</td><td>量晶片溫度、輸入電流波形</td><td>見<a href="#thermal-shutdown">熱</a></td></tr>
+</table></div>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#bode">LDO Bode 圖與 ESR 窗口</a>、<a href="lab.html#mlcc">MLCC DC bias</a></div>
+
+<h2 id="startup">啟動失敗與啟動異常</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>可能原因</th><th>怎麼查</th><th>對策</th></tr>
+  <tr><td>完全沒有輸出</td><td>EN 浮接或門檻未達；V<sub>IN</sub> 未過 UVLO；PMIC 時序在等某路 PG</td><td>量 EN、V<sub>IN</sub>（在 IC 腳上）；讀故障暫存器</td><td>EN 上拉 / 分壓；確認時序設定</td></tr>
+  <tr><td>輸出停在很低的電壓</td><td>折返限流 + 重載或大電容負載；負載本身在低壓時吸大電流</td><td>空載啟動是否正常</td><td>負載延後開啟、降低 C<sub>OUT</sub>、選定電流限流的 IC</td></tr>
+  <tr><td>反覆啟動、掉電</td><td>電池 / 適配器內阻大，啟動湧入電流把 V<sub>IN</sub> 拉到 UVLO 以下</td><td>同時量 V<sub>IN</sub> 與 V<sub>OUT</sub></td><td>加長軟啟動、加大輸入電容、提高 UVLO 遲滯</td></tr>
+  <tr><td>輸出上有殘壓時啟動異常</td><td>預偏壓處理不當，同步 Buck 低側吸電流</td><td>先放電再啟動是否正常</td><td>選擇支援 pre-bias 的 IC；主動放電</td></tr>
+  <tr><td>V<sub>IN</sub> 緩慢上升時啟動異常</td><td>內部偏壓 / 帶隙在低電壓區未定；啟動電路問題</td><td>用不同 V<sub>IN</sub> 斜率測試</td><td>以 EN 延後啟動；回報廠商（可能是設計問題）</td></tr>
+  <tr><td>部分料號輸出電壓不對</td><td>OTP 配置錯誤、料號混料</td><td>讀 OTP / 暫存器、看打印</td><td>見<a href="complaints.html#c-otp">客訴 · OTP 案例</a></td></tr>
+  <tr><td>啟動時下游 IC 鎖死</td><td>上電順序錯誤、電壓斜率不單調</td><td>多通道示波器同時量各軌</td><td>修正時序、使用 PG 串接</td></tr>
+</table></div>
+
+<h2 id="overshoot">過衝與下衝</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>可能原因</th><th>對策</th></tr>
+  <tr><td>上電過衝</td><td>軟啟動太快；EA 在啟動時飽和，恢復時超調；相位裕度不足</td><td>加大軟啟動電容；確認穩定度</td></tr>
+  <tr><td>負載上升時下衝大</td><td>C<sub>OUT</sub> 不足；迴路頻寬低；PFM 模式需要時間切回 PWM</td><td>增加電容（注意 DC bias）、強制 PWM、調整補償</td></tr>
+  <tr><td>負載卸載時過衝大</td><td>LDO 傳輸元件關不快；Buck 不能吸電流（DCM / PFM）</td><td>加大電容、加最小負載、FPWM、主動下拉</td></tr>
+  <tr><td>從壓差狀態恢復時過衝</td><td>V<sub>IN</sub> 從低於 V<sub>OUT</sub> 回升時，EA 已飽和、傳輸元件全開</td><td>選擇有壓差恢復控制的 LDO；加大 C<sub>OUT</sub></td></tr>
+  <tr><td>DVS 降壓時電壓降得太慢</td><td>輕載且轉換器不吸電流</td><td>DVS 期間強制 PWM；主動放電</td></tr>
+</table></div>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#transient">負載暫態</a></div>
+
+<h2 id="thermal-shutdown">過熱與熱關機</h2>
+<ul>
+  <li><b>症狀</b>：輸出每隔數十 ms 到數秒掉電再恢復，晶片表面燙手，降低負載或 V<sub>IN</sub> 後消失。</li>
+  <li><b>先算</b>：P<sub>D</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·I<sub>OUT</sub>；用實際板子的熱阻估 T<sub>J</sub>，常常一算就知道超過了。</li>
+  <li><b>常見原因</b>：
+    <ul>
+      <li>V<sub>IN</sub> 比設計值高（例如適配器 12 V 而非 5 V）。</li>
+      <li>散熱墊沒焊好、空洞過多（X-ray 檢查）、熱過孔數量不足。</li>
+      <li>2 層板、銅箔被切割，實際 θ<sub>JA</sub> 遠高於規格書。</li>
+      <li>迴路振盪造成額外損失。</li>
+      <li>輸出短路或負載異常，限流狀態下 V<sub>IN</sub>·I<sub>LIM</sub> 全部消耗在晶片上。</li>
+    </ul></li>
+  <li><b>對策</b>：降低 V<sub>IN</sub>（前級預降壓）、在輸入串電阻分擔功耗、換熱阻更低的封裝、增加銅箔與過孔、改用 DC-DC。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#thermal">壓差、功耗與接面溫度</a></div>
+
+<h2 id="noise-ripple">雜訊與漣波</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>可能原因</th><th>對策</th></tr>
+  <tr><td>Buck 輸出看到數百 mV 尖峰</td><td>示波器長接地線拾取（量測假象）；或 ESL、佈局</td><td>接地彈簧、量在電容兩端；加小容值高頻電容</td></tr>
+  <tr><td>LDO 後級還是看得到 Buck 漣波</td><td>LDO 在切換頻率的 PSRR 不足；壓差太小；佈局把 SW 雜訊耦合到 LDO 輸出</td><td>提高壓差裕度、在 LDO 前加 RC / LC、選高頻 PSRR 較好的 LDO</td></tr>
+  <tr><td>輕載時漣波變大、頻率變低</td><td>PFM / 跳脈衝模式</td><td>強制 PWM，或接受較低效率</td></tr>
+  <tr><td>ADC / 音訊有 1/f 或寬頻雜訊</td><td>LDO 雜訊太高、未使用 NR 電容、輸出電壓設太高</td><td>低雜訊 LDO、加 NR / C<sub>FF</sub></td></tr>
+  <tr><td>RF 雜散（spur）</td><td>切換頻率與諧波落在 RF 頻段；展頻帶來寬頻雜訊</td><td>調整頻率、同步多顆轉換器、加 LDO 後級</td></tr>
+  <tr><td>聽得到嘯叫</td><td>PFM 頻率落在 20 Hz–20 kHz；MLCC 壓電效應</td><td>音頻外 PFM（ultrasonic mode）、軟端子電容、FPWM</td></tr>
+</table></div>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#psrr">PSRR 頻率響應</a></div>
+
+<h2 id="efficiency">效率不如預期</h2>
+<ul>
+  <li><b>量測</b>：電壓有沒有在 IC 接腳用四線量？電流表的分流電阻與線材壓降有沒有算進 P<sub>IN</sub>？</li>
+  <li><b>電感</b>：DCR 過高、飽和、交流損失；換規格書推薦電感比較。</li>
+  <li><b>輕載</b>：是否在 FPWM 模式（輕載效率很低是正常的）。</li>
+  <li><b>頻率</b>：外部設定頻率比預期高，切換損失增加。</li>
+  <li><b>體二極體導通</b>：死區太長或外部低側 MOSFET 不合適。</li>
+  <li><b>熱</b>：高溫時 R<sub>DS(on)</sub> 上升，效率下降，形成正回授。</li>
+</ul>
+
+<h2 id="reverse-current">反灌與漏電</h2>
+<ul>
+  <li><b>關機後輸出仍有電壓</b>：其他電源經 I/O 的 ESD 二極體灌到這一軌；或負載中有儲能元件。關斷時打開主動放電，或在系統時序中避免。</li>
+  <li><b>LDO 輸入斷電、輸出有電池或大電容</b>：PMOS 體二極體讓電流從輸出流回輸入，可能損壞 LDO 或讓前級異常。選擇有反向電流保護的 LDO，或串聯二極體 / 理想二極體。</li>
+  <li><b>待機電流超標</b>：EN 腳浮接導致部分開啟、上拉電阻、PG 上拉、分壓電阻的漏電、高溫漏電；逐一斷開量測。</li>
+  <li><b>PMIC 未上電時被 I²C 匯流排上拉供電</b>：數位腳的 ESD 二極體讓 PMIC 半通電，可能卡在未知狀態，上電後無法正常啟動。</li>
+</ul>
+
+<h2 id="emi-issues">EMI 超標</h2>
+<ul>
+  <li><b>傳導 EMI（150 kHz–108 MHz）</b>：主要是切換頻率與諧波透過輸入線傳出。加大輸入濾波、展頻、改變頻率。</li>
+  <li><b>輻射 EMI（30 MHz 以上）</b>：熱迴路面積與 SW 振鈴。縮小熱迴路、輸入加小電容（0402 / 0201）、BOOT 串電阻、加 RC 緩衝（snubber）。</li>
+  <li><b>近場掃描</b>先找出熱點，比直接在暗室裡試錯快得多。</li>
+  <li><b>電纜與外殼</b>：輸出長線也是天線；共模扼流圈、接地方式有時比改 IC 參數更有效。</li>
+</ul>
+
+<h2 id="design-issues">設計類問題（晶片端）</h2>
+<div class="tblwrap"><table>
+  <tr><th>問題</th><th>症狀</th><th>根因</th><th>預防</th></tr>
+  <tr><td>基板注入</td><td>重載時 ADC 讀值異常、比較器誤觸發、偶發重置</td><td>SW 節點低於地時少數載子注入</td><td>保護環、DTI、縮短死區、佈局隔離</td></tr>
+  <tr><td>啟動電路失效</td><td>極少數上電沒有輸出，重新上電恢復</td><td>帶隙或偏壓電路有零電流穩態，啟動電路在某些角落無法推出</td><td>啟動電路全角落模擬、V<sub>IN</sub> 斜率掃描</td></tr>
+  <tr><td>模式切換突波</td><td>PFM ↔ PWM 切換時輸出跳動</td><td>兩個模式的偏壓點不連續</td><td>切換時預先設定 EA 狀態、遲滯</td></tr>
+  <tr><td>OTP 讀取裕度不足</td><td>高溫或低電壓時讀錯配置，輸出電壓或時序錯誤</td><td>OTP 感測放大器裕度不足、熔絲再生長</td><td>讀取裕度測試、CRC 校驗、雙重讀取</td></tr>
+  <tr><td>誤入測試模式</td><td>現場偶發輸出異常</td><td>上電雜訊符合測試模式進入序列</td><td>多重解鎖序列、上電後鎖定</td></tr>
+  <tr><td>故障旗標競爭</td><td>故障後讀不到正確原因</td><td>非同步故障與暫存器清除時序</td><td>故障鎖存、清除前先讀</td></tr>
+  <tr><td>熱關機遲滯太小</td><td>過熱時快速開關、產生噪音</td><td>遲滯設計 / 感測器位置</td><td>15–20 °C 遲滯、感測器靠近熱源</td></tr>
+</table></div>
+
+<h2 id="process-issues">製程與封裝類問題</h2>
+<div class="tblwrap"><table>
+  <tr><th>問題</th><th>症狀</th><th>根因</th><th>怎麼抓</th></tr>
+  <tr><td>封裝應力偏移</td><td>FT 輸出電壓平均值比 CP 偏移，或隨塑封料批次變化</td><td>塑封收縮應力透過壓阻效應影響帶隙與電阻</td><td>CP / FT 配對分析、封裝後修調</td></tr>
+  <tr><td>回焊後參數漂移</td><td>客戶上件後電壓精度變差</td><td>回焊熱應力、吸濕後應力改變</td><td>預處理 + 回焊後量測</td></tr>
+  <tr><td>熔絲再生長</td><td>出貨後數月修調值改變</td><td>熔絲未完全燒斷，經電遷移或高溫重新導通</td><td>燒錄後電阻門檻、HTSL 後複測</td></tr>
+  <tr><td>分層 / 爆米花</td><td>回焊後開路、漏電、參數異常</td><td>吸濕超過 MSL 規定</td><td>C-SAM 超音波掃描</td></tr>
+  <tr><td>銅線腐蝕</td><td>高溫高濕後開路</td><td>塑封料含鹵素 / 硫、介金屬腐蝕</td><td>HAST / THB、材料管控</td></tr>
+  <tr><td>WLCSP 破裂</td><td>板彎或落摔後失效</td><td>晶片邊緣崩角、凸塊應力</td><td>外觀檢查、落摔與板彎測試</td></tr>
+  <tr><td>WLCSP 照光漏電</td><td>強光下 I<sub>Q</sub> 或輸出異常</td><td>晶片背面 / 側面未遮光，光生電流</td><td>背面塗層；應用端遮光</td></tr>
+  <tr><td>散熱墊空洞</td><td>熱關機提早觸發</td><td>錫膏與鋼板設計、過孔吸錫</td><td>X-ray 檢查</td></tr>
+</table></div>
+
+<h2 id="test-issues">測試類問題</h2>
+<div class="tblwrap"><table>
+  <tr><th>問題</th><th>症狀</th><th>根因</th><th>對策</th></tr>
+  <tr><td>Socket 磨耗</td><td>某參數分佈慢慢偏移、良率下降、重測回收率高</td><td>接觸電阻上升</td><td>Golden unit 每班檢查、使用次數管控、Kelvin</td></tr>
+  <tr><td>測試機間差異</td><td>某台測試機良率系統性偏低</td><td>校正、load board、繼電器</td><td>機台相關性、定期校驗</td></tr>
+  <tr><td>Guard band 不足</td><td>出貨品在客戶端量到超規</td><td>未涵蓋測試誤差與溫度差</td><td>依 GR&amp;R 與溫度相關性設定</td></tr>
+  <tr><td>測試漏網</td><td>客戶端功能失效但 FT 全過</td><td>測試涵蓋率不足、只測常溫、穩定時間不夠</td><td>失效分析後補測試項目，見<a href="complaints.html#c-escape">客訴 · 漏網案例</a></td></tr>
+  <tr><td>過度剔除（overkill）</td><td>良率低但重測後多數通過</td><td>測試極限太緊、雜訊、穩定時間不足</td><td>分析重測資料、調整等待時間</td></tr>
+  <tr><td>自熱影響量測</td><td>大電流參數與脈衝寬度相關</td><td>測試時間內晶片升溫</td><td>脈衝量測、固定順序</td></tr>
+</table></div>
+
+<h2 id="debug-tips">量測與除錯技巧</h2>
+<ol class="steps">
+  <li><b>確認條件</b>：V<sub>IN</sub>（在 IC 腳上量）、負載、溫度、EN、外部元件實際值，與規格書條件比較。</li>
+  <li><b>正確量測</b>：示波器用接地彈簧或同軸量測；頻寬限制 20 MHz 看漣波，全頻寬看尖峰；電流探棒看電感電流。</li>
+  <li><b>同時看多條訊號</b>：V<sub>IN</sub>、V<sub>OUT</sub>、SW、I<sub>L</sub>、EN、PG 一起量，才能分辨「誰先動」。</li>
+  <li><b>交換法（ABA swap）</b>：把疑似不良的 IC 換到正常板，正常 IC 換到問題板；問題跟著 IC 走才是晶片問題，跟著板子走就是應用問題。</li>
+  <li><b>改一個變數</b>：換電容、加負載、改溫度，每次只改一個。</li>
+  <li><b>熱像儀</b>：找出異常熱點，包括周邊元件。</li>
+  <li><b>讀故障暫存器</b>：PMIC 通常會記錄最後一次關機原因。</li>
+  <li><b>保留現場</b>：失效板不要再通電試修，避免二次損傷，影響後續失效分析。</li>
+</ol>
+
+<p class="foot">這一頁是業界通用的經驗整理，不針對任何特定公司或產品。實際的判斷請以規格書與廠商應用文件為準。</p>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Production · PMIC Notes</title>
+<meta name="description" content="Power IC production: manufacturing flow, WAT, CP test and trim, package types and thermal resistance, FT, yield, Cpk and SPC, PAT and zero defects, traceability, PCN change control and capacity.">
+<link rel="alternate" hreflang="zh-Hant" href="../production.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="mfg" data-ch="mfg">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Chapter 4 · Production</div>
+<h1>Production: from wafers to reels of tape</h1>
+<p class="lead">A power IC often sells for cents to a few dollars, yet ships in hundreds of millions a year. Making money means high yield at every step, short test times and small variation; keeping customers confident means every unit is traceable and every change is announced. This chapter walks through volume production and the numbers product engineers (PE) watch every day.</p>
+
+<h2 id="flow">The production flow</h2>
+<figure>
+<svg viewBox="0 0 640 170" role="img" aria-label="Power IC production flow: wafer fab, WAT, CP and trim, assembly, FT, QA sampling, shipment">
+  <g class="ts">
+  <rect class="c5" x="10"  y="30" width="80" height="50" rx="6"/><text x="50"  y="52" text-anchor="middle">Wafer fab</text><text x="50" y="68" text-anchor="middle" class="t-mut">BCD fab</text>
+  <rect class="c5" x="100" y="30" width="80" height="50" rx="6"/><text x="140" y="52" text-anchor="middle">WAT</text><text x="140" y="68" text-anchor="middle" class="t-mut">e-test monitor</text>
+  <rect class="c6" x="190" y="30" width="80" height="50" rx="6"/><text x="230" y="52" text-anchor="middle">CP</text><text x="230" y="68" text-anchor="middle" class="t-mut">test + trim</text>
+  <rect class="c1" x="280" y="30" width="80" height="50" rx="6"/><text x="320" y="52" text-anchor="middle">Assembly</text><text x="320" y="68" text-anchor="middle" class="t-mut">grind, saw, bond</text>
+  <rect class="c4" x="370" y="30" width="80" height="50" rx="6"/><text x="410" y="52" text-anchor="middle">FT</text><text x="410" y="68" text-anchor="middle" class="t-mut">cold / room / hot</text>
+  <rect class="c3" x="460" y="30" width="80" height="50" rx="6"/><text x="500" y="52" text-anchor="middle">QA sample</text><text x="500" y="68" text-anchor="middle" class="t-mut">visual + electrical</text>
+  <rect class="c2" x="550" y="30" width="80" height="50" rx="6"/><text x="590" y="52" text-anchor="middle">Pack &amp; ship</text><text x="590" y="68" text-anchor="middle" class="t-mut">T&amp;R, dry pack</text>
+  </g>
+  <path class="wm" d="M90 55h10M180 55h10M270 55h10M360 55h10M450 55h10M540 55h10"/>
+  <text x="50" y="110" text-anchor="middle" class="ts t-mut">8–12 weeks</text>
+  <text x="230" y="110" text-anchor="middle" class="ts t-mut">yield 92–99%</text>
+  <text x="320" y="110" text-anchor="middle" class="ts t-mut">2–4 weeks</text>
+  <text x="410" y="110" text-anchor="middle" class="ts t-mut">yield 97–99.5%</text>
+  <text x="590" y="110" text-anchor="middle" class="ts t-mut">MSL level</text>
+  <path class="wd" d="M230 120 V145 H410 V120"/><text x="320" y="160" text-anchor="middle" class="ts t-mut">data linked by lot / wafer / X-Y: traceability, PAT, correlation</text>
+</svg>
+<figcaption>Typical flow and magnitudes. Total cycle time is about 3–5 months; when capacity is tight the wafer stage alone can stretch beyond six months.</figcaption>
+</figure>
+
+<h2 id="wat">WAT: an electrical check-up before wafers ship</h2>
+<p>Wafer acceptance test (WAT, also called PCM) measures basic device parameters on test keys in the scribe lines: V<sub>T</sub>, I<sub>DSAT</sub>, sheet resistance, contact resistance, BJT β, LDMOS R<sub>sp</sub> and breakdown, capacitance, oxide breakdown.</p>
+<ul>
+  <li><b>Acceptance</b>: 5–9 sites per wafer; out-of-spec wafers are not shipped or are downgraded.</li>
+  <li><b>Link to product parameters</b>: pre-trim bandgap distributions correlate strongly with BJT V<sub>BE</sub> and resistor sheet resistance; R<sub>DS(on)</sub> with LDMOS R<sub>sp</sub>. PEs build WAT-to-CP correlation models for early warning.</li>
+  <li><b>Process drift</b>: WAT inside spec but skewed (e.g. sheet resistance high by 2σ) can push trim codes to their limit and drop yield.</li>
+</ul>
+
+<h2 id="cp-trim">CP test and trim</h2>
+<p>Wafer test (CP, chip probing) contacts each die's pads with a probe card. Power-IC CP has two special jobs: <b>trimming</b>, and <b>measuring high-current parameters despite probe contact resistance</b>.</p>
+<ol class="steps">
+  <li><b>Opens / shorts and leakage</b> confirm probe contact and healthy ESD structures.</li>
+  <li><b>Measure pre-trim parameters</b>: bandgap voltage, oscillator frequency, bias current, current-limit threshold and so on.</li>
+  <li><b>Compute trim codes</b>: from the pre-trim and target values, by table or formula, for each fuse / OTP bit.</li>
+  <li><b>Program</b>: blow fuses or write OTP, and log the trim code.</li>
+  <li><b>Verify after trim</b>: remeasure against tight limits; unblown fuses or out-of-spec units after trim fail.</li>
+  <li><b>Other parameters</b>: I<sub>Q</sub>, UVLO thresholds, R<sub>DS(on)</sub> (low-current), logic function, OTP read-back.</li>
+</ol>
+<ul>
+  <li>The <b>trim-code distribution</b> is a key monitor: codes centred mean a healthy process; codes near either end mean the process has shifted and the trim range is running out.</li>
+  <li><b>Package-shift pre-compensation</b>: if packaging shifts the average by +0.3%, set the CP trim target to −0.3%. This value must be recalibrated regularly from paired CP / FT data.</li>
+  <li><b>High-current limits</b>: each probe needle carries only about 0.5–1 A, so a 3 A current limit needs paralleled needles or is left to FT; 0.1–1 Ω probe resistance also means CP R<sub>DS(on)</sub> must be Kelvin-measured.</li>
+  <li><b>Multi-site</b>: testing 4–32 dies at once lowers cost; site-to-site correlation must be checked regularly.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#trim">trim bits, step size and yield / Cpk</a></div>
+
+<h2 id="assembly">Packaging</h2>
+<div class="tblwrap"><table>
+  <tr><th>Package</th><th>θ<sub>JA</sub> (JEDEC board, magnitude)</th><th>Features</th><th>Typical use</th></tr>
+  <tr><td>SOT-23 / SC-70</td><td>180–250 °C/W</td><td>Cheap, easy to solder and inspect</td><td>Low-current LDOs, load switches</td></tr>
+  <tr><td>SOIC / MSOP (with exposed pad)</td><td>40–120 °C/W</td><td>Visible leads, easy automotive inspection</td><td>Automotive LDOs, industrial</td></tr>
+  <tr><td>DFN / QFN (exposed pad)</td><td>30–60 °C/W</td><td>The pad solders to the PCB for heat flow; side leads need wettable flanks for AOI</td><td>Bucks, PMICs, mid-power LDOs</td></tr>
+  <tr><td>WLCSP</td><td>50–100 °C/W</td><td>Smallest, lowest parasitics; bare die back is exposed to light and mechanical stress</td><td>Phones, wearables</td></tr>
+  <tr><td>Flip-chip QFN (FCQFN / HotRod)</td><td>25–45 °C/W</td><td>Bumps replace wires, low parasitic inductance and resistance</td><td>High-current bucks</td></tr>
+  <tr><td>Power module / SiP</td><td>Design dependent</td><td>Inductor, capacitors and IC in one package</td><td>FPGAs, servers, space-constrained designs</td></tr>
+</table></div>
+<ul>
+  <li><b>θ<sub>JA</sub> is not a device constant</b>: it is measured on a JEDEC test board (JESD51). Customer boards differ in copper area, layer count and vias, and can be 2× off. Thermal design should use Ψ<sub>JT</sub> and θ<sub>JC</sub> with board simulation (see <a href="application.html#thermal">Applications · thermal design</a>).</li>
+  <li><b>Solder voids</b>: more than 30–50% voiding under the exposed pad clearly raises thermal resistance. Die-attach voids likewise; both are X-ray sampled at assembly.</li>
+  <li><b>Wire bonding</b>: copper wire is replacing gold to cut cost; copper is harder, can crack under the pad (cratering) and is more sensitive to corrosion (chlorine, sulphur).</li>
+  <li><b>Moisture sensitivity level (MSL)</b>: mould compound absorbs moisture that expands in reflow, causing delamination or popcorn cracking. Classified per J-STD-020; MSL 3 means mount within 168 hours of opening or bake.</li>
+</ul>
+
+<h2 id="ft">FT final test</h2>
+<p>Final test (FT) after packaging runs on a handler and measures the guaranteed datasheet parameters. Unlike CP it can test high current, real switching and thermal behaviour, and catches packaging-induced problems.</p>
+<ul>
+  <li><b>Temperature</b>: consumer parts often test at room temperature only, relying on design and characterisation for the full range; automotive usually requires cold (−40 °C), room and hot (≥ 125 °C), or at least two temperatures.</li>
+  <li><b>Test time</b>: about 0.3–1 s for an LDO, 5–20 s for a large PMIC. At a few cents per second of test, this matters for low-priced parts, so test items and settling waits are tightly budgeted.</li>
+  <li><b>Functional test</b>: a PMIC must go through power-up sequencing, I²C reads / writes, every rail on / off and voltage, and fault triggering and flags.</li>
+  <li><b>Post-package trim</b>: OTP or zener trim at FT corrects package stress, but needs suitable high-voltage sources on the tester.</li>
+</ul>
+
+<h2 id="yield">Yield</h2>
+<div class="eq">Total yield Y = Y<sub>fab</sub> × Y<sub>CP</sub> × Y<sub>assy</sub> × Y<sub>FT</sub>　　Y<sub>CP</sub> ≈ e<sup>−A·D<sub>0</sub></sup> × Y<sub>param</sub></div>
+<ul>
+  <li><b>Defect yield</b>: depends on die area and defect density. Power-IC dies are small (1–10 mm²), so defect yield is usually high.</li>
+  <li><b>Parametric yield</b>: often the main loss — trim range too small, I<sub>Q</sub> high, UVLO thresholds out of spec.</li>
+  <li><b>Yield-loss Pareto</b>: sort failing bins weekly; the top three usually account for 70–80% of loss and are where improvement starts.</li>
+  <li><b>Wafer maps</b>: low-yield edges, rings, scratches or particular reticle fields point straight at process or probe-card problems.</li>
+  <li><b>Retest</b>: contact-related false fails can be recovered by retest, but a high retest rate means fixing the probe card or socket first, or real failures get hidden.</li>
+</ul>
+
+<h2 id="cpk">Cpk and SPC</h2>
+<div class="eq">Cp = (USL − LSL) / 6σ　　Cpk = min(USL − μ, μ − LSL) / 3σ</div>
+<div class="tblwrap"><table>
+  <tr><th>Cpk</th><th>Out of spec (normal, one-sided)</th><th>Usual reading</th></tr>
+  <tr><td class="n">1.00</td><td class="n">≈ 1350 ppm</td><td>Inadequate</td></tr>
+  <tr><td class="n">1.33</td><td class="n">≈ 32 ppm</td><td>Common consumer minimum</td></tr>
+  <tr><td class="n">1.67</td><td class="n">≈ 0.3 ppm</td><td>Common automotive requirement (critical parameters)</td></tr>
+  <tr><td class="n">2.00</td><td class="n">≈ 0.001 ppm</td><td>Six-sigma level</td></tr>
+</table></div>
+<ul>
+  <li><b>Test limits vs spec limits</b>: test limits are usually tighter than datasheet limits; the gap is the guard band, covering tester error, temperature differences and long-term drift.</li>
+  <li><b>SPC control charts</b>: monitor each lot's mean and standard deviation; violating Western Electric rules (e.g. seven points in a row on one side) triggers the OCAP.</li>
+  <li><b>Non-normal distributions</b>: post-trim distributions are often uniform or multimodal; applying Cpk directly misleads — use the actual out-of-spec rate or non-parametric methods.</li>
+</ul>
+
+<h2 id="pat">PAT and zero defects</h2>
+<p>Automotive customers aim for &lt; 1 DPPM, or zero defects. Spec limits alone are not enough, because a part that "passes spec but sits far from its lot" often carries a latent defect.</p>
+<ul>
+  <li><b>Part average testing (PAT)</b>: per AEC-Q001, dynamic limits are computed from the lot or wafer distribution (e.g. a robust μ ± 6σ); outliers are removed even if within spec.</li>
+  <li><b>Geographic screening</b>: GDBN (good die in bad neighbourhood) removes good dies surrounded by failures; whole regions or low-yield wafers can also be removed.</li>
+  <li><b>I<sub>DDQ</sub> and leakage</b>: slightly high leakage can indicate oxide or junction defects, an early-failure precursor.</li>
+  <li><b>The cost</b>: PAT typically discards an extra 0.5–2% of good parts — one reason automotive chips cost more.</li>
+</ul>
+
+<h2 id="traceability">Traceability</h2>
+<p>The first question in any complaint is "which lot, which wafer, which position did this come from?" The trace chain is usually:</p>
+<ul>
+  <li><b>Package marking</b>: part number + date code + lot code (small packages may only fit 3–4 characters).</li>
+  <li><b>On-chip ECID</b>: lot / wafer / X-Y written into OTP at CP and readable later through the interface; common in PMICs and automotive parts.</li>
+  <li><b>Linked databases</b>: WAT, CP, FT, trim codes, tester and probe-card IDs, assembly lots and material lots all keyed by lot number — essential for "same-lot risk assessment" during complaints.</li>
+  <li><b>Retention</b>: automotive typically requires production data to be kept for 15 years or more.</li>
+</ul>
+
+<h2 id="pcn">PCN and change control</h2>
+<p>Any change that may affect form, fit, function, quality or reliability must be notified to customers in advance (per JESD46, usually at least 90 days), with qualification data for major changes so customers can evaluate or requalify.</p>
+<div class="tblwrap"><table>
+  <tr><th>Change type</th><th>Examples</th><th>Usually needs</th></tr>
+  <tr><td>Fab / process</td><td>New fab, new node, mask revision, process-step change</td><td>Full or partial AEC-Q100 requalification, characterisation comparison</td></tr>
+  <tr><td>Design</td><td>Circuit fix, trim-algorithm change</td><td>Characterisation and qualification</td></tr>
+  <tr><td>Package</td><td>New assembly site, gold to copper wire, lead-frame plating, mould compound</td><td>Package reliability (temperature cycling, THB / HAST, MSL)</td></tr>
+  <tr><td>Test</td><td>New tester, test program or test-limit change</td><td>Correlation report; usually notified for automotive too</td></tr>
+  <tr><td>Discontinuation</td><td>EOL with a last-time-buy (LTB) window per JESD48</td><td>Replacement recommendation</td></tr>
+</table></div>
+<div class="callout"><b>Unannounced changes are the most dangerous</b>　Many serious complaints trace back to "we thought it had no effect, so we did not notify": for example a new mould compound that tests identically at room temperature but delaminates or drifts in the customer's hot, humid environment. The rule: if unsure, evaluate and notify.</div>
+
+<h2 id="capacity">Capacity, lead time and second sources</h2>
+<ul>
+  <li><b>8-inch fabs</b>: a lot of power ICs still run on 8-inch BCD lines. In the 2020–2022 shortage, 8-inch capacity was one of the tightest bottlenecks and lead times stretched to 40–52 weeks or more.</li>
+  <li><b>Second source</b>: large customers want the same part number with capacity at two fabs or two assembly sites; each must be qualified and shown to match.</li>
+  <li><b>Pin-compatible substitutes</b>: during shortages customers switch to another vendor's pin-compatible part, but compensation, soft start, PG timing and stable capacitor range differ, so oscillation and start-up problems after the switch are common application-support work.</li>
+</ul>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>WAT / PCM</dt><dd>Wafer acceptance test / process control monitor.</dd></div>
+  <div><dt>CP</dt><dd>Chip probing, wafer-level test.</dd></div>
+  <div><dt>FT</dt><dd>Final test after packaging.</dd></div>
+  <div><dt>Bin</dt><dd>Test-result category; e.g. bin 1 is good, other bins are failure types.</dd></div>
+  <div><dt>Guard band</dt><dd>The margin by which test limits sit inside spec limits.</dd></div>
+  <div><dt>OCAP</dt><dd>Out-of-control action plan.</dd></div>
+  <div><dt>PAT</dt><dd>Part average testing: removing outliers based on the lot distribution.</dd></div>
+  <div><dt>DPPM</dt><dd>Defective parts per million.</dd></div>
+  <div><dt>MSL</dt><dd>Moisture sensitivity level.</dd></div>
+  <div><dt>ECID</dt><dd>Electronic chip ID: a unique identifier stored on the die.</dd></div>
+  <div><dt>PCN / EOL / LTB</dt><dd>Product change notice / end of life / last-time buy.</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

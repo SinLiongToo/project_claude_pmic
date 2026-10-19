@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>電源互動實驗室 · PMIC Notes</title>
+<meta name="description" content="互動模擬：LDO Bode 圖與 ESR 穩定窗口、PSRR 頻率響應、負載暫態、壓差與接面溫度、Buck 電感漣波與效率、MLCC DC bias 有效電容、CP 修調良率與 Cpk。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="lab">
+<main class="app-wrap">
+<div class="app-head">
+  <div class="eyebrow">PMIC Lab · 互動實驗室</div>
+  <h1>動手調參數，看穩壓器怎麼穩定、怎麼失控</h1>
+  <p>每個分頁都是簡化的行為模型，用來建立直覺，不是 SPICE，數值只代表量級。調整左邊的參數，右邊的圖會即時更新。</p>
+</div>
+
+<div class="seg" role="tablist" aria-label="實驗">
+  <button role="tab" data-tab="bode" aria-selected="true">LDO 穩定度</button>
+  <button role="tab" data-tab="psrr" aria-selected="false">PSRR</button>
+  <button role="tab" data-tab="transient" aria-selected="false">負載暫態</button>
+  <button role="tab" data-tab="thermal" aria-selected="false">壓差與熱</button>
+  <button role="tab" data-tab="buck" aria-selected="false">Buck 漣波</button>
+  <button role="tab" data-tab="mlcc" aria-selected="false">MLCC DC bias</button>
+  <button role="tab" data-tab="trim" aria-selected="false">修調與良率</button>
+</div>
+
+<!-- ============ BODE ============ -->
+<section class="tabp" id="tab-bode" role="tabpanel">
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>PMOS LDO · 1.8 V</small></h3>
+    <div class="ctl"><label>補償方式</label>
+      <div class="btnrow" id="bd-mode"><button class="btn" data-v="ext" aria-pressed="true">傳統（靠 ESR 零點）</button><button class="btn" data-v="int" aria-pressed="false">內部補償（陶瓷穩定）</button></div></div>
+    <div class="ctl"><label for="bd-i">負載電流 <output id="bd-i-o"></output></label><input id="bd-i" type="range" min="0" max="100" step="1" value="80"></div>
+    <div class="ctl"><label for="bd-c">有效輸出電容 C<sub>OUT</sub> <output id="bd-c-o"></output></label><input id="bd-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="bd-esr">電容 ESR <output id="bd-esr-o"></output></label><input id="bd-esr" type="range" min="0" max="100" step="1" value="18"></div>
+    <div class="btnrow"><button class="btn" type="button" data-preset="cer">陶瓷電容 5 mΩ</button><button class="btn" type="button" data-preset="tan">鉭電容 0.5 Ω</button><button class="btn" type="button" data-preset="el">電解電容 3 Ω</button></div>
+    <p class="note">模型：輸出極點 1/(2π(R<sub>out</sub>+ESR)C<sub>OUT</sub>) 隨負載移動，閘極極點 500 kHz、寄生極點 5 MHz 與 20 MHz；內部補償在 300 kHz 加一個內部零點。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="bd-metrics"></div>
+    <div class="two">
+      <div class="panel"><h3>迴路增益 <small>|L(f)|</small></h3><svg class="viz" id="bd-gain" role="img" aria-label="迴路增益 Bode 圖"></svg></div>
+      <div class="panel"><h3>迴路相位 <small>∠L(f)</small></h3><svg class="viz" id="bd-phase" role="img" aria-label="迴路相位 Bode 圖"></svg></div>
+    </div>
+    <div class="panel"><h3>穩定區域圖 <small>相位裕度 vs ESR × 負載</small></h3><svg class="viz" id="bd-map" role="img" aria-label="ESR 與負載電流的相位裕度地圖"></svg>
+      <div class="legend"><span><i style="background:var(--ok)"></i>PM ≥ 45°</span><span><i style="background:var(--warn)"></i>20–45°</span><span><i style="background:var(--bad)"></i>&lt; 20°（振盪或嚴重振鈴）</span><span><i style="background:var(--ink)"></i>目前設定</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>傳統模式下按「陶瓷電容」：重載時相位裕度掉到 20° 以下，輕載反而穩定。這就是舊 LDO 換陶瓷電容會振盪的原因。</li>
+    <li>按「鉭電容」：ESR 零點把相位補回來。再把 ESR 拉到 5 Ω 以上：增益在高頻抬起，又不穩定。穩定區域圖上看得到兩邊都會出界的「隧道」。</li>
+    <li>切到內部補償、用陶瓷電容：穩定。但把 C<sub>OUT</sub> 降到 0.22 µF：交越頻率推到寄生極點附近，又振盪了，這就是最小電容規格的由來。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="design.html#ldo-loop">設計 · LDO 迴路</a>、<a href="design.html#esr-window">ESR 穩定窗口</a></li>
+    <li><a href="application.html#capacitors">應用 · MLCC DC bias</a>：規格書的最小電容指的是<b>有效</b>電容。</li>
+    <li><a href="issues.html#oscillation">常見問題 · 振盪</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ PSRR ============ -->
+<section class="tabp" id="tab-psrr" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>Buck 後級 LDO</small></h3>
+    <div class="ctl"><label>傳輸元件</label>
+      <div class="btnrow" id="ps-pass"><button class="btn" data-v="p" aria-pressed="true">PMOS</button><button class="btn" data-v="n" aria-pressed="false">NMOS（有偏壓軌）</button></div></div>
+    <div class="ctl"><label for="ps-hr">壓差裕度 V<sub>IN</sub> − V<sub>OUT</sub> <output id="ps-hr-o"></output></label><input id="ps-hr" type="range" min="0.02" max="1.5" step="0.01" value="0.5"></div>
+    <div class="ctl"><label for="ps-i">負載電流 <output id="ps-i-o"></output></label><input id="ps-i" type="range" min="0" max="100" step="1" value="70"></div>
+    <div class="ctl"><label for="ps-bw">迴路頻寬 <output id="ps-bw-o"></output></label><input id="ps-bw" type="range" min="0" max="100" step="1" value="50"></div>
+    <div class="ctl"><label for="ps-c">輸出電容 <output id="ps-c-o"></output></label><input id="ps-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="ps-fsw">前級 Buck 切換頻率 <output id="ps-fsw-o"></output></label><input id="ps-fsw" type="range" min="0.3" max="4" step="0.1" value="2"></div>
+    <div class="ctl"><label for="ps-rip">LDO 輸入端漣波 <output id="ps-rip-o"></output></label><input id="ps-rip" type="range" min="1" max="100" step="1" value="20"></div>
+    <p class="note">傳輸元件 R<sub>DS(on)</sub> 0.3 Ω；裕度低於壓差 + 0.25 V 時迴路增益開始下降。高頻段由耦合電容與 C<sub>OUT</sub>（含 0.6 nH ESL）分壓決定。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="ps-metrics"></div>
+    <div class="panel"><h3>PSRR vs 頻率 <small>越高越好</small></h3><svg class="viz" id="ps-plot" role="img" aria-label="PSRR 頻率響應"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>目前設定</span><span><i style="background:var(--muted)"></i>裕度 1.0 V 參考</span><span><i style="background:var(--s2)"></i>Buck 切換頻率</span></div></div>
+    <div class="panel"><h3>切換頻率處的 PSRR vs 壓差裕度 <small>壓差懸崖</small></h3><svg class="viz" id="ps-hr-plot" role="img" aria-label="PSRR 隨壓差裕度變化"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>低頻 PSRR 由迴路增益決定，到迴路頻寬附近開始下降；高頻段再由電容分壓撐住，ESL 諧振後又變差。</li>
+    <li>把壓差裕度降到 0.15 V 以下：傳輸元件進入線性區，PSRR 掉 20–40 dB，Buck 漣波直接穿過去。</li>
+    <li>看 Buck 頻率那條線：1 kHz 的 70 dB 不代表 2 MHz 也有 70 dB。</li>
+    <li>切換到 NMOS：源極隨耦器本身就隔離輸入，PSRR 整條上移。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="design.html#psrr">設計 · PSRR</a></li>
+    <li><a href="application.html#power-tree">應用 · 電源樹</a>：Buck 前級要設多高？</li>
+    <li><a href="issues.html#noise-ripple">常見問題 · 雜訊與漣波</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ TRANSIENT ============ -->
+<section class="tabp" id="tab-transient" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>負載步階</small></h3>
+    <div class="ctl"><label for="tr-i1">輕載 <output id="tr-i1-o"></output></label><input id="tr-i1" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-i2">重載 <output id="tr-i2-o"></output></label><input id="tr-i2" type="range" min="0" max="100" step="1" value="85"></div>
+    <div class="ctl"><label for="tr-tr">負載上升時間 <output id="tr-tr-o"></output></label><input id="tr-tr" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-c">輸出電容 <output id="tr-c-o"></output></label><input id="tr-c" type="range" min="0" max="8" step="1" value="3"></div>
+    <div class="ctl"><label for="tr-esr">ESR <output id="tr-esr-o"></output></label><input id="tr-esr" type="range" min="0" max="100" step="1" value="20"></div>
+    <div class="ctl"><label for="tr-bw">迴路頻寬 <output id="tr-bw-o"></output></label><input id="tr-bw" type="range" min="0" max="100" step="1" value="55"></div>
+    <div class="ctl"><label for="tr-pm">相位裕度 <output id="tr-pm-o"></output></label><input id="tr-pm" type="range" min="15" max="80" step="1" value="55"></div>
+    <div class="ctl"><label for="tr-sr">閘極驅動能力（電流迴轉率） <output id="tr-sr-o"></output></label><input id="tr-sr" type="range" min="0" max="100" step="1" value="70"></div>
+    <p class="note">傳輸電流以兩極點迴路追隨誤差電壓，並受迴轉率限制；有限迴路增益造成穩態的負載調節誤差。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="tr-metrics"></div>
+    <div class="panel"><h3>輸出電壓偏差 <small>ΔV<sub>OUT</sub></small></h3><svg class="viz" id="tr-v" role="img" aria-label="負載暫態輸出電壓"></svg></div>
+    <div class="panel"><h3>電流 <small>負載 vs 傳輸元件</small></h3><svg class="viz" id="tr-i" role="img" aria-label="負載電流與傳輸電流"></svg>
+      <div class="legend"><span><i style="background:var(--muted)"></i>負載電流</span><span><i style="background:var(--accent)"></i>傳輸元件電流</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>步階瞬間的垂直跳動是 ΔI·ESR；接著的斜坡是電容在迴路反應前獨自供電：ΔI·t / C。</li>
+    <li>把相位裕度降到 25°：恢復時出現振鈴，這也是從暫態波形反推相位裕度的方法。</li>
+    <li>把閘極驅動能力降低：傳輸電流變成斜坡，下衝大幅增加。低 I<sub>Q</sub> LDO 在輕載跳重載時最容易出現這種情況。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="design.html#transient">設計 · 負載暫態</a></li>
+    <li><a href="issues.html#overshoot">常見問題 · 過衝與下衝</a></li>
+    <li><a href="test.html#bench">測試 · 特性化</a>：負載的上升時間要夠快，量到的才是 LDO 而不是負載。</li></ul></div>
+</div>
+</section>
+
+<!-- ============ THERMAL ============ -->
+<section class="tabp" id="tab-thermal" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>1 A LDO</small></h3>
+    <div class="ctl"><label for="th-vin">V<sub>IN</sub> <output id="th-vin-o"></output></label><input id="th-vin" type="range" min="1.5" max="12" step="0.1" value="5"></div>
+    <div class="ctl"><label for="th-vout">V<sub>OUT</sub> 設定 <output id="th-vout-o"></output></label><input id="th-vout" type="range" min="0.8" max="5" step="0.1" value="3.3"></div>
+    <div class="ctl"><label for="th-i">負載電流 <output id="th-i-o"></output></label><input id="th-i" type="range" min="0" max="1000" step="10" value="300"></div>
+    <div class="ctl"><label for="th-pkg">封裝</label><select id="th-pkg">
+      <option value="0">SC-70（θ<sub>JA</sub> ≈ 260 °C/W）</option>
+      <option value="1" selected>SOT-23-5（≈ 210 °C/W）</option>
+      <option value="2">WLCSP（≈ 85 °C/W）</option>
+      <option value="3">DFN 2×2（≈ 65 °C/W）</option>
+      <option value="4">SOIC-8 EP（≈ 45 °C/W）</option>
+      <option value="5">QFN 3×3（≈ 40 °C/W）</option></select></div>
+    <div class="ctl"><label for="th-board">板子散熱 <output id="th-board-o"></output></label><input id="th-board" type="range" min="0.6" max="1.8" step="0.05" value="1"></div>
+    <div class="ctl"><label for="th-ta">環境溫度 T<sub>A</sub> <output id="th-ta-o"></output></label><input id="th-ta" type="range" min="-40" max="105" step="1" value="45"></div>
+    <p class="note">R<sub>DS(on)</sub> 25 °C 時 0.25 Ω，+0.4 %/°C；I<sub>Q</sub> 50 µA；熱關機 160 °C、遲滯 20 °C。板子散熱 1.0 = JEDEC 4 層測試板，越大代表板子越差。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="th-metrics"></div>
+    <div class="two">
+      <div class="panel"><h3>接面溫度 vs 負載電流 <small>各封裝</small></h3><svg class="viz" id="th-tj" role="img" aria-label="接面溫度與負載電流"></svg></div>
+      <div class="panel"><h3>V<sub>OUT</sub> vs V<sub>IN</sub> <small>壓差區</small></h3><svg class="viz" id="th-do" role="img" aria-label="輸出電壓與輸入電壓"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i>含自熱</span><span><i style="background:var(--muted)"></i>25 °C 理想</span></div></div>
+    </div>
+    <div class="panel"><h3>熱關機時的輸出 <small>示意</small></h3><svg class="viz" id="th-hic" role="img" aria-label="熱關機打嗝波形"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>預設 5 V → 3.3 V、300 mA、SOT-23：功耗約 0.5 W，T<sub>J</sub> 超過 150 °C，已經在熱關機邊緣。</li>
+    <li>換 DFN 或 QFN：同樣的功耗只升 30–40 °C。熱往往比電流規格更早限制 LDO。</li>
+    <li>把 V<sub>IN</sub> 降到 3.5 V：功耗大減，但開始接近壓差區；右圖可以看到高溫讓壓差變大。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="architecture.html#dropout">架構 · 壓差與功耗</a></li>
+    <li><a href="application.html#thermal">應用 · 熱設計</a>、<a href="production.html#assembly">生產 · 封裝熱阻</a></li>
+    <li><a href="issues.html#thermal-shutdown">常見問題 · 熱關機</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ BUCK ============ -->
+<section class="tabp" id="tab-buck" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>同步 Buck</small></h3>
+    <div class="ctl"><label for="bk-vin">V<sub>IN</sub> <output id="bk-vin-o"></output></label><input id="bk-vin" type="range" min="2.5" max="20" step="0.1" value="5"></div>
+    <div class="ctl"><label for="bk-vout">V<sub>OUT</sub> <output id="bk-vout-o"></output></label><input id="bk-vout" type="range" min="0.6" max="5" step="0.05" value="1.2"></div>
+    <div class="ctl"><label for="bk-i">負載電流 <output id="bk-i-o"></output></label><input id="bk-i" type="range" min="0" max="100" step="1" value="92"></div>
+    <div class="ctl"><label for="bk-f">切換頻率 <output id="bk-f-o"></output></label><input id="bk-f" type="range" min="0.2" max="4" step="0.1" value="2"></div>
+    <div class="ctl"><label for="bk-l">電感 L <output id="bk-l-o"></output></label><input id="bk-l" type="range" min="0" max="9" step="1" value="3"></div>
+    <div class="ctl"><label for="bk-isat">電感飽和電流 I<sub>sat</sub> <output id="bk-isat-o"></output></label><input id="bk-isat" type="range" min="0.5" max="6" step="0.1" value="3"></div>
+    <div class="ctl"><label for="bk-c">輸出電容（有效） <output id="bk-c-o"></output></label><input id="bk-c" type="range" min="0" max="8" step="1" value="7"></div>
+    <div class="ctl"><label for="bk-esr">ESR <output id="bk-esr-o"></output></label><input id="bk-esr" type="range" min="0" max="100" step="1" value="15"></div>
+    <div class="ctl"><label>輕載模式</label>
+      <div class="btnrow" id="bk-mode"><button class="btn" data-v="pfm" aria-pressed="true">自動（DCM）</button><button class="btn" data-v="fpwm" aria-pressed="false">強制 PWM</button></div></div>
+    <p class="note">高側 60 mΩ、低側 30 mΩ、電感 DCR 依電感值估計；切換損失以 8 ns 轉換時間、4 nC 閘極電荷估算；t<sub>ON,min</sub> = 60 ns。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="bk-metrics"></div>
+    <div class="panel"><h3>電感電流 <small>三個週期</small></h3><svg class="viz" id="bk-il" role="img" aria-label="電感電流波形"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>i<sub>L</sub></span><span><i style="background:var(--muted)"></i>I<sub>OUT</sub></span><span><i style="background:var(--bad)"></i>I<sub>sat</sub></span></div></div>
+    <div class="two">
+      <div class="panel"><h3>輸出漣波 <small>mV</small></h3><svg class="viz" id="bk-v" role="img" aria-label="輸出電壓漣波"></svg></div>
+      <div class="panel"><h3>效率 vs 負載 <small>目前 L 與頻率</small></h3><svg class="viz" id="bk-eff" role="img" aria-label="效率曲線"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i>目前模式</span><span><i style="background:var(--muted)"></i>另一模式</span></div></div>
+    </div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>漣波電流 ΔI<sub>L</sub> = V<sub>OUT</sub>(1−D)/(L·f)。電感小一半，漣波電流大一倍，峰值可能撞上飽和電流。</li>
+    <li>把負載拉到很小：自動模式進入 DCM，效率維持較高；強制 PWM 時電感電流變負，輕載效率很差但漣波固定。</li>
+    <li>V<sub>IN</sub> 拉到 20 V、V<sub>OUT</sub> 0.6 V、頻率 4 MHz：導通時間低於 t<sub>ON,min</sub>，轉換器無法維持固定頻率。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="architecture.html#buck">架構 · Buck</a>、<a href="application.html#inductor">應用 · 電感選擇</a></li>
+    <li><a href="design.html#gate-drive">設計 · 最小導通時間</a></li>
+    <li><a href="issues.html#efficiency">常見問題 · 效率</a></li></ul></div>
+</div>
+</section>
+
+<!-- ============ MLCC ============ -->
+<section class="tabp" id="tab-mlcc" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>多層陶瓷電容</small></h3>
+    <div class="ctl"><label for="ml-c">標稱容值 <output id="ml-c-o"></output></label><input id="ml-c" type="range" min="0" max="7" step="1" value="6"></div>
+    <div class="ctl"><label for="ml-size">尺寸</label><select id="ml-size"><option value="0">0201</option><option value="1">0402</option><option value="2" selected>0603</option><option value="3">0805</option><option value="4">1206</option></select></div>
+    <div class="ctl"><label for="ml-vr">額定電壓</label><select id="ml-vr"><option value="4">4 V</option><option value="6.3" selected>6.3 V</option><option value="10">10 V</option><option value="16">16 V</option><option value="25">25 V</option></select></div>
+    <div class="ctl"><label for="ml-diel">介質</label><select id="ml-diel"><option value="x5r" selected>X5R（−55~85 °C ±15%）</option><option value="x7r">X7R（−55~125 °C ±15%）</option><option value="y5v">Y5V（+22/−82%）</option></select></div>
+    <div class="ctl"><label for="ml-v">工作直流電壓 <output id="ml-v-o"></output></label><input id="ml-v" type="range" min="0" max="12" step="0.1" value="3.3"></div>
+    <div class="ctl"><label for="ml-t">溫度 <output id="ml-t-o"></output></label><input id="ml-t" type="range" min="-40" max="125" step="1" value="85"></div>
+    <div class="ctl"><label for="ml-tol">容差</label><select id="ml-tol"><option value="0.1">±10%</option><option value="0.2" selected>±20%</option></select></div>
+    <div class="ctl"><label for="ml-age">回焊後時間 <output id="ml-age-o"></output></label><input id="ml-age" type="range" min="0" max="5" step="0.1" value="4"></div>
+    <div class="ctl"><label for="ml-req">LDO 要求的最小有效電容 <output id="ml-req-o"></output></label><input id="ml-req" type="range" min="0.5" max="10" step="0.1" value="2"></div>
+    <p class="note">DC bias 以 C/C₀ = 1/(1+(V/V₀)<sup>1.6</sup>) 近似，V₀ 隨尺寸、額定電壓與容值密度變化。實際曲線請查電容廠商的模擬工具。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="ml-metrics"></div>
+    <div class="panel"><h3>有效電容 vs 直流偏壓 <small>同容值、不同尺寸</small></h3><svg class="viz" id="ml-bias" role="img" aria-label="有效電容隨直流偏壓變化"></svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>選定尺寸</span><span><i style="background:var(--muted)"></i>其他尺寸</span><span><i style="background:var(--bad)"></i>LDO 最小需求</span><span>虛線：含容差、溫度、老化</span></div></div>
+    <div class="panel"><h3>容值瀑布圖 <small>標稱 → 最差有效</small></h3><svg class="viz" id="ml-wf" role="img" aria-label="容值衰減瀑布圖"></svg>
+      <div class="legend"><span><i style="background:var(--bad)"></i>紅色 = 該步驟損失；紅虛線 = LDO 最小需求</span></div></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>預設 10 µF / 0603 / 6.3 V，在 3.3 V、85 °C、−20% 容差下只剩約 3 µF。</li>
+    <li>同樣 10 µF 換成 0805 或 10 V 額定：DC bias 衰減大幅改善。這比加一顆電容便宜。</li>
+    <li>把介質換成 Y5V：高溫下幾乎沒有電容。不要用在電源。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="application.html#capacitors">應用 · 電容選擇</a></li>
+    <li><a href="complaints.html#c-mlcc">客訴 · 換電容後振盪</a></li>
+    <li>把有效電容帶到 <a href="#bode">LDO 穩定度</a> 試試看。</li></ul></div>
+</div>
+</section>
+
+<!-- ============ TRIM ============ -->
+<section class="tabp" id="tab-trim" role="tabpanel" hidden>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>輸出電壓修調 · 20 000 顆</small></h3>
+    <div class="ctl"><label for="tm-sig">修調前 σ <output id="tm-sig-o"></output></label><input id="tm-sig" type="range" min="0.2" max="3" step="0.05" value="1.2"></div>
+    <div class="ctl"><label for="tm-mu">修調前平均偏移 <output id="tm-mu-o"></output></label><input id="tm-mu" type="range" min="-3" max="3" step="0.05" value="0.6"></div>
+    <div class="ctl"><label for="tm-bits">修調位元數 <output id="tm-bits-o"></output></label><input id="tm-bits" type="range" min="2" max="8" step="1" value="5"></div>
+    <div class="ctl"><label for="tm-lsb">每階步階 LSB <output id="tm-lsb-o"></output></label><input id="tm-lsb" type="range" min="0.05" max="1" step="0.01" value="0.2"></div>
+    <div class="ctl"><label for="tm-pk">封裝偏移平均 <output id="tm-pk-o"></output></label><input id="tm-pk" type="range" min="-0.6" max="0.6" step="0.01" value="0.5"></div>
+    <div class="ctl"><label for="tm-pks">封裝偏移 σ <output id="tm-pks-o"></output></label><input id="tm-pks" type="range" min="0" max="0.3" step="0.01" value="0.08"></div>
+    <div class="ctl"><label for="tm-nz">CP 量測雜訊 σ <output id="tm-nz-o"></output></label><input id="tm-nz" type="range" min="0" max="0.2" step="0.005" value="0.02"></div>
+    <div class="ctl"><label for="tm-spec">規格 ± <output id="tm-spec-o"></output></label><input id="tm-spec" type="range" min="0.3" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><label>CP 修調目標</label>
+      <div class="btnrow" id="tm-pc"><button class="btn" data-v="0" aria-pressed="true">對準 0</button><button class="btn" data-v="1" aria-pressed="false">預補償封裝偏移</button></div></div>
+    <p class="note">CP 測試極限為規格的 70%；FT 以規格判定。修調碼範圍為 −2<sup>N−1</sup> 到 2<sup>N−1</sup>−1。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="tm-metrics"></div>
+    <div class="panel"><h3>輸出誤差分佈 <small>修調前 vs FT 最終</small></h3><svg class="viz" id="tm-hist" role="img" aria-label="修調前後分佈"></svg>
+      <div class="legend"><span><i style="background:var(--muted)"></i>修調前</span><span><i style="background:var(--accent)"></i>FT 最終（CP 通過者）</span><span><i style="background:var(--bad)"></i>規格界限</span></div></div>
+    <div class="panel"><h3>修調碼分佈 <small>碼用到邊界 = 修調範圍不夠</small></h3><svg class="viz" id="tm-code" role="img" aria-label="修調碼分佈"></svg></div>
+  </div>
+</div>
+<div class="explain">
+  <div class="panel"><h3>看圖重點</h3><ul>
+    <li>修調範圍 = 2<sup>N</sup> × LSB。範圍不夠時，分佈兩端的晶片修不回來，碼分佈會堆在邊界。</li>
+    <li>LSB 太大時，修調後殘餘誤差是 ±LSB/2 的均勻分佈，Cpk 上不去；LSB 太小又需要更多位元才能涵蓋範圍。</li>
+    <li>按「預補償封裝偏移」：最終分佈回到中心，Cpk 明顯提高。這就是 CP / FT 相關性分析的價值。</li></ul></div>
+  <div class="panel"><h3>延伸閱讀</h3><ul>
+    <li><a href="process.html#trim-fuse">製程 · 修調方式</a></li>
+    <li><a href="production.html#cp-trim">生產 · CP 修調</a>、<a href="production.html#cpk">Cpk 與 SPC</a></li>
+    <li><a href="test.html#correlation">測試 · 相關性</a></li></ul></div>
+</div>
+</section>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/plot.js"></script>
+<script src="assets/lab.js"></script>
+</body>
+</html>

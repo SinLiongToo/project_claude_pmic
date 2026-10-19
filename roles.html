@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>職務地圖 · PMIC Notes</title>
+<meta name="description" content="電源 IC 公司常見職務地圖：類比設計、佈局、系統 / 數位設計、應用工程 AE / FAE、產品工程、測試工程、製程整合、品質可靠度、客訴與失效分析，各自對應的章節、工具與面試題。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="roles">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Career map · 職務地圖</div>
+<h1>職務地圖：每個職位要先讀哪幾節</h1>
+<p class="lead">一顆電源 IC 從定義規格到在客戶端穩定出貨，會經過很多工程職位。這一頁把電源 IC 公司（含 IDM 與 fabless）常見的職位，對應到本站的章節、互動工具，並列出面試常被問到的觀念題。職稱與分工依公司而異，這裡是通用的描述。</p>
+
+<h2 id="overview">總覽</h2>
+<div class="tblwrap"><table>
+<tr><th>職位</th><th>一句話</th><th>最相關章節</th></tr>
+<tr><td><a href="#analog">類比設計</a></td><td>設計 LDO、DC-DC、參考電壓、保護電路，對規格與穩定度負責</td><td>架構、設計、製程</td></tr>
+<tr><td><a href="#layout">類比佈局</a></td><td>把電路畫成光罩，處理匹配、功率路徑、隔離與 ESD</td><td>製程、設計</td></tr>
+<tr><td><a href="#digital">系統 / 數位設計</a></td><td>PMIC 時序器、介面、OTP 控制、故障處理與功能安全</td><td>設計（PMIC 數位）、測試（DFT）</td></tr>
+<tr><td><a href="#ae">應用工程 AE / FAE</a></td><td>幫客戶把電源設計對，處理振盪、熱、EMI 與客訴的應用端分析</td><td>應用、常見問題、客訴</td></tr>
+<tr><td><a href="#pe">產品工程 PE</a></td><td>負責量產良率、修調、Cpk、成本與變更</td><td>生產、測試</td></tr>
+<tr><td><a href="#te">測試工程 TE</a></td><td>開發 ATE 測試程式與硬體，壓低測試時間、確保相關性</td><td>測試、生產</td></tr>
+<tr><td><a href="#pi">製程整合 / 元件</a></td><td>BCD 製程與 LDMOS、被動元件的開發與量產穩定</td><td>製程、生產（WAT）</td></tr>
+<tr><td><a href="#qra">品質與可靠度 QRA</a></td><td>可靠度驗證、PCN、出貨品質、客訴 8D</td><td>測試（AEC-Q100）、生產、客訴</td></tr>
+<tr><td><a href="#fa">失效分析 FA</a></td><td>從退回的晶片找出物理失效位置與機制</td><td>客訴（FA 流程）、製程</td></tr>
+</table></div>
+
+<h2 id="analog">類比設計</h2>
+<p>類比設計工程師從規格出發選擇架構（PMOS / NMOS LDO、控制模式），設計誤差放大器、補償、參考、保護與偏壓電路，跑 PVT 與蒙地卡羅模擬，並在晶片回來後主導特性化與除錯。資深設計者也會參與規格定義與競品分析。</p>
+<ul>
+<li><b>必讀</b>：<a href="architecture.html#ldo-block">LDO 方塊圖</a>、<a href="design.html#ldo-loop">LDO 迴路</a>、<a href="design.html#psrr">PSRR</a>、<a href="design.html#bandgap">帶隙參考</a>、<a href="design.html#protection">保護電路</a>、<a href="design.html#dcdc-control">DC-DC 控制模式</a>、<a href="design.html#verification">設計驗證</a></li>
+<li><b>工具</b>：<a href="lab.html#bode">LDO 穩定度</a>、<a href="lab.html#psrr">PSRR</a>、<a href="lab.html#transient">負載暫態</a></li>
+</ul>
+<h3 id="analog-q">面試常見問題</h3>
+<ul>
+<li>PMOS LDO 的主極點在哪裡？負載變化時極點怎麼移動？為什麼輕載通常比較穩定？</li>
+<li>為什麼舊的 LDO 用陶瓷電容會振盪？內部補償怎麼解決？</li>
+<li>PSRR 在低頻、中頻、高頻各由什麼決定？怎麼改善 1 MHz 的 PSRR？</li>
+<li>畫出帶隙參考，說明 PTAT 與 CTAT 怎麼抵消；運放偏移對輸出的影響有多大？</li>
+<li>峰值電流模式為什麼需要斜率補償？</li>
+<li>折返限流的優缺點？什麼情況下會造成啟動失敗？</li>
+</ul>
+
+<h2 id="layout">類比佈局</h2>
+<p>佈局工程師把電路變成實體：大面積功率元件的金屬與 via 配置、精密元件的共質心匹配、敏感電路與功率級的隔離、ESD 與保護環、電遷移與壓降檢查。佈局品質直接影響 R<sub>DS(on)</sub>、精度、雜訊與可靠度。</p>
+<ul>
+<li><b>必讀</b>：<a href="process.html#ldmos">LDMOS</a>、<a href="process.html#isolation">隔離與寄生</a>、<a href="process.html#substrate-injection">基板注入</a>、<a href="process.html#metal">厚金屬與電遷移</a>、<a href="process.html#matching">匹配與應力</a>、<a href="test.html#esd-lu">ESD 與 latch-up</a></li>
+</ul>
+<h3 id="layout-q">面試常見問題</h3>
+<ul>
+<li>共質心佈局在抵消什麼？為什麼要加虛設元件？</li>
+<li>功率元件的金屬怎麼分配才能讓電流均勻？via 數量怎麼決定？</li>
+<li>保護環的作用是什麼？N+ 與 P+ 保護環分別收集什麼載子？</li>
+<li>精密電阻要放在晶片哪裡？為什麼不放在焊墊下方？</li>
+</ul>
+
+<h2 id="digital">系統 / 數位設計</h2>
+<p>PMIC 的數位部分包括上電時序器、I²C / SPMI / PMBus 介面、暫存器、OTP 控制、故障狀態機、看門狗與功能安全機制。數位設計師也要和類比設計一起做混合訊號驗證，並和測試工程定義 DFT。</p>
+<ul>
+<li><b>必讀</b>：<a href="architecture.html#pmic">PMIC 整合</a>、<a href="design.html#pmic-digital">PMIC 的數位部分</a>、<a href="test.html#dft">可測試性設計</a>、<a href="test.html#safety">功能安全測試</a>、<a href="application.html#sequencing">上電時序</a></li>
+</ul>
+<h3 id="digital-q">面試常見問題</h3>
+<ul>
+<li>設計一個四路電源的上電時序器，需要哪些狀態？斷電時序怎麼處理？</li>
+<li>OTP 讀取錯誤要怎麼偵測？燒錄流程如何防呆？</li>
+<li>故障發生時應該只關一路、全部關，還是 hiccup？依什麼決定？</li>
+<li>測試模式進入序列要怎麼設計才不會在客戶系統中被誤觸？</li>
+</ul>
+
+<h2 id="ae">應用工程 AE / FAE</h2>
+<p>AE 寫應用文件與參考設計、做評估板與特性化資料；FAE 在客戶端支援設計導入、審查原理圖與佈局、處理現場問題。客訴時，AE / FAE 通常是第一個判斷「是不是應用問題」的人。</p>
+<ul>
+<li><b>必讀</b>：<a href="application.html#power-tree">電源樹</a>、<a href="application.html#capacitors">電容選擇</a>、<a href="application.html#thermal">熱設計</a>、<a href="application.html#layout">佈局</a>、<a href="application.html#emi">EMI</a>、<a href="application.html#hot-plug">熱插拔</a>、<a href="issues.html">常見問題全篇</a>、<a href="complaints.html#info">客訴資訊收集</a></li>
+<li><b>工具</b>：<a href="lab.html#mlcc">MLCC DC bias</a>、<a href="lab.html#thermal">壓差與熱</a>、<a href="lab.html#buck">Buck 漣波</a>、<a href="lab.html#psrr">PSRR</a></li>
+</ul>
+<h3 id="ae-q">面試常見問題</h3>
+<ul>
+<li>客戶說 LDO 振盪，你會先問哪些問題？現場會怎麼量？</li>
+<li>10 µF / 0603 / 6.3 V 的電容在 3.3 V 下大概剩多少？怎麼查？</li>
+<li>5 V 降 3.3 V、500 mA，SOT-23 可以嗎？怎麼算？</li>
+<li>Buck 佈局最重要的三件事是什麼？</li>
+<li>熱插拔為什麼會出現接近兩倍輸入電壓的尖峰？怎麼解？</li>
+<li>怎麼判斷漣波是真的，還是探棒量測假象？</li>
+</ul>
+
+<h2 id="pe">產品工程 PE</h2>
+<p>PE 是產品量產後的「負責人」：監控 CP / FT 良率與修調碼分佈，主導良率改善、Cpk 提升、測試成本降低；處理製程或封裝變更的評估與 PCN；在客訴時提供批次資料與風險評估。</p>
+<ul>
+<li><b>必讀</b>：<a href="production.html#cp-trim">CP 與修調</a>、<a href="production.html#yield">良率</a>、<a href="production.html#cpk">Cpk 與 SPC</a>、<a href="production.html#pat">PAT</a>、<a href="production.html#traceability">追溯</a>、<a href="production.html#pcn">PCN</a>、<a href="test.html#correlation">相關性</a></li>
+<li><b>工具</b>：<a href="lab.html#trim">修調與良率</a></li>
+</ul>
+<h3 id="pe-q">面試常見問題</h3>
+<ul>
+<li>Cpk 1.33 和 1.67 各代表多少超規率？修調後的均勻分佈為什麼不適合直接算 Cpk？</li>
+<li>某週良率掉了 2%，你會怎麼追？要看哪些資料？</li>
+<li>修調碼分佈開始往一邊偏，代表什麼？</li>
+<li>CP 修調後 FT 平均偏移 +0.3%，怎麼處理？</li>
+<li>封裝廠想把金線改成銅線，你要評估什麼？</li>
+</ul>
+
+<h2 id="te">測試工程 TE</h2>
+<p>TE 開發與維護 ATE 測試程式、load board 與探針卡 / socket，定義測試極限與 guard band，優化測試時間與多站效率，並負責機台間與 CP / FT / 實驗室的相關性。</p>
+<ul>
+<li><b>必讀</b>：<a href="test.html#ldo-params">LDO 參數怎麼量</a>、<a href="test.html#ate">ATE</a>、<a href="test.html#dft">DFT</a>、<a href="test.html#kelvin">Kelvin 量測</a>、<a href="test.html#correlation">相關性與 GR&amp;R</a>、<a href="issues.html#test-issues">測試類問題</a></li>
+</ul>
+<h3 id="te-q">面試常見問題</h3>
+<ul>
+<li>怎麼在 CP 量一顆 30 mΩ 的開關？接觸電阻怎麼排除？</li>
+<li>LDO 輸出接大電容時，測試時間要怎麼縮短？</li>
+<li>GR&amp;R 的意義是什麼？多少算可接受？</li>
+<li>良率低但重測大部分通過，可能是什麼原因？</li>
+<li>只測常溫的風險是什麼？哪些參數一定要測冷熱？</li>
+</ul>
+
+<h2 id="pi">製程整合 / 元件工程</h2>
+<p>在 IDM 或晶圓廠，負責 BCD 平台的元件（LDMOS、BJT、電阻、電容、OTP）開發與量產穩定；在 fabless，則是晶圓廠窗口，負責 WAT 監控、製程變更評估與良率問題的晶圓端調查。</p>
+<ul>
+<li><b>必讀</b>：<a href="process.html">製程全章</a>、<a href="production.html#wat">WAT</a>、<a href="issues.html#process-issues">製程與封裝類問題</a></li>
+</ul>
+<h3 id="pi-q">面試常見問題</h3>
+<ul>
+<li>LDMOS 的 R<sub>sp</sub> 與崩潰電壓怎麼取捨？RESURF 是什麼？</li>
+<li>LDMOS 的熱載子退化發生在哪裡？怎麼驗證？</li>
+<li>接面隔離、DTI、SOI 的優缺點？</li>
+<li>高阻多晶矽電阻在封裝後漂移，可能的原因？</li>
+</ul>
+
+<h2 id="qra">品質與可靠度 QRA</h2>
+<p>QRA 規劃與執行可靠度驗證、管理 PCN 與變更、維持出貨品質指標，並主導客訴處理與 8D 報告。車用產品還要負責 PPAP、IATF 16949 稽核與功能安全文件。</p>
+<ul>
+<li><b>必讀</b>：<a href="test.html#qual">AEC-Q100</a>、<a href="test.html#esd-lu">ESD 與 latch-up</a>、<a href="production.html#pat">PAT</a>、<a href="production.html#pcn">PCN</a>、<a href="complaints.html#flow">客訴流程</a>、<a href="complaints.html#eight-d">8D</a>、<a href="complaints.html#cases">案例</a></li>
+</ul>
+<h3 id="qra-q">面試常見問題</h3>
+<ul>
+<li>AEC-Q100 的主要測試項目與樣本數？Grade 1 與 Grade 0 的差別？</li>
+<li>HBM ±2 kV 的 IC 能不能承受系統級 ±8 kV？為什麼？</li>
+<li>8D 的 D4 為什麼要同時找發生與流出根因？</li>
+<li>客戶退回的晶片 ATE 全部通過，接下來怎麼做？</li>
+<li>什麼樣的變更需要發 PCN？</li>
+</ul>
+
+<h2 id="fa">失效分析 FA</h2>
+<p>FA 工程師負責退回品的非破壞與破壞性分析：X-ray、C-SAM、曲線量測、開封、熱點定位、去層、FIB 與 SEM。好的 FA 不只找到「哪裡燒了」，還要能推論能量從哪裡來、為什麼在那裡。</p>
+<ul>
+<li><b>必讀</b>：<a href="complaints.html#fa">FA 流程</a>、<a href="complaints.html#classification">失效分類</a>、<a href="process.html#ldmos">LDMOS</a>、<a href="process.html#isolation">隔離與寄生</a></li>
+</ul>
+<h3 id="fa-q">面試常見問題</h3>
+<ul>
+<li>EOS 與 ESD 的 FA 特徵差在哪裡？</li>
+<li>為什麼要先做非破壞分析？順序怎麼排？</li>
+<li>EMMI 與 OBIRCH 各適合找什麼缺陷？</li>
+<li>C-SAM 看到分層，怎麼判斷是不是失效原因？</li>
+</ul>
+
+<p class="foot">職稱與分工依公司規模與型態（IDM、fabless、模組廠）而不同，這裡是通用描述。</p>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

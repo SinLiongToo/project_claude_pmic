@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Career Map · PMIC Notes</title>
+<meta name="description" content="A career map for power-IC companies: analogue design, layout, system / digital design, applications AE / FAE, product engineering, test engineering, process integration, quality and reliability, failure analysis — with key sections, tools and interview questions.">
+<link rel="alternate" hreflang="zh-Hant" href="../roles.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="roles">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Career map</div>
+<h1>Career map: what each role should read first</h1>
+<p class="lead">From defining the spec to shipping reliably at customers, a power IC passes through many engineering roles. This page maps the common roles at power-IC companies (IDM and fabless) to the sections and tools on this site, with typical interview questions. Titles and responsibilities vary between companies; these are generic descriptions.</p>
+
+<h2 id="overview">Overview</h2>
+<div class="tblwrap"><table>
+<tr><th>Role</th><th>In one line</th><th>Most relevant chapters</th></tr>
+<tr><td><a href="#analog">Analogue design</a></td><td>Designs LDOs, DC-DCs, references and protection; owns spec and stability</td><td>Architecture, design, process</td></tr>
+<tr><td><a href="#layout">Analogue layout</a></td><td>Turns circuits into masks; handles matching, power paths, isolation and ESD</td><td>Process, design</td></tr>
+<tr><td><a href="#digital">System / digital design</a></td><td>PMIC sequencer, interfaces, OTP control, fault handling and functional safety</td><td>Design (PMIC digital), test (DFT)</td></tr>
+<tr><td><a href="#ae">Applications AE / FAE</a></td><td>Helps customers get power design right; handles oscillation, thermal, EMI and the application side of complaints</td><td>Applications, troubleshooting, complaints</td></tr>
+<tr><td><a href="#pe">Product engineering (PE)</a></td><td>Owns volume yield, trim, Cpk, cost and changes</td><td>Production, test</td></tr>
+<tr><td><a href="#te">Test engineering (TE)</a></td><td>Develops ATE programs and hardware; cuts test time and keeps correlation</td><td>Test, production</td></tr>
+<tr><td><a href="#pi">Process integration / devices</a></td><td>Develops and stabilises BCD process, LDMOS and passives</td><td>Process, production (WAT)</td></tr>
+<tr><td><a href="#qra">Quality and reliability (QRA)</a></td><td>Qualification, PCNs, outgoing quality, complaint 8Ds</td><td>Test (AEC-Q100), production, complaints</td></tr>
+<tr><td><a href="#fa">Failure analysis (FA)</a></td><td>Finds the physical failure site and mechanism in returned chips</td><td>Complaints (FA flow), process</td></tr>
+</table></div>
+
+<h2 id="analog">Analogue design</h2>
+<p>Analogue designers start from the spec and choose an architecture (PMOS / NMOS LDO, control mode), design the error amplifier, compensation, reference, protection and bias, run PVT and Monte Carlo, and lead characterisation and debug when silicon returns. Senior designers also help define specs and analyse competitors.</p>
+<ul>
+<li><b>Read</b>: <a href="architecture.html#ldo-block">LDO block diagram</a>, <a href="design.html#ldo-loop">the LDO loop</a>, <a href="design.html#psrr">PSRR</a>, <a href="design.html#bandgap">bandgap reference</a>, <a href="design.html#protection">protection</a>, <a href="design.html#dcdc-control">DC-DC control modes</a>, <a href="design.html#verification">design verification</a></li>
+<li><b>Tools</b>: <a href="lab.html#bode">LDO stability</a>, <a href="lab.html#psrr">PSRR</a>, <a href="lab.html#transient">load transient</a></li>
+</ul>
+<h3 id="analog-q">Typical interview questions</h3>
+<ul>
+<li>Where is the dominant pole of a PMOS LDO? How does it move with load, and why is light load usually more stable?</li>
+<li>Why do old LDOs oscillate with ceramic capacitors, and how does internal compensation fix it?</li>
+<li>What sets PSRR at low, mid and high frequency? How would you improve PSRR at 1 MHz?</li>
+<li>Draw a bandgap reference and explain how PTAT and CTAT cancel; how much does op-amp offset affect the output?</li>
+<li>Why does peak current mode need slope compensation?</li>
+<li>What are the pros and cons of foldback current limiting, and when does it cause start-up failure?</li>
+</ul>
+
+<h2 id="layout">Analogue layout</h2>
+<p>Layout engineers make the circuit physical: metal and via plans for large power devices, common-centroid matching for precision devices, isolation between sensitive circuits and power stages, ESD and guard rings, electromigration and IR-drop checks. Layout quality directly affects R<sub>DS(on)</sub>, accuracy, noise and reliability.</p>
+<ul>
+<li><b>Read</b>: <a href="process.html#ldmos">LDMOS</a>, <a href="process.html#isolation">isolation and parasitics</a>, <a href="process.html#substrate-injection">substrate injection</a>, <a href="process.html#metal">thick metal and electromigration</a>, <a href="process.html#matching">matching and stress</a>, <a href="test.html#esd-lu">ESD and latch-up</a></li>
+</ul>
+<h3 id="layout-q">Typical interview questions</h3>
+<ul>
+<li>What does a common-centroid layout cancel? Why add dummy devices?</li>
+<li>How should metal be distributed over a power device for even current? How do you decide via counts?</li>
+<li>What does a guard ring do? Which carriers do N+ and P+ rings collect?</li>
+<li>Where on the die should precision resistors go, and why not under pads?</li>
+</ul>
+
+<h2 id="digital">System / digital design</h2>
+<p>The digital side of a PMIC includes the power sequencer, I²C / SPMI / PMBus interfaces, registers, OTP control, fault state machines, watchdogs and functional-safety mechanisms. Digital designers also run mixed-signal verification with the analogue team and define DFT with test engineering.</p>
+<ul>
+<li><b>Read</b>: <a href="architecture.html#pmic">PMIC integration</a>, <a href="design.html#pmic-digital">the digital side of a PMIC</a>, <a href="test.html#dft">design for test</a>, <a href="test.html#safety">functional-safety testing</a>, <a href="application.html#sequencing">sequencing</a></li>
+</ul>
+<h3 id="digital-q">Typical interview questions</h3>
+<ul>
+<li>Design a four-rail power-up sequencer: what states does it need, and how is power-down handled?</li>
+<li>How do you detect OTP read errors, and how do you make programming mistake-proof?</li>
+<li>On a fault, should you shut one rail, all rails, or hiccup? What decides it?</li>
+<li>How should a test-mode entry sequence be designed so it cannot be triggered accidentally in a customer system?</li>
+</ul>
+
+<h2 id="ae">Applications engineering AE / FAE</h2>
+<p>AEs write application notes and reference designs, build evaluation boards and characterisation data; FAEs support design-ins at customers, review schematics and layouts, and handle field problems. In a complaint, AE / FAE is usually the first to judge "is this an application issue?".</p>
+<ul>
+<li><b>Read</b>: <a href="application.html#power-tree">power tree</a>, <a href="application.html#capacitors">capacitor selection</a>, <a href="application.html#thermal">thermal design</a>, <a href="application.html#layout">layout</a>, <a href="application.html#emi">EMI</a>, <a href="application.html#hot-plug">hot plug</a>, <a href="issues.html">all of troubleshooting</a>, <a href="complaints.html#info">complaint information</a></li>
+<li><b>Tools</b>: <a href="lab.html#mlcc">MLCC DC bias</a>, <a href="lab.html#thermal">dropout and thermal</a>, <a href="lab.html#buck">buck ripple</a>, <a href="lab.html#psrr">PSRR</a></li>
+</ul>
+<h3 id="ae-q">Typical interview questions</h3>
+<ul>
+<li>A customer says the LDO oscillates. What do you ask first, and how do you measure on site?</li>
+<li>How much is left of a 10 µF / 0603 / 6.3 V capacitor at 3.3 V? How do you find out?</li>
+<li>5 V to 3.3 V at 500 mA — is a SOT-23 OK? How do you work it out?</li>
+<li>What are the three most important things in buck layout?</li>
+<li>Why does hot plugging produce a spike of nearly twice the input voltage, and how do you fix it?</li>
+<li>How do you tell real ripple from a probing artefact?</li>
+</ul>
+
+<h2 id="pe">Product engineering (PE)</h2>
+<p>A PE "owns" a product after it enters production: monitoring CP / FT yield and trim-code distributions, leading yield improvement, Cpk improvement and test-cost reduction; evaluating process or package changes and PCNs; and supplying lot data and risk assessments in complaints.</p>
+<ul>
+<li><b>Read</b>: <a href="production.html#cp-trim">CP and trim</a>, <a href="production.html#yield">yield</a>, <a href="production.html#cpk">Cpk and SPC</a>, <a href="production.html#pat">PAT</a>, <a href="production.html#traceability">traceability</a>, <a href="production.html#pcn">PCN</a>, <a href="test.html#correlation">correlation</a></li>
+<li><b>Tools</b>: <a href="lab.html#trim">trim and yield</a></li>
+</ul>
+<h3 id="pe-q">Typical interview questions</h3>
+<ul>
+<li>What out-of-spec rates do Cpk 1.33 and 1.67 represent? Why is a post-trim uniform distribution unsuitable for direct Cpk?</li>
+<li>Yield dropped 2% this week. How do you chase it, and what data do you look at?</li>
+<li>The trim-code distribution is drifting toward one end. What does it mean?</li>
+<li>FT averages +0.3% above CP after trim. What do you do?</li>
+<li>The assembly site wants to move from gold to copper wire. What do you evaluate?</li>
+</ul>
+
+<h2 id="te">Test engineering (TE)</h2>
+<p>TEs develop and maintain ATE programs, load boards and probe cards / sockets, set test limits and guard bands, optimise test time and multi-site efficiency, and own correlation between testers and between CP, FT and the bench.</p>
+<ul>
+<li><b>Read</b>: <a href="test.html#ldo-params">how LDO parameters are measured</a>, <a href="test.html#ate">ATE</a>, <a href="test.html#dft">DFT</a>, <a href="test.html#kelvin">Kelvin sensing</a>, <a href="test.html#correlation">correlation and GR&amp;R</a>, <a href="issues.html#test-issues">test issues</a></li>
+</ul>
+<h3 id="te-q">Typical interview questions</h3>
+<ul>
+<li>How do you measure a 30 mΩ switch at CP, and how do you exclude contact resistance?</li>
+<li>With a large capacitor on the LDO output, how do you shorten test time?</li>
+<li>What does GR&amp;R mean and what is acceptable?</li>
+<li>Yield is low but most units pass on retest. What could cause it?</li>
+<li>What is the risk of testing only at room temperature? Which parameters must be tested hot and cold?</li>
+</ul>
+
+<h2 id="pi">Process integration / device engineering</h2>
+<p>At an IDM or foundry, this role develops and stabilises the BCD platform's devices (LDMOS, BJTs, resistors, capacitors, OTP); at a fabless company it is the foundry interface, owning WAT monitoring, process-change evaluation and wafer-side yield investigations.</p>
+<ul>
+<li><b>Read</b>: <a href="process.html">the whole process chapter</a>, <a href="production.html#wat">WAT</a>, <a href="issues.html#process-issues">process and package issues</a></li>
+</ul>
+<h3 id="pi-q">Typical interview questions</h3>
+<ul>
+<li>How do you trade LDMOS R<sub>sp</sub> against breakdown? What is RESURF?</li>
+<li>Where does LDMOS hot-carrier degradation happen, and how is it qualified?</li>
+<li>Pros and cons of junction isolation, DTI and SOI?</li>
+<li>High-resistance poly resistors drift after packaging. Possible causes?</li>
+</ul>
+
+<h2 id="qra">Quality and reliability (QRA)</h2>
+<p>QRA plans and runs qualification, manages PCNs and changes, maintains outgoing-quality metrics, and leads complaint handling and 8D reports. For automotive products it also handles PPAP, IATF 16949 audits and functional-safety documentation.</p>
+<ul>
+<li><b>Read</b>: <a href="test.html#qual">AEC-Q100</a>, <a href="test.html#esd-lu">ESD and latch-up</a>, <a href="production.html#pat">PAT</a>, <a href="production.html#pcn">PCN</a>, <a href="complaints.html#flow">complaint flow</a>, <a href="complaints.html#eight-d">8D</a>, <a href="complaints.html#cases">cases</a></li>
+</ul>
+<h3 id="qra-q">Typical interview questions</h3>
+<ul>
+<li>What are AEC-Q100's main tests and sample sizes? How do Grade 1 and Grade 0 differ?</li>
+<li>Can an IC rated ±2 kV HBM survive system-level ±8 kV? Why or why not?</li>
+<li>Why must 8D step D4 find both occurrence and escape root causes?</li>
+<li>The customer's returned chips all pass ATE. What next?</li>
+<li>What kinds of change require a PCN?</li>
+</ul>
+
+<h2 id="fa">Failure analysis (FA)</h2>
+<p>FA engineers run non-destructive and destructive analysis on returns: X-ray, C-SAM, curve tracing, decapsulation, hot-spot localisation, delayering, FIB and SEM. Good FA does not just find "where it burned" but infers where the energy came from and why it went there.</p>
+<ul>
+<li><b>Read</b>: <a href="complaints.html#fa">FA flow</a>, <a href="complaints.html#classification">failure classification</a>, <a href="process.html#ldmos">LDMOS</a>, <a href="process.html#isolation">isolation and parasitics</a></li>
+</ul>
+<h3 id="fa-q">Typical interview questions</h3>
+<ul>
+<li>How do EOS and ESD differ in FA signatures?</li>
+<li>Why do non-destructive analysis first, and in what order?</li>
+<li>What defects are EMMI and OBIRCH each good at finding?</li>
+<li>C-SAM shows delamination. How do you decide whether it caused the failure?</li>
+</ul>
+
+<p class="foot">Titles and responsibilities vary with company size and type (IDM, fabless, module maker); these are generic descriptions.</p>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

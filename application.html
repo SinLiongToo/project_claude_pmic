@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>應用 · PMIC Notes</title>
+<meta name="description" content="電源 IC 應用：SoC 電源樹與上電時序、LDO 與 DC-DC 的選擇、MLCC DC bias 與電容選擇、電感選擇、熱設計、PCB 佈局、EMI、熱插拔與輸入保護、車用電源、各領域應用與選型檢查表。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="app" data-ch="use">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Chapter 6 · Applications</div>
+<h1>應用：在客戶的板子上活下來</h1>
+<p class="lead">規格書上的數字是在標準條件、標準測試板上量的。到了客戶的板子上，電容會因為偏壓少掉一半、散熱銅箔只有一半大、電感飽和、走線繞過切換節點。應用工程（AE / FAE）的工作，就是讓晶片在真實條件下仍然符合規格；這也是大多數「問題」和「客訴」發生的地方。</p>
+
+<h2 id="power-tree">電源樹</h2>
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="典型 SoC 電源樹：電池經 Buck 供應核心、DDR 與 I/O，再由 LDO 供應類比與 RF">
+  <rect class="c2" x="10" y="100" width="90" height="50" rx="6"/><text x="55" y="122" text-anchor="middle" class="ts">電池</text><text x="55" y="138" text-anchor="middle" class="ts t-mut">3.0–4.4 V</text>
+  <path class="wm" d="M100 125 H130 M130 35 V215 M130 35 H160 M130 95 H160 M130 155 H160 M130 215 H160"/>
+  <rect class="c1" x="160" y="15" width="120" height="40" rx="5"/><text x="220" y="34" text-anchor="middle" class="ts">Buck 1 · 0.75 V</text><text x="220" y="48" text-anchor="middle" class="ts t-mut">CPU 核心 8 A · DVS</text>
+  <rect class="c1" x="160" y="75" width="120" height="40" rx="5"/><text x="220" y="94" text-anchor="middle" class="ts">Buck 2 · 1.1 V</text><text x="220" y="108" text-anchor="middle" class="ts t-mut">DDR 3 A</text>
+  <rect class="c1" x="160" y="135" width="120" height="40" rx="5"/><text x="220" y="154" text-anchor="middle" class="ts">Buck 3 · 1.9 V</text><text x="220" y="168" text-anchor="middle" class="ts t-mut">前級 2 A</text>
+  <rect class="c1" x="160" y="195" width="120" height="40" rx="5"/><text x="220" y="214" text-anchor="middle" class="ts">Buck 4 · 3.3 V</text><text x="220" y="228" text-anchor="middle" class="ts t-mut">I/O 1 A</text>
+  <path class="wm" d="M280 155 H320 M320 115 V195 M320 115 H350 M320 155 H350 M320 195 H350"/>
+  <rect class="c3" x="350" y="95" width="130" height="36" rx="5"/><text x="415" y="112" text-anchor="middle" class="ts">LDO · 1.8 V 類比</text><text x="415" y="125" text-anchor="middle" class="ts t-mut">ADC / 音訊</text>
+  <rect class="c3" x="350" y="137" width="130" height="36" rx="5"/><text x="415" y="154" text-anchor="middle" class="ts">LDO · 1.2 V RF</text><text x="415" y="167" text-anchor="middle" class="ts t-mut">PLL / 收發器 低雜訊</text>
+  <rect class="c3" x="350" y="179" width="130" height="36" rx="5"/><text x="415" y="196" text-anchor="middle" class="ts">LDO · 1.5 V</text><text x="415" y="209" text-anchor="middle" class="ts t-mut">感測器</text>
+  <path class="wm" d="M100 125 H120 V245 H500 V75 H520"/>
+  <rect class="c6" x="520" y="55" width="110" height="40" rx="5"/><text x="575" y="74" text-anchor="middle" class="ts">LDO · 2.8 V</text><text x="575" y="88" text-anchor="middle" class="ts t-mut">相機 · 直接接電池</text>
+</svg>
+<figcaption>典型行動 SoC 電源樹：大電流軌用 Buck；低雜訊或小電流軌由 Buck 前級（1.9 V）再接 LDO，LDO 壓差小、效率仍可接受，又能濾掉切換漣波。</figcaption>
+</figure>
+<ul>
+  <li><b>效率預算</b>：電池功率 = Σ(各負載功率 / 該路效率)。LDO 接在 1.9 V 前級後輸出 1.8 V，效率 ≈ 95% × Buck 效率；若直接接 4 V 電池，只剩 45%。</li>
+  <li><b>壓差裕度</b>：前級電壓要大於 V<sub>OUT</sub> + V<sub>DO</sub>(最大電流、最高溫) + 前級漣波 + PSRR 所需裕度。</li>
+  <li><b>電流裕度</b>：峰值電流常是平均的數倍（CPU 突發、RF 發射），要以峰值選擇限流與電感飽和電流。</li>
+</ul>
+
+<h2 id="sequencing">上電與斷電時序</h2>
+<p>多數 SoC、FPGA 與 DDR 對各電源軌的上電順序、斜率、間隔有規定。違反時輕則啟動失敗，重則 I/O 透過 ESD 二極體互相灌電流、引起 latch-up。</p>
+<ul>
+  <li><b>常見規則</b>：核心先於 I/O、I/O 先於類比；或「任何時刻 V<sub>IO</sub> 不得高於 V<sub>CORE</sub> + 某值」。</li>
+  <li><b>實作方式</b>：PMIC 內建時序器、用上一路 PG 接下一路 EN、RC 延遲（溫度與容差大，不建議）。</li>
+  <li><b>斷電時序</b>：常被忽略。大電容的軌放電慢，小電容的軌先掉，順序可能顛倒，需要主動放電或時序器控制。</li>
+  <li><b>預偏壓啟動</b>（pre-bias）：輸出上還有殘留電壓時啟動，同步 Buck 若一開始就讓低側導通，會把輸出往下拉甚至反向吸電流，需支援 pre-bias 啟動。</li>
+</ul>
+
+<h2 id="ldo-or-dcdc">選 LDO 還是 DC-DC</h2>
+<div class="tblwrap"><table>
+  <tr><th>條件</th><th>傾向</th><th>理由</th></tr>
+  <tr><td>V<sub>IN</sub> − V<sub>OUT</sub> 小（&lt; 0.5 V）且電流中等</td><td>LDO</td><td>效率接近 DC-DC，元件少、無雜訊</td></tr>
+  <tr><td>壓差大、電流 &gt; 200–300 mA</td><td>DC-DC</td><td>LDO 熱無法處理</td></tr>
+  <tr><td>RF、PLL、ADC 參考</td><td>LDO（或 DC-DC + LDO）</td><td>需要低雜訊與高 PSRR</td></tr>
+  <tr><td>極輕載長時間待機</td><td>低 I<sub>Q</sub> LDO 或負載開關</td><td>DC-DC 輕載效率與 I<sub>Q</sub> 仍可能比 nA 級 LDO 差</td></tr>
+  <tr><td>空間極小、不能有電感</td><td>LDO 或電荷泵</td><td>電感佔面積與高度</td></tr>
+  <tr><td>輸出需高於輸入</td><td>Boost / Buck-Boost / 電荷泵</td><td>LDO 無法升壓</td></tr>
+</table></div>
+
+<h2 id="capacitors">電容選擇：MLCC 的 DC bias</h2>
+<p>這是電源應用最常見的陷阱。高介電常數的 MLCC（X5R、X7R）在加上直流偏壓後，容值會大幅下降；封裝越小、額定電壓越接近工作電壓，掉得越多。</p>
+<div class="tblwrap"><table>
+  <tr><th>條件（量級）</th><th>有效容值 / 標稱值</th></tr>
+  <tr><td>10 µF · 0603 · 6.3 V 額定 · 偏壓 3.3 V</td><td class="n">約 30–45%</td></tr>
+  <tr><td>10 µF · 0805 · 10 V 額定 · 偏壓 3.3 V</td><td class="n">約 55–70%</td></tr>
+  <tr><td>1 µF · 0402 · 6.3 V 額定 · 偏壓 1.8 V</td><td class="n">約 60–75%</td></tr>
+  <tr><td>C0G / NP0 任意偏壓</td><td class="n">≈ 100%（但容值小）</td></tr>
+</table></div>
+<ul>
+  <li><b>溫度特性</b>：X5R 在 −55 至 85 °C 內 ±15%，X7R 在 −55 至 125 °C 內 ±15%，Y5V 可掉 80% 以上，不要用在電源。</li>
+  <li><b>老化</b>：鐵電介質的容值隨時間對數下降（每十倍時間約 1–3%），回焊加熱會「重置」。</li>
+  <li><b>交流振幅</b>：小訊號量測與大漣波下的容值也不同。</li>
+  <li><b>疊加效應</b>：DC bias × 溫度 × 公差 × 老化，最差情況可能只剩標稱值的 25–35%，這個值要大於 LDO 規格書的最小穩定電容。</li>
+  <li><b>電容嘯叫</b>：MLCC 的壓電效應讓 PFM / 跳脈衝模式下的電壓變化在音頻範圍發出聲音。可改用軟端子或特殊結構電容、提高 PFM 頻率下限、改用 FPWM。</li>
+  <li><b>鉭電容與聚合物電容</b>：容值穩定、ESR 較高，可用在需要 ESR 的舊式 LDO 或大容量儲能；鉭電容要降額使用並注意湧入電流造成的短路失效。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#mlcc">MLCC DC bias 與有效電容</a></div>
+
+<h2 id="inductor">電感選擇</h2>
+<ul>
+  <li><b>電感值</b>：通常讓漣波電流 ΔI<sub>L</sub> 為最大負載的 20–40%。太小漣波大、損失大；太大暫態慢、體積大。電流模式控制還要考慮斜率補償與電感值的配合。</li>
+  <li><b>飽和電流 I<sub>sat</sub></b>：要大於限流門檻（不是只大於最大負載），否則短路時電感飽和、電流急升，可能燒毀開關。</li>
+  <li><b>溫升電流 I<sub>rms</sub></b> 與 <b>DCR</b>：決定銅損。</li>
+  <li><b>屏蔽</b>：非屏蔽電感的漏磁會耦合到附近走線與天線。</li>
+  <li><b>交流損耗</b>：MHz 等級切換時，鐵芯損失與集膚效應可能比 DCR 損失更大，要用廠商提供的損耗計算工具。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#buck">Buck 電感漣波與輸出漣波</a></div>
+
+<h2 id="thermal">熱設計</h2>
+<div class="eq">T<sub>J</sub> = T<sub>A</sub> + P<sub>D</sub> · θ<sub>JA</sub>　　T<sub>J</sub> ≈ T<sub>top</sub> + P<sub>D</sub> · Ψ<sub>JT</sub></div>
+<ul>
+  <li><b>θ<sub>JA</sub> 依板子而定</b>：JEDEC 2s2p 測試板（4 層）與客戶的 2 層小板可差 1.5–2 倍。</li>
+  <li><b>散熱墊與過孔</b>：QFN / DFN 的裸露墊要有足夠焊錫與熱過孔（例如 0.3 mm 孔、1.0–1.2 mm 間距）連到內層地平面。過孔要塞孔或做阻焊，避免焊錫流失造成空洞。</li>
+  <li><b>用 Ψ<sub>JT</sub> 估計接面溫度</b>：在板上量晶片表面溫度（熱電偶或熱像儀），加上 P<sub>D</sub>·Ψ<sub>JT</sub>。用 θ<sub>JC</sub> 去算會嚴重低估。</li>
+  <li><b>鄰近熱源</b>：PMIC 旁邊是 CPU、電感或功率電晶體時，T<sub>A</sub> 不是室溫。</li>
+  <li><b>降額</b>：許多客戶要求 T<sub>J</sub> 在最壞條件下低於 125 °C 或比熱關機門檻低 25 °C 以上。</li>
+</ul>
+<div class="tryit">▶ 在實驗室試試：<a href="lab.html#thermal">壓差、功耗與接面溫度</a></div>
+
+<h2 id="layout">PCB 佈局</h2>
+<h3 id="layout-buck">Buck 佈局</h3>
+<ul>
+  <li><b>熱迴路（hot loop）最小化</b>：輸入電容 → 高側 → 低側 → 回到輸入電容的迴路電流是脈衝，迴路面積決定寄生電感、SW 振鈴與 EMI。輸入電容一定要最靠近 V<sub>IN</sub> 與 PGND 腳，小容值高頻電容放最近。</li>
+  <li><b>SW 節點小而短</b>：它是電壓劇烈跳動的天線，只要夠走電流即可，不要大面積鋪銅，下方不要走敏感訊號。</li>
+  <li><b>FB 走線</b>：從輸出電容處（或負載處）拉出，遠離 SW 與電感；分壓電阻靠近 FB 腳放。</li>
+  <li><b>接地</b>：功率地（PGND）與類比地（AGND）在 IC 下方或輸出電容地單點相接；完整的地平面優於切割。</li>
+</ul>
+<h3 id="layout-ldo">LDO 佈局</h3>
+<ul>
+  <li>輸入與輸出電容緊貼接腳，地端以短而寬的路徑回到 GND 腳。</li>
+  <li>遠端感測（sense）腳拉到負載處，補償長走線壓降。</li>
+  <li>NR / SS 電容與 FB 分壓的地回到 LDO 的 GND，而不是遠處的功率地。</li>
+  <li>散熱墊與銅箔面積依功耗設計。</li>
+</ul>
+
+<h2 id="emi">EMI 與 EMC</h2>
+<ul>
+  <li><b>切換頻率選擇</b>：車用避開 AM 頻段（530–1700 kHz），常用 400 kHz（低於 AM）或 2.1 MHz（高於 AM）。</li>
+  <li><b>展頻</b>（spread spectrum）：把切換頻率在 ±5–10% 內抖動，降低峰值頻譜，但可能讓下游 ADC 看到寬頻雜訊。</li>
+  <li><b>輸入濾波</b>：π 型 LC 濾波器降低傳導 EMI，但要注意濾波器輸出阻抗與轉換器負輸入阻抗的交互作用（Middlebrook 準則），否則會振盪。</li>
+  <li><b>邊緣速率控制</b>：降低 SW 的 dV/dt（BOOT 串電阻、可調驅動強度）可以壓低 30–200 MHz 的輻射，代價是效率。</li>
+  <li><b>標準</b>：車用 CISPR 25、消費性 CISPR 32；也要考慮抗擾度（BCI、ESD、瞬態脈衝）。</li>
+</ul>
+
+<h2 id="hot-plug">熱插拔與輸入保護</h2>
+<p>插上電源線或電池瞬間，輸入線的電感與低 ESR 陶瓷電容形成 LC 諧振，輸入電壓可能衝到<b>電源電壓的接近兩倍</b>。12 V 適配器插上時可看到 20 V 以上的尖峰，超過 IC 的絕對最大額定就會造成 EOS 損壞。</p>
+<ul>
+  <li><b>對策</b>：輸入加阻尼（電解電容或 RC 阻尼）、TVS 二極體、選擇耐壓更高的 IC、負載開關控制湧入電流。</li>
+  <li><b>反接</b>：電池或電源線接反時，ESD 二極體與體二極體會導通大電流，需要串聯二極體、P-MOSFET 或理想二極體控制器。</li>
+  <li><b>反灌</b>：多電源系統中某一路先上電，透過 I/O 或 LDO 的體二極體把電壓灌到另一路，造成未上電的 IC 處於半通電狀態。</li>
+</ul>
+<div class="callout"><b>EOS 是客訴第一名</b>　IC 送回失效分析時最常見的結論是電性過應力（EOS）：熔融的金屬、燒穿的功率元件。根因多數是熱插拔尖峰、反接、或其他元件失效時的高壓。客訴處理見<a href="complaints.html#c-eos">客訴 · EOS 案例</a>。</div>
+
+<h2 id="automotive">車用電源</h2>
+<div class="tblwrap"><table>
+  <tr><th>情境</th><th>電壓（12 V 系統，量級）</th><th>對電源 IC 的要求</th></tr>
+  <tr><td>冷啟動（cold crank）</td><td>掉到 3–6 V，持續數十 ms</td><td>Buck 要能 100% duty / 低壓差工作，或用 Buck-Boost 前級</td></tr>
+  <tr><td>啟停（start-stop）</td><td>反覆掉到 6–8 V</td><td>同上，且不能重置</td></tr>
+  <tr><td>拋負載（load dump）</td><td>未抑制可達 80–100 V 以上，中央抑制後約 35–40 V</td><td>40 V 以上耐壓或外部保護</td></tr>
+  <tr><td>反接</td><td>−14 V</td><td>反接保護</td></tr>
+  <tr><td>跨接啟動（jump start）</td><td>24–27 V 持續數分鐘</td><td>持續耐壓</td></tr>
+</table></div>
+<ul>
+  <li>相關標準：ISO 16750-2、ISO 7637-2，以及各車廠自己的規範（通常更嚴）。</li>
+  <li>功能安全：ADAS 與線控相關的電源要符合 ISO 26262，PMIC 提供獨立監控、看門狗與故障回報。</li>
+  <li>48 V 系統：伺服器與輕混車用，需要 80–100 V 耐壓的元件。</li>
+</ul>
+
+<h2 id="segments">各領域的重點</h2>
+<div class="tblwrap"><table>
+  <tr><th>領域</th><th>重點</th></tr>
+  <tr><td>手機 / 穿戴</td><td>效率（電池壽命）、I<sub>Q</sub>、面積與高度、DVS 速度、RF 干擾、音訊嘯叫</td></tr>
+  <tr><td>AI / 資料中心</td><td>處理器核心電流數百到上千安培、多相 VR、48 V 匯流排、暫態 di/dt、遙測精度、效率每 0.5% 都是電費</td></tr>
+  <tr><td>車用</td><td>寬輸入電壓、EMI、功能安全、Grade 1 / 0 溫度、零缺陷、長期供貨</td></tr>
+  <tr><td>工業</td><td>24 V 匯流排與突波、長壽命、寬溫、隔離</td></tr>
+  <tr><td>IoT / 感測器</td><td>nA 級 I<sub>Q</sub>、能量採集、間歇工作</td></tr>
+  <tr><td>精密類比 / 量測</td><td>雜訊、PSRR、溫漂、長期漂移</td></tr>
+</table></div>
+
+<h2 id="selection">選型與設計檢查表</h2>
+<ol class="steps">
+  <li><b>電壓與電流</b>：V<sub>IN</sub> 範圍（含瞬態）、V<sub>OUT</sub>、最大與峰值電流、壓差裕度。</li>
+  <li><b>熱</b>：最壞條件下 P<sub>D</sub>，用實際板子估算 T<sub>J</sub>。</li>
+  <li><b>電容</b>：以 DC bias、溫度、公差、老化後的最小有效容值，確認落在穩定範圍。</li>
+  <li><b>雜訊與 PSRR</b>：在負載關心的頻段，而不是只看 1 kHz。</li>
+  <li><b>時序與保護</b>：EN、PG、軟啟動、預偏壓、限流方式（foldback 會不會啟動不了）、UVLO 遲滯。</li>
+  <li><b>佈局</b>：熱迴路、SW、FB、地、散熱過孔。</li>
+  <li><b>EMI 與瞬態</b>：頻率、展頻、輸入濾波、TVS。</li>
+  <li><b>驗證</b>：負載暫態、啟動 / 關斷波形、全溫、熱插拔、最差電容樣品。</li>
+</ol>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>Power tree</dt><dd>電源樹，系統中所有電源軌的轉換關係。</dd></div>
+  <div><dt>DC bias</dt><dd>MLCC 容值隨直流偏壓下降的特性。</dd></div>
+  <div><dt>Ψ<sub>JT</sub></dt><dd>接面到封裝頂部的熱特性參數，用於由表面溫度推算接面溫度。</dd></div>
+  <div><dt>Hot loop</dt><dd>Buck 中電流脈衝流經的高頻迴路。</dd></div>
+  <div><dt>Pre-bias</dt><dd>輸出已有電壓時的啟動情況。</dd></div>
+  <div><dt>Spread spectrum</dt><dd>展頻，抖動切換頻率以降低 EMI 峰值。</dd></div>
+  <div><dt>Load dump</dt><dd>拋負載，車用發電機在負載突然斷開時產生的高壓瞬態。</dd></div>
+  <div><dt>Cold crank</dt><dd>冷啟動，引擎啟動時電瓶電壓大幅下降。</dd></div>
+  <div><dt>EOS</dt><dd>Electrical Overstress，電性過應力，超過絕對最大額定造成的損壞。</dd></div>
+  <div><dt>TVS</dt><dd>Transient Voltage Suppressor，瞬態電壓抑制二極體。</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

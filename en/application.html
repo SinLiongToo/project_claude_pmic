@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Applications · PMIC Notes</title>
+<meta name="description" content="Power IC applications: SoC power trees and sequencing, choosing LDO or DC-DC, MLCC DC bias and capacitor selection, inductor selection, thermal design, PCB layout, EMI, hot plug and input protection, automotive power, segments and a selection checklist.">
+<link rel="alternate" hreflang="zh-Hant" href="../application.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="app" data-ch="use">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Chapter 6 · Applications</div>
+<h1>Applications: surviving on the customer's board</h1>
+<p class="lead">Datasheet numbers are measured under standard conditions on a standard test board. On a customer's board, capacitors lose half their value to bias, the heat-sinking copper is half the size, inductors saturate and traces wander past the switch node. Application engineering (AE / FAE) is about keeping the chip within spec in real conditions — and it is where most "problems" and "complaints" happen.</p>
+
+<h2 id="power-tree">The power tree</h2>
+<figure>
+<svg viewBox="0 0 640 250" role="img" aria-label="Typical SoC power tree: battery feeds bucks for core, DDR and I/O, then LDOs for analogue and RF">
+  <rect class="c2" x="10" y="100" width="90" height="50" rx="6"/><text x="55" y="122" text-anchor="middle" class="ts">Battery</text><text x="55" y="138" text-anchor="middle" class="ts t-mut">3.0–4.4 V</text>
+  <path class="wm" d="M100 125 H130 M130 35 V215 M130 35 H160 M130 95 H160 M130 155 H160 M130 215 H160"/>
+  <rect class="c1" x="160" y="15" width="120" height="40" rx="5"/><text x="220" y="34" text-anchor="middle" class="ts">Buck 1 · 0.75 V</text><text x="220" y="48" text-anchor="middle" class="ts t-mut">CPU core 8 A · DVS</text>
+  <rect class="c1" x="160" y="75" width="120" height="40" rx="5"/><text x="220" y="94" text-anchor="middle" class="ts">Buck 2 · 1.1 V</text><text x="220" y="108" text-anchor="middle" class="ts t-mut">DDR 3 A</text>
+  <rect class="c1" x="160" y="135" width="120" height="40" rx="5"/><text x="220" y="154" text-anchor="middle" class="ts">Buck 3 · 1.9 V</text><text x="220" y="168" text-anchor="middle" class="ts t-mut">pre-regulator 2 A</text>
+  <rect class="c1" x="160" y="195" width="120" height="40" rx="5"/><text x="220" y="214" text-anchor="middle" class="ts">Buck 4 · 3.3 V</text><text x="220" y="228" text-anchor="middle" class="ts t-mut">I/O 1 A</text>
+  <path class="wm" d="M280 155 H320 M320 115 V195 M320 115 H350 M320 155 H350 M320 195 H350"/>
+  <rect class="c3" x="350" y="95" width="130" height="36" rx="5"/><text x="415" y="112" text-anchor="middle" class="ts">LDO · 1.8 V analogue</text><text x="415" y="125" text-anchor="middle" class="ts t-mut">ADC / audio</text>
+  <rect class="c3" x="350" y="137" width="130" height="36" rx="5"/><text x="415" y="154" text-anchor="middle" class="ts">LDO · 1.2 V RF</text><text x="415" y="167" text-anchor="middle" class="ts t-mut">PLL / transceiver, low noise</text>
+  <rect class="c3" x="350" y="179" width="130" height="36" rx="5"/><text x="415" y="196" text-anchor="middle" class="ts">LDO · 1.5 V</text><text x="415" y="209" text-anchor="middle" class="ts t-mut">sensors</text>
+  <path class="wm" d="M100 125 H120 V245 H500 V75 H520"/>
+  <rect class="c6" x="520" y="55" width="110" height="40" rx="5"/><text x="575" y="74" text-anchor="middle" class="ts">LDO · 2.8 V</text><text x="575" y="88" text-anchor="middle" class="ts t-mut">camera · from battery</text>
+</svg>
+<figcaption>A typical mobile SoC power tree: high-current rails use bucks; low-noise or low-current rails take a buck pre-regulator (1.9 V) followed by an LDO, which keeps headroom small, efficiency acceptable and switching ripple filtered.</figcaption>
+</figure>
+<ul>
+  <li><b>Efficiency budget</b>: battery power = Σ(load power / efficiency of that path). An LDO producing 1.8 V from the 1.9 V pre-regulator is ≈ 95% × buck efficiency; straight from a 4 V battery it is only 45%.</li>
+  <li><b>Headroom margin</b>: the pre-regulator must exceed V<sub>OUT</sub> + V<sub>DO</sub> (max current, max temperature) + pre-regulator ripple + the margin PSRR needs.</li>
+  <li><b>Current margin</b>: peaks are often several times the average (CPU bursts, RF transmit); size current limit and inductor saturation for the peak.</li>
+</ul>
+
+<h2 id="sequencing">Power-up and power-down sequencing</h2>
+<p>Most SoCs, FPGAs and DDR specify the order, slew and spacing of their rails. Violations range from failure to boot to I/Os back-feeding through ESD diodes and triggering latch-up.</p>
+<ul>
+  <li><b>Common rules</b>: core before I/O, I/O before analogue; or "V<sub>IO</sub> must never exceed V<sub>CORE</sub> + x".</li>
+  <li><b>Implementation</b>: a PMIC sequencer, chaining one rail's PG to the next EN, or RC delays (wide temperature and tolerance spread — not recommended).</li>
+  <li><b>Power-down order</b>: often forgotten. Rails with big capacitors discharge slowly while small ones drop first, so the order can invert; active discharge or sequencer control is needed.</li>
+  <li><b>Pre-bias start-up</b>: starting with residual voltage on the output, a synchronous buck that turns on its low side immediately pulls the output down or even sinks current; it needs pre-bias support.</li>
+</ul>
+
+<h2 id="ldo-or-dcdc">LDO or DC-DC?</h2>
+<div class="tblwrap"><table>
+  <tr><th>Condition</th><th>Leans toward</th><th>Why</th></tr>
+  <tr><td>Small V<sub>IN</sub> − V<sub>OUT</sub> (&lt; 0.5 V), moderate current</td><td>LDO</td><td>Efficiency close to DC-DC, fewer parts, no noise</td></tr>
+  <tr><td>Large headroom, current &gt; 200–300 mA</td><td>DC-DC</td><td>The LDO cannot handle the heat</td></tr>
+  <tr><td>RF, PLL, ADC reference</td><td>LDO (or DC-DC + LDO)</td><td>Low noise and high PSRR needed</td></tr>
+  <tr><td>Very light load for long standby</td><td>Low-I<sub>Q</sub> LDO or load switch</td><td>DC-DC light-load efficiency and I<sub>Q</sub> may still lose to an nA-class LDO</td></tr>
+  <tr><td>Tiny space, no inductor allowed</td><td>LDO or charge pump</td><td>Inductors cost area and height</td></tr>
+  <tr><td>Output above input</td><td>Boost / buck-boost / charge pump</td><td>An LDO cannot step up</td></tr>
+</table></div>
+
+<h2 id="capacitors">Capacitor selection: MLCC DC bias</h2>
+<p>This is the most common trap in power applications. High-k MLCCs (X5R, X7R) lose a lot of capacitance under DC bias — more so in small cases and when the rated voltage is close to the working voltage.</p>
+<div class="tblwrap"><table>
+  <tr><th>Condition (magnitude)</th><th>Effective / nominal</th></tr>
+  <tr><td>10 µF · 0603 · 6.3 V rated · 3.3 V bias</td><td class="n">about 30–45%</td></tr>
+  <tr><td>10 µF · 0805 · 10 V rated · 3.3 V bias</td><td class="n">about 55–70%</td></tr>
+  <tr><td>1 µF · 0402 · 6.3 V rated · 1.8 V bias</td><td class="n">about 60–75%</td></tr>
+  <tr><td>C0G / NP0 at any bias</td><td class="n">≈ 100% (but small values)</td></tr>
+</table></div>
+<ul>
+  <li><b>Temperature</b>: X5R is ±15% from −55 to 85 °C, X7R ±15% from −55 to 125 °C; Y5V can lose over 80% — never use it for power.</li>
+  <li><b>Ageing</b>: ferroelectric dielectrics lose capacitance logarithmically with time (about 1–3% per decade); reflow heating "resets" it.</li>
+  <li><b>AC amplitude</b>: small-signal and large-ripple capacitance differ too.</li>
+  <li><b>Stacking up</b>: DC bias × temperature × tolerance × ageing can leave only 25–35% of nominal in the worst case — and that must still exceed the LDO's minimum stable capacitance.</li>
+  <li><b>Singing capacitors</b>: the MLCC piezoelectric effect turns PFM / pulse-skipping voltage changes in the audio band into sound. Use soft-termination or special-structure capacitors, raise the PFM minimum frequency or use FPWM.</li>
+  <li><b>Tantalum and polymer</b>: stable capacitance with higher ESR, useful for legacy LDOs that need ESR or for bulk storage; derate tantalum and beware inrush-induced short failures.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#mlcc">MLCC DC bias and effective capacitance</a></div>
+
+<h2 id="inductor">Inductor selection</h2>
+<ul>
+  <li><b>Inductance</b>: usually chosen so ripple current ΔI<sub>L</sub> is 20–40% of maximum load. Too small means big ripple and loss; too big means slow transients and bulk. Current mode also needs slope compensation matched to the inductance.</li>
+  <li><b>Saturation current I<sub>sat</sub></b>: must exceed the current-limit threshold, not just the maximum load; otherwise in a short the inductor saturates, current spikes and the switch can burn.</li>
+  <li><b>Thermal current I<sub>rms</sub></b> and <b>DCR</b>: set copper loss.</li>
+  <li><b>Shielding</b>: unshielded inductors leak flux into nearby traces and antennas.</li>
+  <li><b>AC losses</b>: at MHz switching, core loss and skin effect can exceed DCR loss; use the vendor's loss calculator.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#buck">buck inductor ripple and output ripple</a></div>
+
+<h2 id="thermal">Thermal design</h2>
+<div class="eq">T<sub>J</sub> = T<sub>A</sub> + P<sub>D</sub> · θ<sub>JA</sub>　　T<sub>J</sub> ≈ T<sub>top</sub> + P<sub>D</sub> · Ψ<sub>JT</sub></div>
+<ul>
+  <li><b>θ<sub>JA</sub> depends on the board</b>: a JEDEC 2s2p (4-layer) test board and a customer's small 2-layer board can differ by 1.5–2×.</li>
+  <li><b>Exposed pad and vias</b>: QFN / DFN pads need enough solder and thermal vias (e.g. 0.3 mm holes at 1.0–1.2 mm pitch) to inner ground planes. Plug or mask the vias so solder does not wick away and leave voids.</li>
+  <li><b>Estimate T<sub>J</sub> with Ψ<sub>JT</sub></b>: measure the package top on the board (thermocouple or thermal camera) and add P<sub>D</sub>·Ψ<sub>JT</sub>. Using θ<sub>JC</sub> badly underestimates.</li>
+  <li><b>Nearby heat sources</b>: next to a CPU, inductor or power transistor, T<sub>A</sub> is not room temperature.</li>
+  <li><b>Derating</b>: many customers require T<sub>J</sub> below 125 °C, or at least 25 °C below thermal shutdown, in the worst case.</li>
+</ul>
+<div class="tryit">▶ Try it in the lab: <a href="lab.html#thermal">dropout, dissipation and junction temperature</a></div>
+
+<h2 id="layout">PCB layout</h2>
+<h3 id="layout-buck">Buck layout</h3>
+<ul>
+  <li><b>Minimise the hot loop</b>: the loop input cap → high side → low side → back to input cap carries pulsed current; its area sets parasitic inductance, SW ringing and EMI. The input capacitor must be closest to V<sub>IN</sub> and PGND, with the small high-frequency capacitor nearest.</li>
+  <li><b>Small, short SW node</b>: it is an antenna with violent voltage swings; make it just wide enough for the current, do not flood it with copper and route no sensitive signals underneath.</li>
+  <li><b>FB trace</b>: take it from the output capacitor (or the load), away from SW and the inductor; place the divider close to the FB pin.</li>
+  <li><b>Grounding</b>: join power ground (PGND) and analogue ground (AGND) at one point under the IC or at the output-capacitor ground; a solid ground plane beats a split one.</li>
+</ul>
+<h3 id="layout-ldo">LDO layout</h3>
+<ul>
+  <li>Input and output capacitors tight to the pins, with short, wide ground returns to the GND pin.</li>
+  <li>Route the remote-sense pin to the load to compensate long-trace drop.</li>
+  <li>Return the NR / SS capacitor and FB divider grounds to the LDO's GND, not to a distant power ground.</li>
+  <li>Size the thermal pad and copper for the dissipation.</li>
+</ul>
+
+<h2 id="emi">EMI and EMC</h2>
+<ul>
+  <li><b>Frequency choice</b>: automotive avoids the AM band (530–1700 kHz), commonly using 400 kHz (below) or 2.1 MHz (above).</li>
+  <li><b>Spread spectrum</b>: dithering the switching frequency by ±5–10% lowers spectral peaks, but downstream ADCs may then see broadband noise.</li>
+  <li><b>Input filtering</b>: a π LC filter cuts conducted EMI, but its output impedance interacts with the converter's negative input impedance (Middlebrook criterion) and can oscillate.</li>
+  <li><b>Edge-rate control</b>: slowing SW dV/dt (BOOT resistor, adjustable drive strength) lowers 30–200 MHz radiation at the cost of efficiency.</li>
+  <li><b>Standards</b>: CISPR 25 for automotive, CISPR 32 for consumer; immunity (BCI, ESD, transient pulses) matters too.</li>
+</ul>
+
+<h2 id="hot-plug">Hot plug and input protection</h2>
+<p>When a power cable or battery is plugged in, the cable inductance and a low-ESR ceramic capacitor form an LC resonance and the input can overshoot to <b>nearly twice the supply voltage</b>. Plugging in a 12 V adapter can show spikes above 20 V, exceeding the IC's absolute maximum and causing EOS damage.</p>
+<ul>
+  <li><b>Fixes</b>: damp the input (electrolytic or RC snubber), add a TVS, choose a higher-voltage IC, or use a load switch to control inrush.</li>
+  <li><b>Reverse polarity</b>: a reversed battery or cable drives large current through ESD and body diodes; use a series diode, a P-MOSFET or an ideal-diode controller.</li>
+  <li><b>Back-feeding</b>: in multi-supply systems one rail powers up first and feeds another through I/Os or an LDO body diode, leaving an unpowered IC half alive.</li>
+</ul>
+<div class="callout"><b>EOS tops the complaint list</b>　The most common FA conclusion on returned ICs is electrical overstress (EOS): melted metal, burned-through power devices. Root causes are mostly hot-plug spikes, reverse polarity or high voltage from another failing part. See <a href="complaints.html#c-eos">Complaints · EOS case</a>.</div>
+
+<h2 id="automotive">Automotive power</h2>
+<div class="tblwrap"><table>
+  <tr><th>Event</th><th>Voltage (12 V system, magnitude)</th><th>Demands on the power IC</th></tr>
+  <tr><td>Cold crank</td><td>Falls to 3–6 V for tens of ms</td><td>Buck must run at 100% duty / low dropout, or use a buck-boost front end</td></tr>
+  <tr><td>Start-stop</td><td>Repeated dips to 6–8 V</td><td>As above, with no reset</td></tr>
+  <tr><td>Load dump</td><td>Unsuppressed 80–100 V or more; about 35–40 V with central suppression</td><td>40 V+ rating or external protection</td></tr>
+  <tr><td>Reverse battery</td><td>−14 V</td><td>Reverse protection</td></tr>
+  <tr><td>Jump start</td><td>24–27 V for minutes</td><td>Sustained voltage rating</td></tr>
+</table></div>
+<ul>
+  <li>Standards: ISO 16750-2, ISO 7637-2, plus each carmaker's own (usually stricter) specifications.</li>
+  <li>Functional safety: power for ADAS and by-wire systems must meet ISO 26262; PMICs provide independent monitors, watchdogs and fault reporting.</li>
+  <li>48 V systems: in servers and mild hybrids, needing 80–100 V-rated devices.</li>
+</ul>
+
+<h2 id="segments">What each segment cares about</h2>
+<div class="tblwrap"><table>
+  <tr><th>Segment</th><th>Focus</th></tr>
+  <tr><td>Phones / wearables</td><td>Efficiency (battery life), I<sub>Q</sub>, area and height, DVS speed, RF interference, audible noise</td></tr>
+  <tr><td>AI / data centre</td><td>Hundreds to thousands of amps per processor, multiphase VRs, 48 V buses, transient di/dt, telemetry accuracy; every 0.5% of efficiency is electricity cost</td></tr>
+  <tr><td>Automotive</td><td>Wide input range, EMI, functional safety, Grade 1 / 0 temperature, zero defects, long-term supply</td></tr>
+  <tr><td>Industrial</td><td>24 V bus and surges, long life, wide temperature, isolation</td></tr>
+  <tr><td>IoT / sensors</td><td>nA-class I<sub>Q</sub>, energy harvesting, duty-cycled operation</td></tr>
+  <tr><td>Precision analogue / measurement</td><td>Noise, PSRR, temperature drift, long-term drift</td></tr>
+</table></div>
+
+<h2 id="selection">Selection and design checklist</h2>
+<ol class="steps">
+  <li><b>Voltage and current</b>: V<sub>IN</sub> range (including transients), V<sub>OUT</sub>, maximum and peak current, headroom margin.</li>
+  <li><b>Thermal</b>: worst-case P<sub>D</sub>; estimate T<sub>J</sub> with the real board.</li>
+  <li><b>Capacitors</b>: confirm the minimum effective capacitance after DC bias, temperature, tolerance and ageing is inside the stable range.</li>
+  <li><b>Noise and PSRR</b>: in the band the load cares about, not just 1 kHz.</li>
+  <li><b>Sequencing and protection</b>: EN, PG, soft start, pre-bias, current-limit style (will foldback stop it starting?), UVLO hysteresis.</li>
+  <li><b>Layout</b>: hot loop, SW, FB, ground, thermal vias.</li>
+  <li><b>EMI and transients</b>: frequency, spread spectrum, input filter, TVS.</li>
+  <li><b>Verification</b>: load transient, start-up / shutdown waveforms, full temperature, hot plug, worst-case capacitor samples.</li>
+</ol>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>Power tree</dt><dd>The conversion relationships between all rails in a system.</dd></div>
+  <div><dt>DC bias</dt><dd>The drop in MLCC capacitance with applied DC voltage.</dd></div>
+  <div><dt>Ψ<sub>JT</sub></dt><dd>Junction-to-top thermal characterisation parameter, used to infer junction temperature from case-top temperature.</dd></div>
+  <div><dt>Hot loop</dt><dd>The high-frequency loop in a buck through which pulsed current flows.</dd></div>
+  <div><dt>Pre-bias</dt><dd>Starting up with voltage already on the output.</dd></div>
+  <div><dt>Spread spectrum</dt><dd>Dithering the switching frequency to lower EMI peaks.</dd></div>
+  <div><dt>Load dump</dt><dd>The high-voltage transient from an automotive alternator when its load is suddenly disconnected.</dd></div>
+  <div><dt>Cold crank</dt><dd>The large battery-voltage dip when an engine starts.</dd></div>
+  <div><dt>EOS</dt><dd>Electrical overstress: damage from exceeding absolute maximum ratings.</dd></div>
+  <div><dt>TVS</dt><dd>Transient voltage suppressor diode.</dd></div>
+</dl>
+
+<nav class="pager"></nav>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>
