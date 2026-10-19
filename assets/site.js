@@ -10,6 +10,7 @@
     {id:'mfg',     href:'production.html',   label:t('生產', 'Production'), ch:'mfg', en:'Production'},
     {id:'test',    href:'test.html',         label:t('測試', 'Test'), ch:'tst', en:'Test & qualification'},
     {id:'app',     href:'application.html',  label:t('應用', 'Applications'), ch:'use', en:'Applications'},
+    {id:'sic',     href:'sic.html',          label:t('SiC 與資料中心', 'SiC & data centers')},
     {sep:true},
     {id:'issues',     href:'issues.html',     label:t('常見問題', 'Troubleshooting')},
     {id:'complaints', href:'complaints.html', label:t('客訴處理', 'Complaints')},
@@ -96,9 +97,9 @@
   }
 
   /* ---------- find ---------- */
-  const PAGE_LABEL = EN ? {arch:'Arch', fab:'Process', design:'Design', mfg:'Prod', test:'Test', app:'Apps', issues:'Issues', complaints:'Complaints', lab:'Lab', roles:'Careers', quiz:'Quiz', index:'Home'}
-    : {arch:'架構', fab:'製程', design:'設計', mfg:'生產', test:'測試', app:'應用', issues:'問題', complaints:'客訴', lab:'實驗室', roles:'職務', quiz:'測驗', index:'首頁'};
-  const PAGE_TAG = {arch:'arc', fab:'fab', design:'des', mfg:'mfg', test:'tst', app:'use', issues:'rel', complaints:'rel', lab:'lab', roles:'dsg', quiz:'dsg', index:'lab'};
+  const PAGE_LABEL = EN ? {arch:'Arch', fab:'Process', design:'Design', mfg:'Prod', test:'Test', app:'Apps', issues:'Issues', complaints:'Complaints', lab:'Lab', roles:'Careers', quiz:'Quiz', index:'Home', sic:'SiC'}
+    : {arch:'架構', fab:'製程', design:'設計', mfg:'生產', test:'測試', app:'應用', issues:'問題', complaints:'客訴', lab:'實驗室', roles:'職務', quiz:'測驗', index:'首頁', sic:'SiC'};
+  const PAGE_TAG = {arch:'arc', fab:'fab', design:'des', mfg:'mfg', test:'tst', app:'use', issues:'rel', complaints:'rel', lab:'lab', roles:'dsg', quiz:'dsg', index:'lab', sic:'fab'};
   const ov = document.createElement('div');
   ov.className = 'find-ov'; ov.hidden = true;
   ov.innerHTML = '<div class="find-box" role="dialog" aria-modal="true" aria-label="' + t('全站搜尋', 'Search the site') + '">' +

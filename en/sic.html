@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SiC &amp; Data Center Power · PMIC Notes</title>
+<meta name="description" content="Wide-bandgap topic: why SiC and GaN suit high voltage and high frequency, comparison with Si, the data-center power chain from grid to GPU, AI-rack PSUs and 800 V HVDC, with Infineon CoolSiC / CoolGaN as examples, plus SiC design, manufacturing, test, reliability and common problems.">
+<link rel="alternate" hreflang="zh-Hant" href="../sic.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="sic" data-ch="fab">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Topic · Wide bandgap</div>
+<h1>SiC and data-center power: from the grid to the GPU</h1>
+<p class="lead">AI data-center racks have gone from a dozen kW to well over a hundred, and the industry is discussing 1 MW racks. Ten times the power means ten times the loss unless every conversion stage gets more efficient. Wide-bandgap semiconductors — silicon carbide (SiC) and gallium nitride (GaN) — are what push power supplies (PSUs) past 97–98% efficiency and 100 W/in³. Using Infineon's CoolSiC and CoolGaN as examples, this page explains where SiC is used in the data center, why, and what to watch from design through to complaints.</p>
+<div class="callout"><b>About the product information</b>　Product and reference-design details come from Infineon's public announcements and trade-press coverage (see <a href="#sources">Sources</a>), compiled in October 2026. Specifications, part numbers and availability change; Infineon's website and datasheets are authoritative. This page does not represent Infineon.</div>
+
+<h2 id="why-wbg">Why wide bandgap</h2>
+<p>The wider a semiconductor's bandgap, the higher the critical electric field it withstands. For the same voltage rating the drift region can be thinner and more heavily doped, so on-resistance falls dramatically; smaller devices also have smaller parasitic capacitance and charge, so they switch faster.</p>
+<div class="tblwrap"><table>
+  <tr><th>Property (magnitude)</th><th>Si</th><th>4H-SiC</th><th>GaN</th><th>What it means for power</th></tr>
+  <tr><td>Bandgap</td><td>1.1 eV</td><td>3.3 eV</td><td>3.4 eV</td><td>Low hot leakage, higher operating temperature</td></tr>
+  <tr><td>Critical field</td><td>≈ 0.3 MV/cm</td><td>≈ 2.5–3 MV/cm</td><td>≈ 3 MV/cm</td><td>About 10× thinner drift region for the same rating; much lower R<sub>sp</sub></td></tr>
+  <tr><td>Thermal conductivity</td><td>≈ 1.5 W/cm·K</td><td>≈ 3–4.9 W/cm·K</td><td>≈ 1.3 W/cm·K (lower as epi on Si)</td><td>SiC spreads heat well, suits high current</td></tr>
+  <tr><td>Typical devices</td><td>Super-junction MOSFET, IGBT</td><td>Vertical MOSFET, Schottky diode</td><td>Lateral HEMT</td><td></td></tr>
+  <tr><td>Sweet spot</td><td>&lt; 650 V low cost, low-voltage VRM</td><td>400–3300 V, high power, hard switching</td><td>100–650 V, high frequency, soft switching</td><td></td></tr>
+</table></div>
+<p>Recall R<sub>sp</sub> ∝ BV<sup>2.5</sup> from <a href="process.html#ldmos">Process · LDMOS</a>: with a critical field nearly 10× higher, the theoretical R<sub>sp</sub> at the same rating is two to three orders of magnitude lower. That is why SiC has largely displaced Si MOSFETs above 650 V and competes with IGBTs above 1200 V.</p>
+
+<h2 id="sic-vs-gan">How SiC, GaN and Si divide the work</h2>
+<div class="tblwrap"><table>
+  <tr><th></th><th>Si super-junction MOSFET</th><th>SiC MOSFET</th><th>GaN HEMT</th></tr>
+  <tr><td>Reverse recovery</td><td>Large body-diode Q<sub>rr</sub>; unsuitable for hard-switched CCM totem-pole</td><td>Small body-diode Q<sub>rr</sub>; hard-switched totem-pole PFC works</td><td>No body diode, Q<sub>rr</sub> ≈ 0, but high reverse-conduction drop</td></tr>
+  <tr><td>Switching frequency</td><td>Tens to ~100 kHz</td><td>Tens to hundreds of kHz</td><td>Hundreds of kHz to MHz</td></tr>
+  <tr><td>Ruggedness</td><td>Avalanche capable</td><td>Avalanche capable, µs-scale short-circuit withstand, good thermal conductivity</td><td>Usually no avalanche capability; relies on design margin</td></tr>
+  <tr><td>Gate drive</td><td>0 / +10–12 V</td><td>Commonly +15–20 V on, 0 to −5 V off (part dependent)</td><td>Low gate rating (around 6–7 V class, structure dependent); drive must be precise</td></tr>
+  <tr><td>Typical data-center position</td><td>Cost-sensitive PFC, low-voltage VRMs (Si still dominates)</td><td>PFC, UPS, solid-state transformers, 800 V HVDC conversion</td><td>Isolated LLC DC/DC, 48 V intermediate-bus conversion</td></tr>
+</table></div>
+<div class="callout"><b>In one line</b>　SiC handles "high voltage, high current, hard switching", GaN handles "high frequency, soft switching, smallest size", and Si handles "low voltage and cost". The newest high-density PSUs usually use all three.</div>
+
+<h2 id="dc-chain">The data-center power chain</h2>
+<figure>
+<svg class="chain" viewBox="0 0 640 250" role="img" aria-label="Data-center power chain: grid, UPS, distribution, rack PSU, 48 V bus, intermediate converter, VRM, GPU, with SiC, GaN and Si positions">
+  <g class="ts">
+  <rect class="c5" x="8"   y="40" width="70" height="56" rx="6"/><text x="43"  y="62" text-anchor="middle">Grid</text><text x="43" y="78" text-anchor="middle" class="t-mut">MV AC</text>
+  <rect class="c2" x="86"  y="40" width="70" height="56" rx="6"/><text x="121" y="62" text-anchor="middle">UPS</text><text x="121" y="78" text-anchor="middle" class="t-mut">AC-DC-AC</text>
+  <rect class="c5" x="164" y="40" width="70" height="56" rx="6"/><text x="199" y="62" text-anchor="middle">PDU</text><text x="199" y="78" text-anchor="middle" class="t-mut">415 V AC</text>
+  <rect class="c2" x="242" y="40" width="80" height="56" rx="6"/><text x="282" y="58" text-anchor="middle">Rack PSU</text><text x="282" y="72" text-anchor="middle" class="t-mut">PFC + LLC</text><text x="282" y="86" text-anchor="middle" class="t-mut">AC → 50 V</text>
+  <rect class="c5" x="330" y="40" width="70" height="56" rx="6"/><text x="365" y="62" text-anchor="middle">Busbar</text><text x="365" y="78" text-anchor="middle" class="t-mut">48–54 V</text>
+  <rect class="c3" x="408" y="40" width="80" height="56" rx="6"/><text x="448" y="62" text-anchor="middle">IBC</text><text x="448" y="78" text-anchor="middle" class="t-mut">48 → 12 V</text>
+  <rect class="c1" x="496" y="40" width="70" height="56" rx="6"/><text x="531" y="62" text-anchor="middle">VRM</text><text x="531" y="78" text-anchor="middle" class="t-mut">→ 0.8 V</text>
+  <rect class="c4" x="574" y="40" width="58" height="56" rx="6"/><text x="603" y="72" text-anchor="middle">GPU</text>
+  </g>
+  <path class="wm" d="M78 68h8M156 68h8M234 68h8M322 68h8M400 68h8M488 68h8M566 68h8"/>
+  <text x="121" y="122" text-anchor="middle" class="ts" style="fill:var(--s2)">SiC</text>
+  <text x="282" y="122" text-anchor="middle" class="ts" style="fill:var(--s2)">SiC (PFC) + GaN (LLC)</text>
+  <text x="448" y="122" text-anchor="middle" class="ts" style="fill:var(--s3)">GaN / Si</text>
+  <text x="531" y="122" text-anchor="middle" class="ts" style="fill:var(--s1)">Si (DrMOS)</text>
+  <path class="wd" d="M8 150 H632"/>
+  <text x="8" y="172" class="ts t-mut">Toward 800 V HVDC:</text>
+  <g class="ts">
+  <rect class="c2" x="8"   y="182" width="150" height="48" rx="6"/><text x="83" y="202" text-anchor="middle">Power rack / sidecar</text><text x="83" y="218" text-anchor="middle" class="t-mut">AC → 800 V DC (SiC)</text>
+  <rect class="c5" x="182" y="182" width="120" height="48" rx="6"/><text x="242" y="210" text-anchor="middle">800 V distribution</text>
+  <rect class="c3" x="326" y="182" width="150" height="48" rx="6"/><text x="401" y="202" text-anchor="middle">On-board HV conversion</text><text x="401" y="218" text-anchor="middle" class="t-mut">800 V → low V (GaN / SiC)</text>
+  <rect class="c1" x="500" y="182" width="132" height="48" rx="6"/><text x="566" y="210" text-anchor="middle">VRM → GPU</text>
+  </g>
+  <path class="wm" d="M158 206h24M302 206h24M476 206h24"/>
+</svg>
+<figcaption>Top: today's mainstream AC distribution + rack PSU + 48–54 V busbar. Bottom: AI racks moving toward 800 V DC distribution, centralising AC-DC in a power rack and converting from high voltage directly on the server board. Material labels show typical practice, not the only option.</figcaption>
+</figure>
+<p>From grid to GPU there are roughly five to seven conversion stages, and total efficiency is the product:</p>
+<div class="eq">η<sub>total</sub> = η<sub>UPS</sub> × η<sub>PSU</sub> × η<sub>IBC</sub> × η<sub>VRM</sub>　e.g. 0.97 × 0.975 × 0.975 × 0.90 ≈ 0.83</div>
+<p>The VRM stage (0.8 V, thousands of amps) is usually the least efficient and belongs to the world of <a href="architecture.html#pmic">multiphase bucks</a>; SiC contributes mainly in the high-voltage AC/DC and UPS stages upstream. In a 100 MW data center, every percentage point of PSU efficiency removes about 1 MW of heat — and the cooling power that goes with it.</p>
+
+<h2 id="psu">Rack PSUs: which stage uses SiC</h2>
+<p>A server PSU usually has two stages: <b>power-factor correction (PFC)</b> rectifies the AC and boosts it to about 400 V DC, then an <b>isolated DC/DC</b> (commonly an LLC resonant converter) steps down to a busbar of around 50 V.</p>
+<ul>
+  <li><b>Bridgeless totem-pole PFC</b>: removes the bridge-rectifier diode drops for the highest efficiency, but its fast leg hard-switches in continuous conduction, where body-diode reverse recovery is very costly. Si super-junction Q<sub>rr</sub> is far too large; <b>SiC and GaN are what made totem-pole PFC mass-producible</b>.</li>
+  <li><b>Multi-level PFC</b>: a three-level flying-capacitor topology puts only half the voltage on each switch, allowing 400 V-class devices and smaller inductors. This is the application Infineon's 400 V CoolSiC targets.</li>
+  <li><b>Isolated LLC DC/DC</b>: soft-switched and able to run at several hundred kHz or more; GaN shrinks the transformer, though SiC or Si designs exist too.</li>
+  <li><b>Hold-up time</b>: after AC loss the output must stay up for 10–20 ms, traditionally with large electrolytics that take a lot of space. Newer designs use active energy-buffer circuits to cut the capacitance needed.</li>
+  <li><b>Efficiency requirements</b>: 80 PLUS Titanium, OCP Open Rack v3 and similar set high efficiency at both heavy and half load (on the order of 96% or more, depending on version and input voltage).</li>
+</ul>
+
+<h2 id="infineon">Infineon as an example: products and reference designs</h2>
+<div class="tblwrap"><table>
+  <tr><th>Item</th><th>Key public information</th></tr>
+  <tr><td>CoolSiC MOSFET 400 V (G2)</td><td>Announced May 2024 for the AC/DC stage of AI server PSUs; ten parts in five R<sub>DS(on)</sub> classes from 11 to 45 mΩ, in TOLL and D²PAK-7 (Kelvin source, .XT interconnect). Infineon cites 99.5% efficiency and over 100 W/in³ in multi-level PFC.</td></tr>
+  <tr><td>CoolSiC 650 V / 750 V etc.</td><td>Voltage classes common in conventional two-level PFC, UPS and telecom power; Infineon's 2026 whitepaper discusses how 400 / 650 / 750 V classes split the work in data-center PSUs.</td></tr>
+  <tr><td>CoolGaN</td><td>Used in the PSU DC/DC stage; Infineon says the 400 V CoolSiC + CoolGaN combination supports PSUs above 8 kW.</td></tr>
+  <tr><td>12 kW PSU reference design</td><td>Announced October 2025: CoolSiC three-level flying-capacitor interleaved PFC front end (reported peak efficiency &gt; 99.0%), CoolGaN full-bridge LLC DC/DC (&gt; 98.5%) with two planar transformers, overall power density up to about 113 W/in³, plus an integrated bidirectional energy buffer to meet hold-up while reducing capacitance. Uses Si, SiC and GaN together.</td></tr>
+  <tr><td>800 V HVDC collaboration</td><td>Announced May 2025 with NVIDIA: an 800 V high-voltage DC rack power architecture with conversion right on the GPU server board. Infineon expects racks of 1 MW and more before the end of the decade, and will keep supplying intermediate DC/DC and multiphase solutions during the transition.</td></tr>
+</table></div>
+<p>Other major SiC suppliers (for example Wolfspeed, onsemi, STMicroelectronics and ROHM) also have data-center power lines and reference designs. When selecting, compare the parameters below in your topology rather than the brand.</p>
+
+<h2 id="hvdc">800 V HVDC and solid-state transformers</h2>
+<ul>
+  <li><b>Why high-voltage DC</b>: above 100 kW per rack, a 54 V busbar carries thousands of amps; copper weight, drop and space become the bottleneck. At 800 V the current for the same power falls to about 1/15.</li>
+  <li><b>Architecture change</b>: AC-to-DC conversion moves from each server's PSU to a power rack or sidecar; inside the server an efficient 800 V-to-low-voltage stage is needed — a new battleground for SiC and GaN.</li>
+  <li><b>Solid-state transformers (SST)</b>: high-frequency SiC converters replace bulky 50/60 Hz transformers and go from medium-voltage grid straight to 800 V DC. Still emerging, with high-voltage SiC (1200–3300 V and beyond) at the core.</li>
+  <li><b>New safety issues</b>: DC arcs do not self-extinguish, so solid-state circuit breakers (SSCB, another SiC candidate), insulation monitoring and new maintenance practices are needed.</li>
+</ul>
+
+<h2 id="design">SiC design points</h2>
+<div class="tblwrap"><table>
+  <tr><th>Topic</th><th>Key points</th></tr>
+  <tr><td>Gate-drive voltage</td><td>SiC has lower transconductance and needs a higher turn-on voltage (commonly +15 to +20 V, part dependent) to reach rated R<sub>DS(on)</sub>; turn off at 0 V or negative (−2 to −5 V) to prevent false turn-on. Follow the datasheet; do not reuse a Si 12 V drive.</td></tr>
+  <tr><td>Miller false turn-on</td><td>High dV/dt from the other switch in a half bridge pulls the gate up through C<sub>gd</sub>; counter with negative off-voltage, a Miller clamp and a low-impedance turn-off path.</td></tr>
+  <tr><td>Kelvin source</td><td>When power and gate loops share the source pin, di/dt across source inductance fights the gate voltage and slows switching; four-pin packages (TO-247-4, TOLL, D²PAK-7) with a Kelvin source fix this.</td></tr>
+  <tr><td>Layout and parasitics</td><td>dV/dt can reach 50–100 V/ns: minimise power-loop inductance (see <a href="application.html#layout">Applications · layout</a>) and use isolated drivers with high CMTI so common-mode noise does not upset control.</td></tr>
+  <tr><td>Short-circuit protection</td><td>SiC dies are small with high current density, so short-circuit withstand is usually shorter than an IGBT's (around 2–3 µs). DESAT detection must be fast, with soft turn-off to limit overshoot.</td></tr>
+  <tr><td>Body diode</td><td>Usable with small Q<sub>rr</sub>, but high forward drop (about 3–4 V); keep dead time short or use synchronous rectification.</td></tr>
+  <tr><td>Thermal and R<sub>DS(on)</sub></td><td>SiC R<sub>DS(on)</sub> rises less with temperature than Si, but still rises; calculate losses at maximum junction temperature.</td></tr>
+</table></div>
+
+<h2 id="manufacturing">Manufacturing: why SiC is expensive</h2>
+<ul>
+  <li><b>Substrates</b>: SiC boules grow by sublimation (PVT) above 2000 °C — slowly and with low yield — so wafers cost far more than Si. The mainstream is moving from 150 mm to 200 mm to lower cost per die.</li>
+  <li><b>Crystal defects</b>: micropipes, basal plane dislocations (BPD) and stacking faults cause failures or long-term degradation; the epitaxial layer must convert BPDs into harmless threading edge dislocations.</li>
+  <li><b>High-temperature processing</b>: implant activation needs annealing above 1600 °C; the SiC/SiO<sub>2</sub> interface has more defects than Si's, affecting channel mobility and V<sub>T</sub> stability.</li>
+  <li><b>Planar vs trench gate</b>: trench gates give better channel mobility and R<sub>sp</sub>, but the trench bottom field must be shielded; Infineon CoolSiC uses a trench structure.</li>
+  <li><b>Packaging</b>: high temperature and current make silver-sinter die attach, copper wire / clips and diffusion-solder interconnects such as .XT increasingly common, for longer power-cycling life.</li>
+</ul>
+<p>Compare <a href="production.html#yield">Production · yield</a>: for SiC, defect yield drives cost; larger dies yield worse, which is why high-current modules often parallel many small dies.</p>
+
+<h2 id="test-rel">Test and reliability</h2>
+<div class="tblwrap"><table>
+  <tr><th>Item</th><th>What is special about SiC</th></tr>
+  <tr><td>V<sub>T</sub> drift (BTI)</td><td>Interface traps charge and discharge under gate bias, shifting V<sub>T</sub>; besides static HTGB, the industry runs dynamic gate-stress (AC switching) tests, and preconditioning and timing affect readings.</td></tr>
+  <tr><td>Gate-oxide lifetime</td><td>SiC interfaces and defects raise extrinsic early-failure risk; tightened gate-voltage screening and TDDB lifetime extrapolation are common.</td></tr>
+  <tr><td>Bipolar degradation</td><td>Under prolonged body-diode conduction, recombination energy grows BPDs into stacking faults, raising V<sub>F</sub> and R<sub>DS(on)</sub>; buffer epi layers and body-diode stress tests screen it.</td></tr>
+  <tr><td>Cosmic rays (SEB)</td><td>High-voltage devices at high field can be destroyed by atmospheric neutrons (single-event burnout); FIT rises steeply with applied voltage as a fraction of rating, so HVDC designs need voltage derating.</td></tr>
+  <tr><td>Avalanche and short circuit</td><td>Unclamped inductive switching (UIS) measures avalanche energy; short-circuit withstand time sets driver-protection design.</td></tr>
+  <tr><td>Dynamic parameters</td><td>Double-pulse testing (DPT) measures E<sub>on</sub> / E<sub>off</sub> and Q<sub>rr</sub>; it needs high-bandwidth current probes and a very low-inductance fixture.</td></tr>
+  <tr><td>Qualification standards</td><td>Discretes are usually based on JEDEC / AEC-Q101 plus SiC-specific items; automotive power modules reference AQG 324. Data-center customers often have their own lifetime and FIT requirements.</td></tr>
+</table></div>
+
+<h2 id="issues">Common problems and complaint scenarios</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Likely cause</th><th>Check / fix</th></tr>
+  <tr><td>PFC 0.3–0.5% less efficient than the reference design</td><td>Gate drive too low (reused Si 12 V), no Kelvin source, dead time too long so the body diode conducts</td><td>Set V<sub>GS</sub> per datasheet, measure real V<sub>GS</sub> waveforms, shorten dead time</td></tr>
+  <tr><td>Occasional half-bridge shoot-through, burned switches</td><td>Miller false turn-on, gate ringing beyond V<sub>GS(max)</sub></td><td>Negative off-voltage or Miller clamp, gate resistance and layout, measure the gate with a differential probe</td></tr>
+  <tr><td>R<sub>DS(on)</sub> / V<sub>F</sub> rise after long operation</td><td>Bipolar degradation, V<sub>T</sub> drift</td><td>Compare with shipment data, review body-diode conduction time and gate-bias conditions</td></tr>
+  <tr><td>Random burn-outs in high-voltage units with no obvious stress event</td><td>Cosmic-ray SEB, insufficient voltage derating</td><td>Calculate FIT vs applied voltage, review bus voltage and surges</td></tr>
+  <tr><td>EMI failure</td><td>dV/dt too fast, common-mode current coupled through heat-sink capacitance</td><td>Adjust gate resistance, ground the heat sink, common-mode filtering</td></tr>
+  <tr><td>Driver malfunction</td><td>Isolated driver CMTI too low</td><td>Choose a high-CMTI driver, reduce coupling between control and power grounds</td></tr>
+</table></div>
+<p>The complaint flow and FA methods follow <a href="complaints.html#fa">Customer complaints</a>. SiC FA often uses thermal imaging and cross-sections to find burn sites in the gate oxide or trench bottom, and distinguishes EOS / short-circuit / SEB by the burn location and shape to identify the energy source.</p>
+
+<h2 id="sources">Sources</h2>
+<ul>
+  <li><a href="https://eepower.com/new-industry-products/infineon-unveils-12-kw-psu-reference-design-for-ai-data-centers/">EE Power: Infineon 12 kW PSU reference design</a></li>
+  <li><a href="https://electronicdesign.com/technologies/power/article/55330208/electronic-design-infineon-12-kw-high-density-psu-reference-design-aimed-at-ai-data-centers-and-servers">Electronic Design: 12 kW high-density PSU reference design</a></li>
+  <li><a href="https://eepower.com/new-industry-products/infineon-targets-ai-servers-with-newly-added-coolsic-mosfets/">EE Power: CoolSiC MOSFET 400 V for AI servers</a></li>
+  <li><a href="https://compoundsemiconductor.net/article/119446/Infineon_unveils_400V_CoolSiC_MOSFETs">Compound Semiconductor: Infineon 400 V CoolSiC</a></li>
+  <li><a href="https://www.infineon.com/assets/row/public/documents/24/59/infineon-how-infineon-technologies-sic-solutions-are-shaping-the-future-of-data-center-power-supplies-whitepaper-en.pdf">Infineon whitepaper: SiC in data-center power supplies</a></li>
+  <li><a href="https://www.businesswire.com/news/home/20250520961904/en">Business Wire: Infineon and NVIDIA 800 V power architecture</a></li>
+  <li><a href="https://www.powerelectronicsnews.com/powering-the-future-how-nvidia-and-infineon-are-reinventing-ai-data-center-architecture">Power Electronics News: NVIDIA and Infineon AI data-center architecture</a></li>
+</ul>
+
+<h2 id="glossary">Glossary</h2>
+<dl class="terms">
+  <div><dt>Wide bandgap (WBG)</dt><dd>Semiconductors with a bandgap clearly larger than silicon's, such as SiC and GaN.</dd></div>
+  <div><dt>Totem-pole PFC</dt><dd>Bridgeless totem-pole power-factor correction, a high-efficiency PFC topology without a rectifier bridge.</dd></div>
+  <div><dt>LLC</dt><dd>Inductor-inductor-capacitor resonant converter, common for soft-switched isolated DC/DC.</dd></div>
+  <div><dt>Hold-up time</dt><dd>How long the output stays in spec after input power is lost.</dd></div>
+  <div><dt>HVDC</dt><dd>High-voltage direct-current distribution.</dd></div>
+  <div><dt>SST</dt><dd>Solid-state transformer.</dd></div>
+  <div><dt>IBC</dt><dd>Intermediate bus converter (e.g. 48 V → 12 V).</dd></div>
+  <div><dt>BPD</dt><dd>Basal plane dislocation, the source of SiC bipolar degradation.</dd></div>
+  <div><dt>SEB</dt><dd>Single-event burnout caused by a particle strike.</dd></div>
+  <div><dt>CMTI</dt><dd>Common-mode transient immunity of an isolated driver.</dd></div>
+  <div><dt>DPT</dt><dd>Double-pulse test, the standard method for switching characterisation.</dd></div>
+</dl>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

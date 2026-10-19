@@ -129,7 +129,7 @@ svg .t-mut{fill:var(--muted)}
 .tag{display:inline-block;font:500 10.5px/1 var(--mono);padding:3px 6px;border-radius:4px;margin-right:6px;color:#fff;vertical-align:1px}
 .tag.arc{background:var(--arc)} .tag.des{background:var(--des)} .tag.mfg{background:var(--mfg)} .tag.use{background:var(--use)}
 .tag.fab{background:var(--fab)} .tag.tst{background:var(--tst)} .tag.rel{background:var(--rel)}
-.tag.lab{background:var(--muted)} .tag.dsg{background:var(--muted)}
+.tag.lab{background:var(--muted)} .tag.sic{background:var(--fab)} .tag.dsg{background:var(--muted)}
 :root[data-theme="dark"] .tag{color:#0E1215}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tag{color:#0E1215}}
 
@@ -273,3 +273,4 @@ a.tbtn{text-decoration:none;font:600 12.5px var(--mono)}
 .steps li{counter-increment:s;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px 10px 52px;max-width:none!important}
 .steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:14px;top:10px;font:600 13px var(--mono);color:var(--accent)}
 .steps li b{font-weight:600}
+svg.chain text{font-size:10px}

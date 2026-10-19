@@ -16,8 +16,9 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `issues.html` | 常見問題：症狀索引，振盪 / 啟動 / 過衝 / 熱 / 雜訊 / 效率 / 反灌 / EMI，設計、製程、測試類問題，除錯技巧 |
 | `complaints.html` | 客訴處理：流程、資訊收集、FA 流程、失效分類、8D、根因工具、10 個典型案例、溝通、指標 |
 | `lab.html` | 互動實驗室：LDO 穩定度、PSRR、負載暫態、壓差與熱、Buck 漣波、MLCC DC bias、修調與良率 |
+| `sic.html` | 專題：SiC 與資料中心電源（Si / SiC / GaN 分工、PSU、800 V HVDC、Infineon 例、SiC 設計與可靠度）|
 | `roles.html` | 職務地圖：類比設計、佈局、數位、AE/FAE、PE、TE、製程、QRA、FA |
-| `quiz.html` | 測驗：51 題，七個主題 |
+| `quiz.html` | 測驗：57 題，八個主題 |
 
 `assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換）、`plot.js`（SVG 繪圖）、`lab.js`、`quiz.js`、`search-index.js` / `search-index-en.js`（自動產生）。
 

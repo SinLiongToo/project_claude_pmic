@@ -2,8 +2,8 @@
 (function(){
   const t = (window.MemSite && window.MemSite.t) || (zh => zh);
   const EN = !!(window.MemSite && window.MemSite.EN);
-  const CH = EN ? {arc:'Architecture', fab:'Process', des:'Design', mfg:'Production', tst:'Test', use:'Applications', rel:'Issues / complaints'}
-              : {arc:'架構', fab:'製程', des:'設計', mfg:'生產', tst:'測試', use:'應用', rel:'問題 / 客訴'};
+  const CH = EN ? {arc:'Architecture', fab:'Process', des:'Design', mfg:'Production', tst:'Test', use:'Applications', rel:'Issues / complaints', sic:'SiC / data center'}
+              : {arc:'架構', fab:'製程', des:'設計', mfg:'生產', tst:'測試', use:'應用', rel:'問題 / 客訴', sic:'SiC / 資料中心'};
   const Q = [
     // ---------- 架構 ----------
     {c:'arc', q:'LDO 從 3.6 V 降到 1.8 V、I_Q 可忽略時，最高效率約為？', o:['50%', '90%', '36%', '72%'], e:'LDO 效率 ≈ V_OUT / V_IN = 1.8 / 3.6 = 50%，多出來的壓差全部變成熱。', l:'architecture.html#linear-vs-switching'},
@@ -62,7 +62,14 @@
     {c:'rel', q:'失效分析的基本順序原則是？', o:['先非破壞（外觀、X-ray、C-SAM、電性），後破壞（開封、去層）', '先開封再量電性', '先做 FIB', '順序不重要'], e:'破壞性步驟不可逆，每一步前都要拍照記錄。', l:'complaints.html#fa'},
     {c:'rel', q:'退回品 ATE 與實驗室全部通過（NTF），下一步應該？', o:['取得失效板與應用條件，檢查焊接、板子與使用條件', '直接結案為客戶誤判', '報廢樣品', '提高測試極限'], e:'NTF 不等於沒問題，把 IC 拆下來時可能把證據也毀了。', l:'complaints.html#c-ntf'},
     {c:'rel', q:'FA 看到功率元件大面積熔融，結論是 EOS。接下來最重要的是？', o:['找出能量來源並在客戶板上重現', '直接告知客戶是應用問題', '更換封裝', '提高 HBM 等級'], e:'EOS 是起點不是結論：熱插拔、反接、其他元件失效都可能是來源。', l:'complaints.html#c-eos'},
-    {c:'rel', q:'客訴處理中，向客戶詢問的最有價值問題之一是？', o:['最近改了什麼（設計、供應商、製程、批次）？', '你們用哪一牌示波器？', '產品售價多少？', '工程師年資多久？'], e:'把變化點與失效開始時間對齊，常常就找到方向。', l:'complaints.html#info'}
+    {c:'rel', q:'客訴處理中，向客戶詢問的最有價值問題之一是？', o:['最近改了什麼（設計、供應商、製程、批次）？', '你們用哪一牌示波器？', '產品售價多少？', '工程師年資多久？'], e:'把變化點與失效開始時間對齊，常常就找到方向。', l:'complaints.html#info'},
+    // ---------- SiC / 資料中心 ----------
+    {c:'sic', q:'SiC 在同樣耐壓下導通電阻比 Si 低很多，主要原因是？', o:['臨界電場約高 10 倍，漂移區可以更薄、摻雜更濃', '電子遷移率比 Si 高很多', '晶圓比較便宜', '閘極氧化層比較薄'], e:'寬能隙帶來高臨界電場；依 R_sp ∝ BV^2.5 的關係，同耐壓下理論 R_sp 可低兩到三個數量級。', l:'sic.html#why-wbg'},
+    {c:'sic', q:'為什麼 SiC 與 GaN 讓連續導通模式的圖騰柱 PFC 得以量產？', o:['反向恢復電荷 Q_rr 很小（GaN 幾乎為零），硬切換損失可接受', '它們的耐壓比 Si 低', '它們不需要閘極驅動', '它們只能用在 DCM'], e:'Si 超接面 MOSFET 的體二極體 Q_rr 太大，硬切換的圖騰柱臂會有巨大損失。', l:'sic.html#psu'},
+    {c:'sic', q:'Infineon 2025 年發表的 12 kW AI 伺服器 PSU 參考設計，前級 PFC 與後級 DC/DC 分別用什麼？', o:['CoolSiC 三階飛跨電容 PFC ＋ CoolGaN 全橋 LLC', '全部用 Si 超接面 MOSFET', 'GaN PFC ＋ IGBT LLC', '二極體整流 ＋ 線性穩壓器'], e:'報導指出 PFC 峰值效率 > 99.0%、LLC > 98.5%，整體功率密度最高約 113 W/in³。', l:'sic.html#infineon'},
+    {c:'sic', q:'AI 機櫃往 800 V 直流配電發展的主要原因是？', o:['同功率下電流降到約 1/15，減少銅排重量、壓降與空間', '800 V 比較安全', 'GPU 直接用 800 V 工作', '可以完全不需要轉換器'], e:'機櫃上百 kW 時 54 V 匯流排電流達數千安培；提高電壓可大幅減少電流。', l:'sic.html#hvdc'},
+    {c:'sic', q:'SiC MOSFET 的閘極驅動和 Si 最常見的差異是？', o:['需要較高的開啟電壓（常見 +15–20 V），關斷常用 0 V 或負壓', '只需要 5 V 開啟', '不需要關斷電壓', '可以直接沿用 Si 的 12 V 驅動'], e:'SiC 跨導較低，開啟電壓不夠時 R_DS(on) 達不到規格；負壓關斷可防米勒誤導通。依資料手冊設定。', l:'sic.html#design'},
+    {c:'sic', q:'高壓 SiC 元件在現場隨機燒毀、又找不到過壓事件，應該考慮哪一種機制？', o:['宇宙射線中子引發的單粒子燒毀（SEB），與電壓降額有關', '電容 DC bias', 'MSL 吸濕', '熔絲再生長'], e:'SEB 的 FIT 率隨施加電壓佔額定的比例急速上升，HVDC 設計要做電壓降額。', l:'sic.html#test-rel'}
   ];
   const QEN = [
     // ---------- Architecture ----------
@@ -122,7 +129,14 @@
     {q:'The basic ordering rule for failure analysis is?', o:['Non-destructive first (visual, X-ray, C-SAM, electrical), destructive later (decap, delayering)', 'Decap before electrical test', 'FIB first', 'Order does not matter'], e:'Destructive steps cannot be undone; photograph everything before each step.'},
     {q:'Returned parts all pass ATE and bench tests (NTF). Next step?', o:['Get the failing board and conditions; check soldering, the board and usage', 'Close it as customer error', 'Scrap the samples', 'Tighten test limits'], e:'NTF is not "no problem"; removing the IC may have destroyed the evidence.'},
     {q:'FA finds a large melted area in the power device: EOS. What matters most next?', o:['Find the energy source and reproduce it on the customer board', 'Tell the customer it is their problem', 'Change the package', 'Raise the HBM rating'], e:'EOS is a starting point, not a conclusion: hot plug, reverse polarity or another failing part can be the source.'},
-    {q:'One of the most valuable questions to ask a complaining customer is?', o:['What changed recently (design, supplier, process, lot)?', 'Which scope brand do you use?', 'What does the product sell for?', 'How senior are your engineers?'], e:'Lining up change points with when failures began often points straight at the cause.'}
+    {q:'One of the most valuable questions to ask a complaining customer is?', o:['What changed recently (design, supplier, process, lot)?', 'Which scope brand do you use?', 'What does the product sell for?', 'How senior are your engineers?'], e:'Lining up change points with when failures began often points straight at the cause.'},
+    // ---------- SiC / data center ----------
+    {q:'Why does SiC have much lower on-resistance than Si at the same voltage rating?', o:['Its critical field is about 10× higher, so the drift region can be thinner and more heavily doped', 'Its electron mobility is much higher than Si', 'Its wafers are cheaper', 'Its gate oxide is thinner'], e:'The wide bandgap gives a high critical field; with R_sp ∝ BV^2.5, theoretical R_sp at the same rating is two to three orders of magnitude lower.'},
+    {q:'Why did SiC and GaN make continuous-conduction totem-pole PFC mass-producible?', o:['Their reverse-recovery charge Q_rr is small (near zero for GaN), so hard-switching loss is acceptable', 'They have lower voltage ratings than Si', 'They need no gate drive', 'They only work in DCM'], e:'Si super-junction body-diode Q_rr is too large; a hard-switched totem-pole leg would lose far too much.'},
+    {q:'In Infineon\'s 2025 12 kW AI-server PSU reference design, what are the PFC and DC/DC stages built with?', o:['CoolSiC three-level flying-capacitor PFC + CoolGaN full-bridge LLC', 'All Si super-junction MOSFETs', 'GaN PFC + IGBT LLC', 'Diode rectifier + linear regulator'], e:'Coverage reports PFC peak efficiency > 99.0%, LLC > 98.5%, and power density up to about 113 W/in³.'},
+    {q:'The main reason AI racks are moving to 800 V DC distribution is?', o:['Current drops to about 1/15 for the same power, cutting busbar copper, drop and space', '800 V is safer', 'GPUs run directly from 800 V', 'It removes the need for converters'], e:'At hundreds of kW per rack a 54 V busbar carries thousands of amps; raising the voltage cuts current dramatically.'},
+    {q:'The most common difference between SiC and Si MOSFET gate drive is?', o:['SiC needs a higher turn-on voltage (commonly +15–20 V) and often 0 V or negative turn-off', 'SiC turns on with only 5 V', 'SiC needs no turn-off voltage', 'A Si 12 V driver can be reused as is'], e:'SiC transconductance is lower, so too little turn-on voltage misses rated R_DS(on); negative turn-off prevents Miller false turn-on. Follow the datasheet.'},
+    {q:'High-voltage SiC devices burn out randomly in the field with no overvoltage event found. Which mechanism should you consider?', o:['Cosmic-ray neutron single-event burnout (SEB), linked to voltage derating', 'Capacitor DC bias', 'MSL moisture absorption', 'Fuse regrowth'], e:'SEB FIT rises steeply with applied voltage as a fraction of rating, so HVDC designs need voltage derating.'}
   ];
   if(EN) Q.forEach((q, i) => Object.assign(q, QEN[i]));
 

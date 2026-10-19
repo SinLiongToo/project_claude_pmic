@@ -16,6 +16,7 @@ PAGES = [  # (file, group id used by site.js for the coloured tag)
     ("production.html", "mfg"),
     ("test.html", "test"),
     ("application.html", "app"),
+    ("sic.html", "sic"),
     ("issues.html", "issues"),
     ("complaints.html", "complaints"),
     ("roles.html", "roles"),

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SiC 與資料中心電源 · PMIC Notes</title>
+<meta name="description" content="寬能隙專題：SiC 與 GaN 為什麼適合高壓高頻、和 Si 的比較、資料中心從電網到 GPU 的電源鏈、AI 機櫃的 PSU 與 800 V HVDC，以 Infineon CoolSiC / CoolGaN 為例，加上 SiC 的設計、製造、測試、可靠度與常見問題。">
+<link rel="alternate" hreflang="en" href="en/sic.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="sic" data-ch="fab">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Topic · Wide bandgap</div>
+<h1>SiC 與資料中心電源：從電網到 GPU</h1>
+<p class="lead">AI 資料中心一個機櫃的功率已經從十幾 kW 走到上百 kW，業界在討論 1 MW 等級的機櫃。功率翻十倍，損耗也會翻十倍，除非每一級轉換的效率再往上推。碳化矽（SiC）和氮化鎵（GaN）這類寬能隙半導體，就是讓電源供應器（PSU）效率突破 97–98%、功率密度突破 100 W/in³ 的關鍵。這一頁以 Infineon 的 CoolSiC 與 CoolGaN 為例，說明 SiC 在資料中心用在哪裡、為什麼、以及從設計到客訴要注意什麼。</p>
+<div class="callout"><b>關於產品資訊</b>　本頁引用的產品與參考設計資料來自 Infineon 的公開新聞稿與技術媒體報導（見<a href="#sources">資料來源</a>），整理時間為 2026 年 10 月。規格、料號與供貨狀況會更新，請以 Infineon 官網與資料手冊為準。本頁不代表 Infineon 官方立場。</div>
+
+<h2 id="why-wbg">為什麼是寬能隙</h2>
+<p>半導體的能隙越寬，能承受的臨界電場越高。同樣的耐壓，漂移區可以做得更薄、摻雜更濃，所以導通電阻大幅下降；元件更小，寄生電容與電荷也更小，可以切換得更快。</p>
+<div class="tblwrap"><table>
+  <tr><th>特性（量級）</th><th>Si</th><th>4H-SiC</th><th>GaN</th><th>對電源的意義</th></tr>
+  <tr><td>能隙</td><td>1.1 eV</td><td>3.3 eV</td><td>3.4 eV</td><td>高溫漏電小、可在更高溫工作</td></tr>
+  <tr><td>臨界電場</td><td>≈ 0.3 MV/cm</td><td>≈ 2.5–3 MV/cm</td><td>≈ 3 MV/cm</td><td>同耐壓下漂移區薄約 10 倍，R<sub>sp</sub> 大幅下降</td></tr>
+  <tr><td>熱導率</td><td>≈ 1.5 W/cm·K</td><td>≈ 3–4.9 W/cm·K</td><td>≈ 1.3 W/cm·K（磊晶在 Si 上更低）</td><td>SiC 散熱好，適合大電流</td></tr>
+  <tr><td>典型元件</td><td>超接面 MOSFET、IGBT</td><td>垂直 MOSFET、蕭特基二極體</td><td>橫向 HEMT</td><td></td></tr>
+  <tr><td>甜蜜點</td><td>&lt; 650 V 低成本、低壓 VRM</td><td>400–3300 V、大功率、硬切換</td><td>100–650 V、高頻、軟切換</td><td></td></tr>
+</table></div>
+<p>回想<a href="process.html#ldmos">製程章 LDMOS</a> 的 R<sub>sp</sub> ∝ BV<sup>2.5</sup>：臨界電場高了將近 10 倍，同樣耐壓的理論 R<sub>sp</sub> 可以低兩到三個數量級。這就是 SiC 在 650 V 以上幾乎取代 Si MOSFET、在 1200 V 以上和 IGBT 競爭的原因。</p>
+
+<h2 id="sic-vs-gan">SiC、GaN、Si 怎麼分工</h2>
+<div class="tblwrap"><table>
+  <tr><th></th><th>Si 超接面 MOSFET</th><th>SiC MOSFET</th><th>GaN HEMT</th></tr>
+  <tr><td>反向恢復</td><td>體二極體 Q<sub>rr</sub> 大，不適合連續導通模式的硬切換圖騰柱</td><td>體二極體 Q<sub>rr</sub> 小，可做硬切換圖騰柱 PFC</td><td>沒有體二極體，Q<sub>rr</sub> ≈ 0，但反向導通壓降高</td></tr>
+  <tr><td>切換頻率</td><td>數十–百 kHz</td><td>數十–數百 kHz</td><td>數百 kHz–MHz</td></tr>
+  <tr><td>耐壓 / 堅固度</td><td>有雪崩能力</td><td>有雪崩能力、短路耐受數 µs、熱導好</td><td>通常沒有雪崩能力，靠設計裕度</td></tr>
+  <tr><td>閘極驅動</td><td>0 / +10–12 V</td><td>常見 +15–20 V 開、0 至 −5 V 關（依料號）</td><td>閘極耐壓低（約 6–7 V 等級，依結構），驅動需精準</td></tr>
+  <tr><td>資料中心典型位置</td><td>成本敏感的 PFC、低壓 VRM（Si 仍是主力）</td><td>PFC、UPS、固態變壓器、800 V HVDC 轉換</td><td>LLC 隔離 DC/DC、48 V 中間匯流排轉換</td></tr>
+</table></div>
+<div class="callout"><b>一句話</b>　SiC 管「高壓、大電流、硬切換」，GaN 管「高頻、軟切換、追求體積」，Si 管「低壓與成本」。最新的高密度 PSU 通常三種一起用。</div>
+
+<h2 id="dc-chain">資料中心的電源鏈</h2>
+<figure>
+<svg class="chain" viewBox="0 0 640 250" role="img" aria-label="資料中心電源鏈：電網、UPS、配電、機櫃 PSU、48 V 匯流排、中間轉換、VRM、GPU，並標示 SiC、GaN、Si 的位置">
+  <g class="ts">
+  <rect class="c5" x="8"   y="40" width="70" height="56" rx="6"/><text x="43"  y="62" text-anchor="middle">電網</text><text x="43" y="78" text-anchor="middle" class="t-mut">中壓 AC</text>
+  <rect class="c2" x="86"  y="40" width="70" height="56" rx="6"/><text x="121" y="62" text-anchor="middle">UPS</text><text x="121" y="78" text-anchor="middle" class="t-mut">AC-DC-AC</text>
+  <rect class="c5" x="164" y="40" width="70" height="56" rx="6"/><text x="199" y="62" text-anchor="middle">配電 PDU</text><text x="199" y="78" text-anchor="middle" class="t-mut">415 V AC</text>
+  <rect class="c2" x="242" y="40" width="80" height="56" rx="6"/><text x="282" y="58" text-anchor="middle">機櫃 PSU</text><text x="282" y="72" text-anchor="middle" class="t-mut">PFC + LLC</text><text x="282" y="86" text-anchor="middle" class="t-mut">AC → 50 V</text>
+  <rect class="c5" x="330" y="40" width="70" height="56" rx="6"/><text x="365" y="62" text-anchor="middle">匯流排</text><text x="365" y="78" text-anchor="middle" class="t-mut">48–54 V</text>
+  <rect class="c3" x="408" y="40" width="80" height="56" rx="6"/><text x="448" y="62" text-anchor="middle">中間轉換 IBC</text><text x="448" y="78" text-anchor="middle" class="t-mut">48 → 12 V</text>
+  <rect class="c1" x="496" y="40" width="70" height="56" rx="6"/><text x="531" y="62" text-anchor="middle">VRM</text><text x="531" y="78" text-anchor="middle" class="t-mut">多相 → 0.8 V</text>
+  <rect class="c4" x="574" y="40" width="58" height="56" rx="6"/><text x="603" y="72" text-anchor="middle">GPU</text>
+  </g>
+  <path class="wm" d="M78 68h8M156 68h8M234 68h8M322 68h8M400 68h8M488 68h8M566 68h8"/>
+  <text x="121" y="122" text-anchor="middle" class="ts" style="fill:var(--s2)">SiC</text>
+  <text x="282" y="122" text-anchor="middle" class="ts" style="fill:var(--s2)">SiC（PFC）＋ GaN（LLC）</text>
+  <text x="448" y="122" text-anchor="middle" class="ts" style="fill:var(--s3)">GaN / Si</text>
+  <text x="531" y="122" text-anchor="middle" class="ts" style="fill:var(--s1)">Si（DrMOS）</text>
+  <path class="wd" d="M8 150 H632"/>
+  <text x="8" y="172" class="ts t-mut">800 V HVDC 方向：</text>
+  <g class="ts">
+  <rect class="c2" x="8"   y="182" width="150" height="48" rx="6"/><text x="83" y="202" text-anchor="middle">電力機櫃 / 側掛</text><text x="83" y="218" text-anchor="middle" class="t-mut">AC → 800 V DC（SiC）</text>
+  <rect class="c5" x="182" y="182" width="120" height="48" rx="6"/><text x="242" y="210" text-anchor="middle">800 V 配電</text>
+  <rect class="c3" x="326" y="182" width="150" height="48" rx="6"/><text x="401" y="202" text-anchor="middle">板上高壓轉換</text><text x="401" y="218" text-anchor="middle" class="t-mut">800 V → 低壓（GaN / SiC）</text>
+  <rect class="c1" x="500" y="182" width="132" height="48" rx="6"/><text x="566" y="210" text-anchor="middle">VRM → GPU</text>
+  </g>
+  <path class="wm" d="M158 206h24M302 206h24M476 206h24"/>
+</svg>
+<figcaption>上：目前主流的 AC 配電 + 機櫃 PSU + 48–54 V 匯流排架構。下：AI 機櫃朝 800 V 直流配電發展，把 AC-DC 集中到電力機櫃，伺服器板上直接從高壓轉換。圖中的材料標示是典型做法，不是唯一做法。</figcaption>
+</figure>
+<p>從電網到 GPU 大約經過五到七級轉換。總效率是各級效率相乘：</p>
+<div class="eq">η<sub>total</sub> = η<sub>UPS</sub> × η<sub>PSU</sub> × η<sub>IBC</sub> × η<sub>VRM</sub>　例：0.97 × 0.975 × 0.975 × 0.90 ≈ 0.83</div>
+<p>VRM 那一級（0.8 V、上千安培）通常是效率最低的一級，屬於<a href="architecture.html#pmic">架構章多相 Buck</a> 的範疇；SiC 的貢獻主要在前面的高壓 AC/DC 與 UPS。一個 100 MW 的資料中心，PSU 效率每提高 1 個百分點，就少約 1 MW 的熱，也少了對應的冷卻電力。</p>
+
+<h2 id="psu">機櫃 PSU：SiC 用在哪一級</h2>
+<p>伺服器 PSU 通常分兩級：前級<b>功率因數校正（PFC）</b>把 AC 整流並升到約 400 V 直流，後級<b>隔離 DC/DC</b>（常見 LLC 諧振轉換器）降到 50 V 左右的匯流排電壓。</p>
+<ul>
+  <li><b>無橋圖騰柱 PFC</b>（totem-pole PFC）：省掉整流橋的二極體壓降，效率最高，但高頻臂在連續導通模式下要硬切換，體二極體的反向恢復會造成巨大損失。Si 超接面 MOSFET 的 Q<sub>rr</sub> 太大做不到，<b>SiC 與 GaN 的出現才讓圖騰柱 PFC 量產化</b>。</li>
+  <li><b>多階（multi-level）PFC</b>：飛跨電容三階架構讓每顆開關只承受一半電壓，可以用 400 V 等級元件，並降低電感體積。這是 Infineon 400 V CoolSiC 瞄準的應用。</li>
+  <li><b>LLC 隔離 DC/DC</b>：軟切換、頻率可推到數百 kHz 以上，用 GaN 可縮小變壓器；也有用 SiC 或 Si 的設計。</li>
+  <li><b>保持時間（hold-up）</b>：AC 斷電後輸出要撐 10–20 ms，傳統靠大電解電容，佔很大體積。新設計用主動式能量緩衝電路降低所需電容。</li>
+  <li><b>效率規範</b>：80 PLUS Titanium、OCP Open Rack v3 等規範把高負載與半載效率都訂得很高（約 96% 以上量級，依規範版本與輸入電壓而異）。</li>
+</ul>
+
+<h2 id="infineon">以 Infineon 為例：產品與參考設計</h2>
+<div class="tblwrap"><table>
+  <tr><th>項目</th><th>公開資訊重點</th></tr>
+  <tr><td>CoolSiC MOSFET 400 V（G2）</td><td>2024 年 5 月發表，針對 AI 伺服器 PSU 的 AC/DC 級；R<sub>DS(on)</sub> 11–45 mΩ 五個等級、共十款，TOLL 與 D²PAK-7（Kelvin source、.XT 封裝互連）。Infineon 表示用於多階 PFC 可達 99.5% 效率、超過 100 W/in³。</td></tr>
+  <tr><td>CoolSiC 650 V / 750 V 等</td><td>傳統 2 階 PFC、UPS、電信電源常用的電壓等級；Infineon 2026 年的白皮書討論 400 / 650 / 750 V 在資料中心 PSU 的分工。</td></tr>
+  <tr><td>CoolGaN</td><td>用在 PSU 的 DC/DC 級；Infineon 稱 400 V CoolSiC + CoolGaN 的組合可支援 8 kW 以上的 PSU。</td></tr>
+  <tr><td>12 kW PSU 參考設計</td><td>2025 年 10 月發表：AC/DC 前級為 CoolSiC 三階飛跨電容交錯 PFC（報導峰值效率 &gt; 99.0%），DC/DC 為 CoolGaN 全橋 LLC（&gt; 98.5%）、兩顆平面變壓器，整體功率密度最高約 113 W/in³，並內建雙向能量緩衝以滿足 hold-up 時間、減少電容。同時用到 Si、SiC、GaN。</td></tr>
+  <tr><td>800 V HVDC 合作</td><td>2025 年 5 月宣布與 NVIDIA 合作開發 800 V 高壓直流的機櫃供電架構，電力在 GPU 所在的伺服器板上直接轉換；Infineon 預期十年內機櫃功率會達 1 MW 以上，並在過渡期繼續提供中間 DC/DC 與多相電源方案。</td></tr>
+</table></div>
+<p>其他主要 SiC 供應商（例如 Wolfspeed、onsemi、STMicroelectronics、ROHM 等）也都有資料中心電源的產品線與參考設計；選型時要比較的不是品牌，而是下面這些參數在你的拓撲下的表現。</p>
+
+<h2 id="hvdc">800 V HVDC 與固態變壓器</h2>
+<ul>
+  <li><b>為什麼要高壓直流</b>：機櫃 100 kW 以上時，54 V 匯流排的電流達數千安培，銅排的重量、壓降和佔用空間都成為瓶頸。電壓提高到 800 V，同功率的電流降到約 1/15。</li>
+  <li><b>架構變化</b>：AC→DC 轉換從每台伺服器的 PSU 集中到電力機櫃或側掛模組；伺服器內部要有 800 V → 低壓的高效轉換，這一級是 SiC 與 GaN 的新戰場。</li>
+  <li><b>固態變壓器（SST）</b>：用高頻 SiC 轉換器取代 50/60 Hz 的大型變壓器，直接從中壓電網轉到 800 V 直流。目前仍在發展中，SiC 的高壓元件（1200–3300 V 以上）是核心。</li>
+  <li><b>新的安全問題</b>：直流電弧不會自然熄滅，需要固態斷路器（SSCB，SiC 也是候選）、絕緣監測與新的維修規範。</li>
+</ul>
+
+<h2 id="design">SiC 設計重點</h2>
+<div class="tblwrap"><table>
+  <tr><th>主題</th><th>重點</th></tr>
+  <tr><td>閘極驅動電壓</td><td>SiC 的跨導較低，需要較高的開啟電壓（常見 +15 至 +20 V，依料號）才能把 R<sub>DS(on)</sub> 壓到規格值；關斷用 0 V 或負壓（−2 至 −5 V），以防誤導通。照資料手冊的建議值，不要沿用 Si 的 12 V。</td></tr>
+  <tr><td>米勒誤導通</td><td>半橋中另一顆開關切換時的高 dV/dt 經 C<sub>gd</sub> 把閘極拉高；對策是負壓關斷、米勒鉗位、低阻抗關斷路徑。</td></tr>
+  <tr><td>Kelvin source</td><td>功率迴路和閘極迴路共用源極接腳時，di/dt 在源極電感上的壓降會抵消閘極電壓、減慢切換；4 腳封裝（TO-247-4、TOLL、D²PAK-7）的 Kelvin source 可解決。</td></tr>
+  <tr><td>佈局與寄生</td><td>dV/dt 可達 50–100 V/ns：功率迴路電感要最小（見<a href="application.html#layout">應用 · 佈局</a>），隔離驅動器要有高 CMTI，避免共模雜訊干擾控制。</td></tr>
+  <tr><td>短路保護</td><td>SiC 晶粒小、電流密度高，短路耐受時間通常比 IGBT 短（約 2–3 µs 等級）。去飽和（DESAT）偵測要快，搭配軟關斷避免過衝。</td></tr>
+  <tr><td>體二極體</td><td>可以用、Q<sub>rr</sub> 小，但順向壓降高（約 3–4 V），死區要短或用同步整流。</td></tr>
+  <tr><td>熱與 R<sub>DS(on)</sub></td><td>SiC 的 R<sub>DS(on)</sub> 溫度係數比 Si 小，但仍隨溫度上升；用最高接面溫度下的值計算損耗。</td></tr>
+</table></div>
+
+<h2 id="manufacturing">製造：SiC 為什麼貴</h2>
+<ul>
+  <li><b>基板</b>：SiC 晶錠用昇華法（PVT）在 2000 °C 以上長晶，速度慢、良率低，晶圓成本遠高於 Si。主流從 150 mm 轉往 200 mm，以降低每顆晶粒成本。</li>
+  <li><b>晶體缺陷</b>：微管、基面差排（BPD）、堆疊錯誤會造成元件失效或長期退化；磊晶層要把 BPD 轉換成無害的穿透刃差排。</li>
+  <li><b>高溫製程</b>：離子佈植後需 1600 °C 以上活化退火；閘極氧化層的 SiC/SiO<sub>2</sub> 介面缺陷密度比 Si 高，影響通道遷移率與 V<sub>T</sub> 穩定度。</li>
+  <li><b>平面閘 vs 溝槽閘</b>：溝槽閘（trench）的通道遷移率與 R<sub>sp</sub> 較好，但溝槽底部電場要保護；Infineon CoolSiC 採溝槽式結構。</li>
+  <li><b>封裝</b>：高溫與大電流讓銀燒結黏晶、銅線 / 銅夾片、.XT 這類擴散焊互連越來越普遍，以提升功率循環壽命。</li>
+</ul>
+<p>對照<a href="production.html#yield">生產 · 良率</a>：SiC 晶粒的缺陷良率是主要成本來源，晶片面積越大良率越低，這也是大電流模組常用多顆小晶粒並聯的原因。</p>
+
+<h2 id="test-rel">測試與可靠度</h2>
+<div class="tblwrap"><table>
+  <tr><th>項目</th><th>SiC 特有的注意點</th></tr>
+  <tr><td>V<sub>T</sub> 漂移（BTI）</td><td>閘極偏壓下介面陷阱充放電讓 V<sub>T</sub> 漂移；除了靜態 HTGB，業界也做動態閘極應力（交流切換條件）測試，量測時的前處理與時序會影響讀值。</td></tr>
+  <tr><td>閘極氧化層壽命</td><td>SiC 的介面與缺陷使外質性早期失效風險較高；常用加嚴的閘極電壓篩選（gate screening）與 TDDB 外推壽命。</td></tr>
+  <tr><td>雙極退化</td><td>體二極體長時間導通時，BPD 在電子電洞復合能量下擴展成堆疊錯誤，造成 V<sub>F</sub> 與 R<sub>DS(on)</sub> 上升；以磊晶緩衝層與體二極體應力測試篩除。</td></tr>
+  <tr><td>宇宙射線（SEB）</td><td>高壓元件在高電場下可能被大氣中子觸發單粒子燒毀；FIT 率隨施加電壓佔額定的比例急速上升，所以高壓直流設計要做電壓降額。</td></tr>
+  <tr><td>雪崩與短路</td><td>非箝位感性切換（UIS）測雪崩能量；短路耐受時間是驅動保護設計的依據。</td></tr>
+  <tr><td>動態參數</td><td>雙脈衝測試（DPT）量切換能量 E<sub>on</sub> / E<sub>off</sub>、Q<sub>rr</sub>；量測需要高頻寬電流探棒與極低電感的測試治具。</td></tr>
+  <tr><td>驗證標準</td><td>離散元件常以 JEDEC / AEC-Q101 為基礎並加上 SiC 專屬項目；車用功率模組參考 AQG 324。資料中心客戶多半另有自己的壽命與 FIT 要求。</td></tr>
+</table></div>
+
+<h2 id="issues">常見問題與客訴情境</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>可能原因</th><th>怎麼查 / 對策</th></tr>
+  <tr><td>PFC 效率比參考設計低 0.3–0.5%</td><td>閘極驅動電壓不足（沿用 Si 的 12 V）、沒有 Kelvin source、死區太長讓體二極體導通</td><td>依資料手冊設定 V<sub>GS</sub>、量 V<sub>GS</sub> 實際波形、縮短死區</td></tr>
+  <tr><td>半橋偶發直通、開關燒毀</td><td>米勒誤導通、閘極振鈴超過 V<sub>GS(max)</sub></td><td>負壓關斷或米勒鉗位、閘極電阻與佈局、用差動探棒量閘極</td></tr>
+  <tr><td>長期運轉後 R<sub>DS(on)</sub> / V<sub>F</sub> 上升</td><td>雙極退化、V<sub>T</sub> 漂移</td><td>比對出貨前後參數、確認體二極體導通時間與閘極偏壓條件</td></tr>
+  <tr><td>高壓機台隨機燒毀、無明顯應力事件</td><td>宇宙射線 SEB、電壓降額不足</td><td>計算 FIT vs 施加電壓、檢討匯流排電壓與突波</td></tr>
+  <tr><td>EMI 超標</td><td>dV/dt 太快、共模電流經散熱片電容耦合</td><td>調整閘極電阻、散熱片接地、共模濾波</td></tr>
+  <tr><td>驅動器誤動作</td><td>隔離驅動器 CMTI 不足</td><td>選用高 CMTI 驅動器、縮短控制與功率地的耦合</td></tr>
+</table></div>
+<p>客訴處理流程與 FA 方法同<a href="complaints.html#fa">客訴處理</a>；SiC 的 FA 常用熱成像與截面分析找閘極氧化層或溝槽底部的燒毀點，並以 EOS / 短路 / SEB 的特徵（燒毀位置、形狀）判斷能量來源。</p>
+
+<h2 id="sources">資料來源</h2>
+<ul>
+  <li><a href="https://eepower.com/new-industry-products/infineon-unveils-12-kw-psu-reference-design-for-ai-data-centers/">EE Power：Infineon 12 kW PSU 參考設計</a></li>
+  <li><a href="https://electronicdesign.com/technologies/power/article/55330208/electronic-design-infineon-12-kw-high-density-psu-reference-design-aimed-at-ai-data-centers-and-servers">Electronic Design：12 kW 高密度 PSU 參考設計</a></li>
+  <li><a href="https://eepower.com/new-industry-products/infineon-targets-ai-servers-with-newly-added-coolsic-mosfets/">EE Power：CoolSiC MOSFET 400 V 用於 AI 伺服器</a></li>
+  <li><a href="https://compoundsemiconductor.net/article/119446/Infineon_unveils_400V_CoolSiC_MOSFETs">Compound Semiconductor：Infineon 400 V CoolSiC</a></li>
+  <li><a href="https://www.infineon.com/assets/row/public/documents/24/59/infineon-how-infineon-technologies-sic-solutions-are-shaping-the-future-of-data-center-power-supplies-whitepaper-en.pdf">Infineon 白皮書：SiC 在資料中心 PSU 的應用</a></li>
+  <li><a href="https://www.businesswire.com/news/home/20250520961904/en">Business Wire：Infineon 與 NVIDIA 的 800 V 供電架構</a></li>
+  <li><a href="https://www.powerelectronicsnews.com/powering-the-future-how-nvidia-and-infineon-are-reinventing-ai-data-center-architecture">Power Electronics News：NVIDIA 與 Infineon 的 AI 資料中心架構</a></li>
+</ul>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>寬能隙（WBG）</dt><dd>Wide bandgap，能隙明顯大於矽的半導體，例如 SiC、GaN。</dd></div>
+  <div><dt>Totem-pole PFC</dt><dd>無橋圖騰柱功率因數校正，省去整流橋的高效率 PFC 拓撲。</dd></div>
+  <div><dt>LLC</dt><dd>電感-電感-電容諧振轉換器，常用於隔離 DC/DC，可軟切換。</dd></div>
+  <div><dt>Hold-up time</dt><dd>輸入斷電後輸出仍維持在規格內的時間。</dd></div>
+  <div><dt>HVDC</dt><dd>High-voltage direct current，高壓直流配電。</dd></div>
+  <div><dt>SST</dt><dd>Solid-state transformer，固態變壓器。</dd></div>
+  <div><dt>IBC</dt><dd>Intermediate bus converter，中間匯流排轉換器（例如 48 V → 12 V）。</dd></div>
+  <div><dt>BPD</dt><dd>Basal plane dislocation，基面差排，SiC 雙極退化的源頭。</dd></div>
+  <div><dt>SEB</dt><dd>Single-event burnout，粒子撞擊引發的單粒子燒毀。</dd></div>
+  <div><dt>CMTI</dt><dd>Common-mode transient immunity，隔離驅動器對共模 dV/dt 的抗擾能力。</dd></div>
+  <div><dt>DPT</dt><dd>Double-pulse test，雙脈衝測試，量測切換特性的標準方法。</dd></div>
+</dl>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
