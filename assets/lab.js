@@ -219,20 +219,23 @@
       const NREC = 3000, dtMax = 0.03 / Math.max(wp, 2 * Math.PI * ugb, 1 / tr);
       const sub = Math.max(1, Math.ceil(T / NREC / dtMax)), dt = T / NREC / sub;
       const iload = t => t < t1 ? lo : t < t1 + tr ? lo + dI * (t - t1) / tr : t < t2 ? hi : t < t2 + tr ? hi - dI * (t - t2) / tr : lo;
+      const VNOM = 1.8, VIN_TR = 3.3, ILIM = 1.5;          // model: 1.8 V output from 3.3 V, 1.5 A current limit
       let vc = 0, ip = lo, tt = 0, v = 0, y = 0;
       const rec = [];
       for(let k = 0; k <= NREC; k++){
-        rec.push([tt, v, iload(tt), ip]);
+        rec.push([tt, clamp(vc + esr * (ip - iload(tt)), -VNOM, VIN_TR - VNOM), iload(tt), ip, vc <= -VNOM + 1e-6 ? -1 : vc >= VIN_TR - VNOM - 1e-6 ? 1 : 0]);
         for(let s = 0; s < sub; s++){
           const il = iload(tt);
-          v = vc + esr * (ip - il);
-          y += (-y - gm * (ADC - 1) * v) / tau * dt;
-          const ref = lo - gm * v + y;
-          let dip = wp * (ref - ip) * dt;
-          dip = clamp(dip, -SR * dt, SR * dt);
-          ip += dip;
-          if(ip < 0) ip = 0;                     // a PMOS pass device can only source current
-          vc += (ip - il) / c * dt;
+          v = clamp(vc + esr * (ip - il), -VNOM, VIN_TR - VNOM);
+          const ref = clamp(lo - gm * v + y, 0, ILIM);
+          const raw = wp * (ref - ip) * dt;
+          const dip = clamp(raw, -SR * dt, SR * dt);
+          // anti-windup: while the pass current is slew-limited or pinned at 0 / the current limit, freeze the integrator
+          const pinned = dip !== raw || (ip <= 0 && raw < 0) || (ip >= ILIM && raw > 0);
+          if(!pinned) y += (-y - gm * (ADC - 1) * v) / tau * dt;
+          ip = clamp(ip + dip, 0, ILIM);         // a PMOS pass device can only source current, up to its current limit
+          vc = clamp(vc + (ip - il) / c * dt, -VNOM, VIN_TR - VNOM);   // the output cannot go below 0 V or above V_IN
+          if(vc >= VIN_TR - VNOM && ip > il) ip = il;                    // no headroom left: the pass device cannot push more than the load takes
           tt += dt;
         }
       }
@@ -242,8 +245,8 @@
       let ts = 0; up.forEach(r => { if(Math.abs(r[1] - vfin) > band) ts = r[0] - t1; });
       const simple = dI * esr + dI / gm;
       metrics($('tr-metrics'), [
-        {l:t('下衝（輕載→重載）', 'Undershoot (light→heavy)'), v:fmtSI(-vmin, 'V'), cls:-vmin < 0.03 ? 'ok' : -vmin < 0.08 ? 'warn' : 'bad'},
-        {l:t('過衝（重載→輕載）', 'Overshoot (heavy→light)'), v:fmtSI(vmax - 0, 'V'), cls:vmax < 0.03 ? 'ok' : vmax < 0.08 ? 'warn' : 'bad'},
+        {l:t('下衝（輕載→重載）', 'Undershoot (light→heavy)'), v:fmtSI(-vmin, 'V'), cls:-vmin < 0.03 ? 'ok' : -vmin < 0.08 ? 'warn' : 'bad', s:vmin <= -VNOM + 1e-3 ? t('輸出掉到 0 V！', 'output collapsed to 0 V!') : ''},
+        {l:t('過衝（重載→輕載）', 'Overshoot (heavy→light)'), v:fmtSI(vmax - 0, 'V'), cls:vmax < 0.03 ? 'ok' : vmax < 0.08 ? 'warn' : 'bad', s:vmax >= VIN_TR - VNOM - 1e-3 ? t('輸出頂到 V_IN！', 'output pinned at V_IN!') : ''},
         {l:t('恢復時間', 'Recovery time'), v:fmtSI(ts, 's'), s:t('進入 ±', 'into ±') + fmtSI(band, 'V') + t(' 帶', ' band')},
         {l:t('ΔI·ESR 跳動', 'ΔI·ESR step'), v:fmtSI(dI * esr, 'V')},
         {l:t('估算 ΔI·ESR + ΔI/(2π·f_c·C)', 'Estimate ΔI·ESR + ΔI/(2π·f_c·C)'), v:fmtSI(simple, 'V'), s:t('一階手算', 'first-order hand calc')},

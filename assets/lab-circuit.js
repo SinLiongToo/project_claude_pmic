@@ -146,8 +146,10 @@
   const fmtT = s => s >= 1e-3 ? (s * 1e3).toFixed(2) + ' ms' : s >= 1e-6 ? (s * 1e6).toFixed(2) + ' µs' : (s * 1e9).toFixed(0) + ' ns';
   const offs = {};                                         // dash offset per flow path, so the dashes keep moving
   function flow(key, d, I, imax, dt){
-    const a = Math.abs(I), r = Math.min(a / (imax || 1), 1);
-    if(r < 0.01) return '';
+    // log scale, so a 1 mA branch next to a 300 mA branch is still visible
+    const a = Math.abs(I), lin = a / (imax || 1);
+    if(lin < 1e-4) return '';
+    const r = Math.min(Math.log10(1 + 99 * lin) / 2, 1);
     offs[key] = ((offs[key] || 0) - Math.sign(I) * (20 + 140 * r) * dt) % 1000;
     return '<path class="flow" d="' + d + '" style="stroke-width:' + (1.6 + 5 * r).toFixed(1) + 'px;stroke-dashoffset:' + offs[key].toFixed(1) + '"/>';
   }
@@ -164,7 +166,7 @@
     transient: {dur:7, frame(p, dt){
       const d = LAB().tr; if(!d) return '';
       const rec = d.rec, i = Math.min(rec.length - 1, Math.round(p * (rec.length - 1)));
-      const [tt, v, il, ip] = rec[i], ic = ip - il;
+      const [tt, v, il, ip, pin] = rec[i], ic = pin ? 0 : ip - il;   // pinned at a rail: the capacitor voltage cannot move
       if(d.__max === undefined) d.__max = Math.max(...rec.map(r => Math.max(r[2], r[3]))) || 1;
       cursor('tr-v', tt * 1e6); cursor('tr-i', tt * 1e6);
       const im = d.__max;
@@ -173,7 +175,7 @@
         lab(361, 40, 'I<tspan baseline-shift="sub" font-size="8">pass</tspan> ' + fmtA(ip), 'middle') +
         lab(580, 156, t('現在 ', 'now ') + fmtA(il)) +
         lab(408, 160, 'I<tspan baseline-shift="sub" font-size="8">C</tspan> ' + fmtA(ic) + (Math.abs(ic) < im * 0.01 ? '' : ic > 0 ? t('（充電）', ' (charging)') : t('（放電）', ' (discharging)')), 'end', ic < 0 ? 'var(--bad)' : 'var(--ok)') +
-        lab(690, 24, 'ΔV<tspan baseline-shift="sub" font-size="8">OUT</tspan> ' + (v * 1e3).toFixed(1) + ' mV', 'end', Math.abs(v) > 0.03 ? 'var(--bad)' : 'var(--ink)');
+        lab(690, 24, 'ΔV<tspan baseline-shift="sub" font-size="8">OUT</tspan> ' + (v * 1e3).toFixed(1) + ' mV' + (pin < 0 ? t('（輸出掉到 0 V）', ' (output at 0 V)') : pin > 0 ? t('（頂到 V_IN）', ' (pinned at V_IN)') : ''), 'end', Math.abs(v) > 0.03 ? 'var(--bad)' : 'var(--ink)');
     }},
     buck: {dur:6, frame(p, dt){
       const d = LAB().bk; if(!d) return '';

@@ -110,7 +110,7 @@
     <div class="ctl"><label for="tr-bw">迴路頻寬 <output id="tr-bw-o"></output></label><input id="tr-bw" type="range" min="0" max="100" step="1" value="55"></div>
     <div class="ctl"><label for="tr-pm">相位裕度 <output id="tr-pm-o"></output></label><input id="tr-pm" type="range" min="15" max="80" step="1" value="55"></div>
     <div class="ctl"><label for="tr-sr">閘極驅動能力（電流迴轉率） <output id="tr-sr-o"></output></label><input id="tr-sr" type="range" min="0" max="100" step="1" value="70"></div>
-    <p class="note">傳輸電流以兩極點迴路追隨誤差電壓，並受迴轉率限制；有限迴路增益造成穩態的負載調節誤差。</p>
+    <p class="note">傳輸電流以兩極點迴路追隨誤差電壓，並受迴轉率限制；有限迴路增益造成穩態的負載調節誤差。模型假設 V<sub>OUT</sub> 1.8 V、V<sub>IN</sub> 3.3 V、限流 1.5 A，輸出不會低於 0 V 或高於 V<sub>IN</sub>。</p>
   </div>
   <div class="stack">
     <div class="metrics" id="tr-metrics"></div>

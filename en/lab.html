@@ -111,7 +111,7 @@
     <div class="ctl"><label for="tr-bw">Loop bandwidth <output id="tr-bw-o"></output></label><input id="tr-bw" type="range" min="0" max="100" step="1" value="55"></div>
     <div class="ctl"><label for="tr-pm">Phase margin <output id="tr-pm-o"></output></label><input id="tr-pm" type="range" min="15" max="80" step="1" value="55"></div>
     <div class="ctl"><label for="tr-sr">Gate-drive strength (current slew rate) <output id="tr-sr-o"></output></label><input id="tr-sr" type="range" min="0" max="100" step="1" value="70"></div>
-    <p class="note">Pass current follows the error voltage through a two-pole loop and is slew-rate limited; finite loop gain leaves a steady load-regulation error.</p>
+    <p class="note">Pass current follows the error voltage through a two-pole loop and is slew-rate limited; finite loop gain leaves a steady load-regulation error. The model assumes V<sub>OUT</sub> 1.8 V, V<sub>IN</sub> 3.3 V and a 1.5 A current limit; the output cannot go below 0 V or above V<sub>IN</sub>.</p>
   </div>
   <div class="stack">
     <div class="metrics" id="tr-metrics"></div>
