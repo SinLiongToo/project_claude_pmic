@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>術語表 · PMIC Notes</title>
+<meta name="description" content="全站縮寫與術語：UVLO、PSRR、ESD、MLCC、AEC-Q100、SiC 等，依主題分類，每個附一句話解釋與詳細說明的連結。">
+<link rel="alternate" hreflang="en" href="en/glossary.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="glossary">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Glossary · 術語表</div>
+<h1>術語表：全站縮寫與名詞</h1>
+<p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
+<div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 245 個。</p>
+<h2 id="cat-basic">元件與基礎</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
+  <div><dt id="g-ac-dc">AC-DC <small>交流-直流轉換</small></dt><dd>把市電交流轉成直流，例如充電器、伺服器電源的前級。 <span class="gl-other">AC-DC conversion</span>  <a class="gl-more" href="sic.html#psu">詳細說明 →</a></dd></div>
+  <div><dt id="g-bandgap-reference">Bandgap reference <small>帶隙參考</small></dt><dd>把負溫度係數的 V_BE 與正溫度係數的 ΔV_BE 相加，得到約 1.2 V、幾乎不隨溫度變化的參考電壓。 <span class="gl-other">Bandgap reference</span> <span class="gl-also">也寫作：bandgap reference、bandgap references、帶隙</span> <a class="gl-more" href="design.html#bandgap">詳細說明 →</a></dd></div>
+  <div><dt id="g-bcd">BCD</dt><dd>Bipolar-CMOS-DMOS 整合製程。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-bjt">BJT <small>雙極性接面電晶體</small></dt><dd>用基極電流控制集極電流；帶隙參考與精密類比電路常用。 <span class="gl-other">Bipolar junction transistor</span>  <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
+  <div><dt id="g-boost">Boost <small>升壓 / 升降壓轉換器</small></dt><dd>Boost 讓輸出高於輸入；Buck-Boost 可升可降，用在電池電壓跨過輸出電壓的情況。 <span class="gl-other">Boost / buck-boost converter</span> <span class="gl-also">也寫作：Buck-Boost</span> <a class="gl-more" href="architecture.html#boost-bb">詳細說明 →</a></dd></div>
+  <div><dt id="g-bti">BTI <small>偏壓溫度不穩定性</small></dt><dd>閘極偏壓加高溫讓 V_T 慢慢漂移；NBTI 是 PMOS 負偏壓的版本，SiC 也特別明顯。 <span class="gl-other">Bias temperature instability</span> <span class="gl-also">也寫作：NBTI</span> <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+  <div><dt id="g-buck">Buck <small>降壓轉換器</small></dt><dd>用開關與電感把電壓往下轉的 DC-DC，理想輸出 = 工作週期 × V_IN，效率 85–95%。 <span class="gl-other">Buck converter</span>  <a class="gl-more" href="architecture.html#buck">詳細說明 →</a></dd></div>
+  <div><dt id="g-bv">BV <small>崩潰電壓</small></dt><dd>元件開始大量導通（崩潰）的電壓，決定耐壓等級。 <span class="gl-other">Breakdown voltage</span>  <a class="gl-more" href="process.html#ldmos">詳細說明 →</a></dd></div>
+  <div><dt id="g-cmos">CMOS <small>互補式 MOS</small></dt><dd>用 PMOS 與 NMOS 組成的電路，數位邏輯的主流技術。 <span class="gl-other">Complementary MOS</span>  <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
+  <div><dt id="g-dc-dc">DC-DC <small>直流-直流轉換器</small></dt><dd>把一個直流電壓轉成另一個直流電壓的切換式轉換器，例如 Buck、Boost。 <span class="gl-other">DC-DC converter</span>  <a class="gl-more" href="architecture.html#linear-vs-switching">詳細說明 →</a></dd></div>
+  <div><dt id="g-dmos">DMOS <small>雙擴散 MOS</small></dt><dd>用兩次擴散形成通道的功率 MOS；LDMOS 是它的橫向版本。 <span class="gl-other">Double-diffused MOS</span>  <a class="gl-more" href="process.html#ldmos">詳細說明 →</a></dd></div>
+  <div><dt id="g-dti">DTI</dt><dd>Deep Trench Isolation，深溝槽隔離。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-eeprom">EEPROM <small>可電性抹寫的非揮發記憶 / 多次寫入記憶</small></dt><dd>斷電後保留資料、可重複寫入；用來存修調或配置。 <span class="gl-other">Electrically erasable PROM / multi-time programmable</span> <span class="gl-also">也寫作：MTP</span> <a class="gl-more" href="process.html#trim-fuse">詳細說明 →</a></dd></div>
+  <div><dt id="g-em">EM <small>電遷移</small></dt><dd>大電流密度讓金屬原子被電子推移，形成空洞或凸起而開路或短路。 <span class="gl-other">Electromigration</span>  <a class="gl-more" href="process.html#metal">詳細說明 →</a></dd></div>
+  <div><dt id="g-fom">FOM</dt><dd>Figure of Merit，例如 R<sub>DS(on)</sub>·Q<sub>g</sub>，衡量開關元件的綜合表現。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-guard-ring">Guard ring</dt><dd>保護環，包圍元件以收集注入載子、降低 latch-up 風險。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-hemt">HEMT <small>高電子遷移率電晶體</small></dt><dd>GaN 功率元件的結構，利用異質介面的二維電子氣導電，速度快。 <span class="gl-other">High-electron-mobility transistor</span>  <a class="gl-more" href="sic.html#sic-vs-gan">詳細說明 →</a></dd></div>
+  <div><dt id="g-hv">HV <small>高壓</small></dt><dd>製程中能承受較高電壓的元件版本，例如 HV CMOS。 <span class="gl-other">High voltage</span>  <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
+  <div><dt id="g-ic">IC <small>積體電路</small></dt><dd>把電晶體、電阻、電容等做在同一塊矽晶片上的電路。 <span class="gl-other">Integrated circuit</span>  <a class="gl-more" href="architecture.html#why-regulate">詳細說明 →</a></dd></div>
+  <div><dt id="g-igbt">IGBT <small>絕緣閘雙極電晶體</small></dt><dd>用 MOS 閘極控制的雙極功率元件，用於高壓大電流，例如馬達驅動、逆變器。 <span class="gl-other">Insulated-gate bipolar transistor</span>  <a class="gl-more" href="sic.html#why-wbg">詳細說明 →</a></dd></div>
+  <div><dt id="g-ji">JI <small>接面隔離</small></dt><dd>用反偏 PN 接面把元件和基板隔開，成本低但有寄生元件。 <span class="gl-other">Junction isolation</span>  <a class="gl-more" href="process.html#isolation">詳細說明 →</a></dd></div>
+  <div><dt id="g-ldmos">LDMOS</dt><dd>Laterally Diffused MOS，橫向擴散 MOS，電源 IC 的主力功率元件。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ldo">LDO <small>低壓差線性穩壓器</small></dt><dd>用傳輸元件當可變電阻來穩壓，只需要很小的輸入輸出壓差。 <span class="gl-other">Low-dropout regulator</span>  <a class="gl-more" href="architecture.html#ldo-block">詳細說明 →</a></dd></div>
+  <div><dt id="g-mim">MIM <small>MIM / MOM / PIP 電容</small></dt><dd>晶片上的電容結構：金屬-絕緣層-金屬、金屬-氧化層-金屬（指叉）、多晶矽-絕緣層-多晶矽。 <span class="gl-other">MIM / MOM / PIP capacitors</span> <span class="gl-also">也寫作：MOM、PIP</span> <a class="gl-more" href="process.html#passives">詳細說明 →</a></dd></div>
+  <div><dt id="g-mos">MOS <small>金屬-氧化層-半導體</small></dt><dd>MOSFET 的簡稱，也指這種三層結構（例如 MOS 電容）。 <span class="gl-other">Metal-oxide-semiconductor</span>  <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
+  <div><dt id="g-mosfet">MOSFET <small>金屬氧化物半導體場效電晶體</small></dt><dd>用閘極電壓控制汲極-源極電流的電晶體，是電源 IC 最常用的開關。 <span class="gl-other">Metal-oxide-semiconductor field-effect transistor</span> <span class="gl-also">也寫作：FET</span> <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
+  <div><dt id="g-nbl">NBL</dt><dd>N-type Buried Layer，N 型埋層，用於接面隔離與降低寄生 PNP 增益。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-nmos">NMOS <small>N 型 MOSFET</small></dt><dd>閘極比源極高時導通；同尺寸導通電阻比 PMOS 小，當源極隨耦器時輸出阻抗低。 <span class="gl-other">N-channel MOSFET</span>  <a class="gl-more" href="architecture.html#pass-device">詳細說明 →</a></dd></div>
+  <div><dt id="g-npn">NPN <small>NPN / PNP 電晶體</small></dt><dd>BJT 的兩種極性；早期穩壓器用 NPN 達靈頓或 PNP 當傳輸元件。 <span class="gl-other">NPN / PNP transistors</span> <span class="gl-also">也寫作：PNP</span> <a class="gl-more" href="architecture.html#pass-device">詳細說明 →</a></dd></div>
+  <div><dt id="g-otp">OTP</dt><dd>One-Time Programmable，只能寫一次的非揮發記憶。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-piezoresistive-effect">Piezoresistive effect</dt><dd>壓阻效應，應力改變半導體電阻與載子遷移率。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pmic">PMIC <small>電源管理 IC</small></dt><dd>把多路 Buck、LDO、時序控制、監控與介面整合在一顆晶片。 <span class="gl-other">Power-management IC</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-pmos">PMOS <small>P 型 MOSFET</small></dt><dd>閘極比源極低時導通；LDO 最常用的傳輸元件，不需高於 V_IN 的閘極驅動。 <span class="gl-other">P-channel MOSFET</span>  <a class="gl-more" href="architecture.html#pass-device">詳細說明 →</a></dd></div>
+  <div><dt id="g-pn">PN <small>PN 接面</small></dt><dd>P 型與 N 型半導體的交界，也就是二極體；反偏時可做隔離。 <span class="gl-other">PN junction</span>  <a class="gl-more" href="process.html#isolation">詳細說明 →</a></dd></div>
+  <div><dt id="g-rdl">RDL <small>重佈線層</small></dt><dd>在晶圓上方多做一層金屬（常為銅），把電流或訊號重新導到焊墊或凸塊。 <span class="gl-other">Redistribution layer</span>  <a class="gl-more" href="process.html#metal">詳細說明 →</a></dd></div>
+  <div><dt id="g-resurf">RESURF</dt><dd>Reduced Surface Field，利用摻雜與場板讓漂移區電場分佈更均勻，提高耐壓。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-rsp">R<sub>sp</sub></dt><dd>Specific on-resistance，比導通電阻，R<sub>DS(on)</sub> × 面積。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-scr">SCR <small>閘流體（四層 PNPN 結構）</small></dt><dd>被觸發後會一直導通到斷電；晶片中的寄生 PNPN 就是 latch-up 的來源。 <span class="gl-other">Silicon-controlled rectifier (PNPN)</span> <span class="gl-also">也寫作：PNPN</span> <a class="gl-more" href="test.html#esd-lu">詳細說明 →</a></dd></div>
+  <div><dt id="g-sicr">SiCr <small>矽鉻 / 氮化鉭薄膜電阻</small></dt><dd>溫度係數很低的薄膜電阻材料，用於精密參考，可雷射修調。 <span class="gl-other">Silicon-chromium / tantalum-nitride thin film</span> <span class="gl-also">也寫作：TaN</span> <a class="gl-more" href="process.html#passives">詳細說明 →</a></dd></div>
+  <div><dt id="g-soa">SOA</dt><dd>Safe Operating Area，安全操作區，電壓、電流、時間的允許組合。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-soi">SOI <small>絕緣層上矽</small></dt><dd>元件做在埋入氧化層上，完全介電隔離，沒有基板注入，但散熱較差。 <span class="gl-other">Silicon on insulator</span>  <a class="gl-more" href="process.html#isolation">詳細說明 →</a></dd></div>
+  <div><dt id="g-spice">SPICE <small>電路模擬器</small></dt><dd>用元件模型解電路方程式的模擬工具，類比設計的標準工具。 <span class="gl-other">Circuit simulator</span>  <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
+  <div><dt id="g-tddb">TDDB <small>時依性介電崩潰</small></dt><dd>氧化層在電場下逐漸累積損傷，經一段時間後崩潰；用來推估閘極氧化層壽命。 <span class="gl-other">Time-dependent dielectric breakdown</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-ckt">電路、控制與介面</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-adc">ADC <small>類比數位轉換器</small></dt><dd>把類比電壓轉成數位數值；對電源雜訊很敏感。 <span class="gl-other">Analogue-to-digital converter</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-avs">AVS <small>自適應調壓</small></dt><dd>依晶片實際速度與溫度調整供電電壓，進一步省電。 <span class="gl-other">Adaptive voltage scaling</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-bist">BIST <small>內建自我測試</small></dt><dd>晶片自己檢查監控電路、參考等是否正常，功能安全常用。 <span class="gl-other">Built-in self-test</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-boot">BOOT <small>自舉腳</small></dt><dd>接自舉電容，讓 N 型高側開關的閘極能高於 SW；串電阻可放慢切換以降低 EMI。 <span class="gl-other">Bootstrap pin</span>  <a class="gl-more" href="design.html#gate-drive">詳細說明 →</a></dd></div>
+  <div><dt id="g-ccm-dcm">CCM / DCM</dt><dd>Continuous / Discontinuous Conduction Mode，電感電流連續或不連續。 <span class="gl-also">也寫作：CCM、DCM</span> <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-cff">C<sub>FF</sub></dt><dd>Feedforward capacitor，跨在上分壓電阻的前饋電容。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-cot">COT</dt><dd>Constant On-Time，固定導通時間控制。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-crc">CRC <small>循環冗餘檢查</small></dt><dd>用來檢查資料有沒有讀錯的校驗碼，例如 OTP 內容的驗證。 <span class="gl-other">Cyclic redundancy check</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-current-limit-short-circuit-current">Current limit / short-circuit current <small>限流 / 短路電流</small></dt><dd>輸出短路時的最大電流，可能是定電流或折返式（foldback）。 <span class="gl-also">也寫作：Current limit、short-circuit current、短路電流</span> <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-dcr">DCR <small>直流電阻</small></dt><dd>電感線圈的直流電阻，決定銅損。 <span class="gl-other">DC resistance</span>  <a class="gl-more" href="application.html#inductor">詳細說明 →</a></dd></div>
+  <div><dt id="g-dldo">DLDO <small>數位 LDO</small></dt><dd>用一排數位控制的開關取代類比誤差放大器的 LDO，可在極低電壓工作。 <span class="gl-other">Digital LDO</span>  <a class="gl-more" href="design.html#capless">詳細說明 →</a></dd></div>
+  <div><dt id="g-duty-cycle-d">Duty cycle D</dt><dd>高側開關導通時間佔切換週期的比例。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-dvs">DVS</dt><dd>Dynamic Voltage Scaling，動態調壓。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ea">EA <small>誤差放大器</small></dt><dd>比較回授電壓與參考電壓，放大差值去控制傳輸元件或 PWM。 <span class="gl-other">Error amplifier</span>  <a class="gl-more" href="architecture.html#ldo-block">詳細說明 →</a></dd></div>
+  <div><dt id="g-en">EN <small>致能腳（Enable）</small></dt><dd>拉高開啟、拉低關閉的控制腳；浮接可能造成半開狀態。 <span class="gl-other">Enable pin</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-esr-esl">ESR / ESL</dt><dd>電容的等效串聯電阻 / 電感。 <span class="gl-also">也寫作：ESL、ESR</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fb">FB <small>回授腳 / 回授節點</small></dt><dd>分壓後的輸出電壓接到這裡，和參考電壓比較；決定輸出電壓。 <span class="gl-other">Feedback pin / node</span>  <a class="gl-more" href="architecture.html#ldo-block">詳細說明 →</a></dd></div>
+  <div><dt id="g-fmeda">FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis，功能安全分析方法。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-foldback">Foldback</dt><dd>折返限流：輸出電壓下降時限流值跟著降低。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fpwm">FPWM <small>強制 PWM</small></dt><dd>輕載時也維持固定頻率的 PWM，漣波可預期但效率低，電感電流可能變負。 <span class="gl-other">Forced PWM</span>  <a class="gl-more" href="architecture.html#buck">詳細說明 →</a></dd></div>
+  <div><dt id="g-fvf">FVF <small>翻轉電壓隨耦器</small></dt><dd>一種低輸出阻抗的快速局部回授結構，用在無外部電容 LDO。 <span class="gl-other">Flipped voltage follower</span>  <a class="gl-more" href="design.html#capless">詳細說明 →</a></dd></div>
+  <div><dt id="g-gnd">GND <small>接地</small></dt><dd>GND 是地；PGND 是功率地（大電流回路），AGND 是類比地（安靜的參考），兩者單點相接。 <span class="gl-other">Ground</span> <span class="gl-also">也寫作：PGND、AGND</span> <a class="gl-more" href="application.html#layout-buck">詳細說明 →</a></dd></div>
+  <div><dt id="g-ground-current-ignd">Ground current I<sub>GND</sub> <small>接地電流 IGND</small></dt><dd>有負載時流到地的電流，PMOS LDO 接近 I<sub>Q</sub>，PNP LDO 會隨負載增加。 <span class="gl-also">也寫作：接地電流</span> <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-hiccup">Hiccup</dt><dd>打嗝模式：故障時關閉一段時間再嘗試重啟。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-iq">I<sub>Q</sub></dt><dd>Quiescent current，靜態電流。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ir">IR <small>IR 壓降</small></dt><dd>電流 I 流過電阻 R 造成的電壓降，例如晶片內金屬走線或 PCB 銅箔上的壓降。 <span class="gl-other">IR drop</span>  <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
+  <div><dt id="g-i-c">I²C <small>雙線式序列匯流排</small></dt><dd>用時脈與資料兩條線讀寫暫存器的介面，PMIC 最常用；SMBus 與 PMBus 都以它為基礎。 <span class="gl-other">Inter-integrated circuit bus</span> <span class="gl-also">也寫作：SMBus</span> <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-lc">LC <small>電感-電容（網路）</small></dt><dd>電感與電容組成的濾波器或諧振電路；Buck 的輸出濾波就是 LC。 <span class="gl-other">Inductor-capacitor network</span>  <a class="gl-more" href="application.html#hot-plug">詳細說明 →</a></dd></div>
+  <div><dt id="g-lsb">LSB <small>最低有效位</small></dt><dd>數位碼的最小一步；修調時就是每一階改變的量。 <span class="gl-other">Least significant bit</span>  <a class="gl-more" href="production.html#cp-trim">詳細說明 →</a></dd></div>
+  <div><dt id="g-miller-compensation">Miller compensation <small>Miller 補償</small></dt><dd>在放大級跨接電容，利用米勒效應把主極點移到低頻並分離極點。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-mlcc">MLCC <small>多層陶瓷電容</small></dt><dd>最常用的表面黏著電容；高介電材質會因直流偏壓、溫度、老化而失去大部分容值。 <span class="gl-other">Multilayer ceramic capacitor</span>  <a class="gl-more" href="application.html#capacitors">詳細說明 →</a></dd></div>
+  <div><dt id="g-nr">NR <small>降噪腳（Noise reduction）</small></dt><dd>接電容對參考電壓做低通濾波，降低 LDO 輸出雜訊。 <span class="gl-other">Noise-reduction pin</span>  <a class="gl-more" href="design.html#noise">詳細說明 →</a></dd></div>
+  <div><dt id="g-output-accuracy">Output accuracy <small>輸出精度</small></dt><dd>包含參考、分壓電阻、EA 偏移、溫度、線性 / 負載調節的總和，常見 ±1%（25 °C）或 ±2%（全溫）。  <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-output-noise">Output noise <small>輸出雜訊</small></dt><dd>10 Hz–100 kHz 的積分雜訊，以 µV<sub>RMS</sub> 表示。低雜訊 LDO 可達 &lt; 5 µV<sub>RMS</sub>。  <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-pfc">PFC <small>功率因數校正</small></dt><dd>讓 AC 輸入電流跟著電壓波形走，降低諧波；伺服器 PSU 的前級，同時把電壓升到約 400 V。 <span class="gl-other">Power-factor correction</span>  <a class="gl-more" href="sic.html#psu">詳細說明 →</a></dd></div>
+  <div><dt id="g-pfm">PFM</dt><dd>Pulse Frequency Modulation，輕載時降低切換頻率以提高效率。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pg">PG <small>電源良好（Power Good）</small></dt><dd>輸出電壓進入正常範圍時才放開的狀態訊號，通常是開汲極，可接下一路的 EN 做時序。 <span class="gl-other">Power good</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-phase-margin-pm">Phase margin (PM) <small>相位裕度 PM</small></dt><dd>增益降到 0 dB 時，相位距離 −180° 還有多少度。 <span class="gl-also">也寫作：PM、Phase margin、相位裕度</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pll">PLL <small>鎖相迴路 / 壓控振盪器</small></dt><dd>產生高頻時脈的電路；VCO 的頻率受電壓控制，電源雜訊會變成相位雜訊。 <span class="gl-other">Phase-locked loop / voltage-controlled oscillator</span> <span class="gl-also">也寫作：VCO</span> <a class="gl-more" href="design.html#noise">詳細說明 →</a></dd></div>
+  <div><dt id="g-pmbus">PMBus <small>電源管理匯流排</small></dt><dd>以 SMBus / I²C 為基礎、專為電源設計的命令集，伺服器電源常用。 <span class="gl-other">Power Management Bus</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-post-regulation">Post-regulation</dt><dd>DC-DC 之後再接 LDO，用 LDO 的 PSRR 濾掉切換漣波。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-psrr">PSRR</dt><dd>輸入漣波被抑制的程度，以 dB 表示，隨頻率下降。詳見<a href="design.html#psrr">設計 · PSRR</a>。  <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-ptat-ctat">PTAT / CTAT</dt><dd>與絕對溫度成正比 / 成反比的電壓或電流。 <span class="gl-also">也寫作：CTAT、PTAT</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pwm">PWM <small>脈寬調變</small></dt><dd>固定頻率、改變導通時間比例（工作週期）來控制輸出。 <span class="gl-other">Pulse-width modulation</span>  <a class="gl-more" href="architecture.html#buck">詳細說明 →</a></dd></div>
+  <div><dt id="g-quiescent-current-iq">Quiescent current I<sub>Q</sub> <small>靜態電流 IQ</small></dt><dd>無負載時 LDO 自己消耗的電流。穿戴與 IoT 要 &lt; 1 µA，高 PSRR、高頻寬的 LDO 可能要數十到數百 µA。 <span class="gl-also">也寫作：靜態電流</span> <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-rc">RC <small>電阻-電容（網路）</small></dt><dd>電阻與電容組成的濾波、延遲或阻尼電路。 <span class="gl-other">Resistor-capacitor network</span>  <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
+  <div><dt id="g-rhpz">RHPZ</dt><dd>Right Half-Plane Zero，Boost / Buck-Boost 特有的右半平面零點，限制迴路頻寬。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-rtc">RTC <small>即時時鐘</small></dt><dd>斷電時用備用電池繼續計時的時鐘電路，常整合在 PMIC。 <span class="gl-other">Real-time clock</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-shoot-through">Shoot-through</dt><dd>上下管同時導通，造成 V<sub>IN</sub> 直接對地短路。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-shutdown-current-isd">Shutdown current I<sub>SD</sub> <small>關斷電流 ISD</small></dt><dd>EN 拉低時的漏電，決定待機時電池壽命，常見 &lt; 100 nA。 <span class="gl-also">也寫作：關斷電流</span> <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-slope-compensation">Slope compensation</dt><dd>斜率補償，防止峰值電流模式在 D &gt; 50% 時的次諧波振盪。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-spi">SPI <small>串列周邊介面</small></dt><dd>四線式的同步串列通訊介面，比 I²C 快。 <span class="gl-other">Serial peripheral interface</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-spmi">SPMI</dt><dd>System Power Management Interface，MIPI 制定的行動裝置電源管理匯流排。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ss">SS <small>軟啟動腳（Soft start）</small></dt><dd>設定輸出電壓上升斜率，限制湧入電流；在製程角落裡 SS 則是 slow-slow。 <span class="gl-other">Soft-start pin</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-stable-capacitor-range">Stable capacitor range <small>穩定電容範圍</small></dt><dd>規格書列出的 C<sub>OUT</sub> 最小值與 ESR 範圍。超出範圍可能振盪，這是最常見的應用問題。  <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
+  <div><dt id="g-svid">SVID <small>處理器電壓控制介面</small></dt><dd>SVID（Intel）、SVI3（AMD）讓處理器即時命令 VR 調整核心電壓。 <span class="gl-other">Processor voltage-control interfaces</span> <span class="gl-also">也寫作：SVI3</span> <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+  <div><dt id="g-sw">SW <small>切換節點</small></dt><dd>Buck 的高側與低側開關中間、接電感的節點，電壓在 V_IN 與 0 之間快速跳動。 <span class="gl-other">Switch node</span>  <a class="gl-more" href="architecture.html#buck">詳細說明 →</a></dd></div>
+  <div><dt id="g-type-ii">Type II <small>Type II / Type III 補償</small></dt><dd>DC-DC 的補償網路：Type II 一零兩極（電流模式常用），Type III 兩零三極（電壓模式補償 LC 雙極點）。 <span class="gl-other">Type II / Type III compensation</span> <span class="gl-also">也寫作：Type III</span> <a class="gl-more" href="design.html#compensation">詳細說明 →</a></dd></div>
+  <div><dt id="g-ugb">UGB</dt><dd>Unity-Gain Bandwidth，迴路增益為 1 的頻率，即交越頻率。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-vdd">VDD <small>電源軌名稱</small></dt><dd>VDD 是晶片主電源；在 DDR 中 VDDQ 供 I/O、VPP 供字元線升壓。 <span class="gl-other">Supply-rail names</span> <span class="gl-also">也寫作：VDDQ、VPP</span> <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-vdo">V<sub>DO</sub></dt><dd>Dropout voltage，維持穩壓所需的最小輸入輸出壓差。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-vm">VM <small>電壓模式控制</small></dt><dd>誤差電壓與固定斜坡比較產生 PWM 的 DC-DC 控制方式。 <span class="gl-other">Voltage-mode control</span>  <a class="gl-more" href="design.html#dcdc-control">詳細說明 →</a></dd></div>
+  <div><dt id="g-vrm">VRM <small>電壓調節模組</small></dt><dd>供應處理器 / GPU 核心電壓的多相 Buck，電流可達上千安培。 <span class="gl-other">Voltage regulator module</span> <span class="gl-also">也寫作：VR</span> <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
+  <div><dt id="g-x5r">X5R <small>MLCC 介質等級</small></dt><dd>X5R（−55~85 °C ±15%）、X7R（−55~125 °C ±15%）、Y5V（變化極大，不適合電源）、C0G / NP0（幾乎不變但容值小）。 <span class="gl-other">MLCC dielectric classes</span> <span class="gl-also">也寫作：X7R、Y5V、C0G、NP0</span> <a class="gl-more" href="application.html#capacitors">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-prot">保護與時序</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-desat">DESAT <small>去飽和偵測</small></dt><dd>偵測功率開關導通時壓降異常升高（代表短路或過流），立即關斷。 <span class="gl-other">Desaturation detection</span>  <a class="gl-more" href="sic.html#design">詳細說明 →</a></dd></div>
+  <div><dt id="g-ocp">OCP <small>過電流保護 / 開放運算計畫</small></dt><dd>在電源電路中指過電流保護；在資料中心語境（OCP Open Rack）指 Open Compute Project，開放式伺服器與機櫃規範組織。 <span class="gl-other">Overcurrent protection / Open Compute Project</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-ovp">OVP <small>過壓保護</small></dt><dd>輸入或輸出電壓過高時關閉，保護晶片與負載。 <span class="gl-other">Overvoltage protection</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-sscb">SSCB <small>固態斷路器</small></dt><dd>用半導體開關取代機械接點的斷路器，能快速切斷直流故障電流。 <span class="gl-other">Solid-state circuit breaker</span>  <a class="gl-more" href="sic.html#hvdc">詳細說明 →</a></dd></div>
+  <div><dt id="g-tsd">TSD <small>熱關機</small></dt><dd>晶片溫度超過門檻（常見 150–170 °C）時關閉輸出，降溫後再開啟。 <span class="gl-other">Thermal shutdown</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-uvlo">UVLO <small>欠壓鎖定</small></dt><dd>輸入電壓低於門檻時關閉輸出，回升超過較高門檻才重新開啟（遲滯），避免低電壓下誤動作與反覆重啟。 <span class="gl-other">Undervoltage lockout</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+  <div><dt id="g-uvp">UVP <small>欠壓保護</small></dt><dd>輸出電壓掉得太低（例如短路）時觸發的保護，常與打嗝重啟搭配。 <span class="gl-other">Undervoltage protection</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-mfg">製程、封裝與生產</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-aoi">AOI <small>自動光學檢查</small></dt><dd>用相機自動檢查焊點與零件位置；QFN 需要可濕潤側翼才看得到焊點。 <span class="gl-other">Automated optical inspection</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-bin">Bin</dt><dd>測試結果分類，例如 Bin 1 良品、其他 bin 代表各種失效。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-bom">BOM <small>物料清單</small></dt><dd>產品用到的所有零件料號與數量；換料常是客訴的變化點。 <span class="gl-other">Bill of materials</span>  <a class="gl-more" href="complaints.html#c-mlcc">詳細說明 →</a></dd></div>
+  <div><dt id="g-cp">CP</dt><dd>Chip Probing，晶圓針測。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-cpk">Cpk <small>製程能力指標</small></dt><dd>Cpk = 規格界限到平均值的最近距離 ÷ 3σ；1.33 約 32 ppm 超規，1.67 約 0.3 ppm。 <span class="gl-other">Process capability index</span> <span class="gl-also">也寫作：Cp</span> <a class="gl-more" href="production.html#cpk">詳細說明 →</a></dd></div>
+  <div><dt id="g-dft">DFT <small>可測試性設計</small></dt><dd>設計時就加入測試模式、類比測試匯流排、掃描鏈等，方便量產測試。 <span class="gl-other">Design for test</span>  <a class="gl-more" href="test.html#dft">詳細說明 →</a></dd></div>
+  <div><dt id="g-dppm">DPPM</dt><dd>Defective Parts Per Million，每百萬顆不良數。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ecid">ECID</dt><dd>Electronic Chip ID，寫在晶片內的唯一識別碼。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ep">EP <small>裸露散熱墊</small></dt><dd>封裝底部的金屬墊，焊在 PCB 上把熱導出去。 <span class="gl-other">Exposed pad</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-fcqfn">FCQFN <small>覆晶 QFN</small></dt><dd>晶片以凸塊倒裝在導線架上，取代打線，寄生電阻與電感更小。 <span class="gl-other">Flip-chip QFN</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-ft">FT</dt><dd>Final Test，封裝後的最終測試。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-gdbn">GDBN <small>壞鄰居中的好晶粒</small></dt><dd>被大量失效晶粒包圍的良品也剔除的篩選方式，車用零缺陷常用。 <span class="gl-other">Good die in bad neighbourhood</span>  <a class="gl-more" href="production.html#pat">詳細說明 →</a></dd></div>
+  <div><dt id="g-guard-band">Guard band</dt><dd>測試極限比規格界限內縮的裕度。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-idm">IDM <small>整合元件製造商</small></dt><dd>自己設計、自己有晶圓廠與封測的半導體公司；相對於 fabless。 <span class="gl-other">Integrated device manufacturer</span>  <a class="gl-more" href="roles.html#overview">詳細說明 →</a></dd></div>
+  <div><dt id="g-ivr">IVR <small>整合式穩壓器</small></dt><dd>做在處理器封裝內、緊貼負載的穩壓器，降低供電網路阻抗。 <span class="gl-other">Integrated voltage regulator</span>  <a class="gl-more" href="process.html#trends">詳細說明 →</a></dd></div>
+  <div><dt id="g-msl">MSL</dt><dd>Moisture Sensitivity Level，濕敏等級。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ocap">OCAP</dt><dd>Out-of-Control Action Plan，製程失控時的處理計畫。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pat">PAT</dt><dd>Part Average Testing，以同批分佈剔除離群值。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pcb">PCB <small>印刷電路板</small></dt><dd>承載並連接元件的電路板；銅箔面積與層數決定散熱。 <span class="gl-other">Printed circuit board</span>  <a class="gl-more" href="application.html#layout">詳細說明 →</a></dd></div>
+  <div><dt id="g-pcn-eol-ltb">PCN / EOL / LTB</dt><dd>產品變更通知 / 停產 / 最後購買。 <span class="gl-also">也寫作：EOL、LTB、PCN</span> <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pvt">PVT <small>製程、電壓、溫度角落</small></dt><dd>設計驗證要涵蓋的變異組合：製程角（TT / FF / SS / FS / SF）× 電壓 × 溫度。 <span class="gl-other">Process, voltage, temperature corners</span>  <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
+  <div><dt id="g-qfn">QFN <small>四方 / 雙邊扁平無引腳封裝</small></dt><dd>底部有裸露散熱墊、引腳在側面底部的小型封裝，散熱好。 <span class="gl-other">Quad / dual flat no-lead packages</span> <span class="gl-also">也寫作：DFN</span> <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-sip">SiP <small>系統級封裝</small></dt><dd>把 IC、電感、電容等封在同一個封裝裡；電源模組常用。 <span class="gl-other">System in package</span> <span class="gl-also">也寫作：PwrSiP</span> <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-smt">SMT <small>表面黏著技術</small></dt><dd>把元件貼在 PCB 表面再回焊的組裝方式。 <span class="gl-other">Surface-mount technology</span>  <a class="gl-more" href="complaints.html#c-delam">詳細說明 →</a></dd></div>
+  <div><dt id="g-soic">SOIC <small>小外形 IC 封裝</small></dt><dd>兩側有引腳的封裝；加 EP（裸露散熱墊）版本可大幅降低熱阻。 <span class="gl-other">Small-outline IC packages</span> <span class="gl-also">也寫作：MSOP、SOIC-8</span> <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-sot-23">SOT-23 <small>小外形電晶體封裝</small></dt><dd>有外露引腳的小封裝，便宜好焊但熱阻高（約 200 °C/W 以上）。 <span class="gl-other">Small-outline transistor packages</span> <span class="gl-also">也寫作：SOT-23-5、SC-70</span> <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-spc">SPC <small>統計製程管制</small></dt><dd>用管制圖監控製程平均與變異，超出規則就啟動異常處理。 <span class="gl-other">Statistical process control</span>  <a class="gl-more" href="production.html#cpk">詳細說明 →</a></dd></div>
+  <div><dt id="g-toll">TOLL <small>功率封裝</small></dt><dd>TOLL（無引腳 TO 封裝）、TO-247-4 等功率封裝；第四腳通常是 Kelvin source。 <span class="gl-other">Power packages</span> <span class="gl-also">也寫作：TO-247-4</span> <a class="gl-more" href="sic.html#design">詳細說明 →</a></dd></div>
+  <div><dt id="g-usl">USL <small>規格上限 / 下限</small></dt><dd>計算 Cpk 用的規格上下界。 <span class="gl-other">Upper / lower specification limit</span> <span class="gl-also">也寫作：LSL</span> <a class="gl-more" href="production.html#cpk">詳細說明 →</a></dd></div>
+  <div><dt id="g-wat-pcm">WAT / PCM</dt><dd>Wafer Acceptance Test / Process Control Monitor，晶圓允收測試。 <span class="gl-also">也寫作：PCM、WAT</span> <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-wlcsp">WLCSP <small>晶圓級晶片尺寸封裝</small></dt><dd>直接在晶圓上做凸塊、切割後就是成品，封裝和晶片一樣大。 <span class="gl-other">Wafer-level chip-scale package</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-test">測試、可靠度與 EMC</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-ams">AMS <small>類比混合訊號模擬</small></dt><dd>數位邏輯與類比電路一起模擬，用來驗證 PMIC 時序與故障處理。 <span class="gl-other">Analogue / mixed-signal simulation</span>  <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
+  <div><dt id="g-asil">ASIL <small>車用安全完整性等級與指標</small></dt><dd>ISO 26262 的 ASIL A–D 等級；SPFM、LFM、PMHF 是硬體故障的涵蓋率與機率指標。 <span class="gl-other">Automotive safety integrity level and metrics</span> <span class="gl-also">也寫作：SPFM、LFM、PMHF</span> <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
+  <div><dt id="g-ate">ATE</dt><dd>Automatic Test Equipment，自動測試設備。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-bci">BCI <small>大電流注入</small></dt><dd>把射頻電流注入線束、看設備會不會出錯的車用抗擾度測試。 <span class="gl-other">Bulk current injection</span>  <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
+  <div><dt id="g-c-sam">C-SAM <small>超音波掃描顯微鏡</small></dt><dd>用超音波看封裝內部的分層與空洞，不必開封。 <span class="gl-other">Scanning acoustic microscopy</span> <span class="gl-also">也寫作：SAM</span> <a class="gl-more" href="complaints.html#fa">詳細說明 →</a></dd></div>
+  <div><dt id="g-cispr">CISPR <small>國際無線電干擾特別委員會</small></dt><dd>制定 EMI 標準的組織；CISPR 25 是車用、CISPR 32 是多媒體設備。 <span class="gl-other">International Special Committee on Radio Interference</span>  <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
+  <div><dt id="g-dps-pmu">DPS / PMU</dt><dd>Device Power Supply / Precision Measurement Unit，測試機的電源與精密量測單元。 <span class="gl-also">也寫作：DPS、PMU</span> <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-elfr">ELFR <small>早期失效率</small></dt><dd>大樣本短時間高溫偏壓，抓製程缺陷造成的早夭。 <span class="gl-other">Early-life failure rate</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-emi">EMI <small>電磁干擾 / 電磁相容</small></dt><dd>EMI 是電路發出的干擾；EMC 是不干擾別人、也不被干擾的能力。切換式電源是主要 EMI 來源。 <span class="gl-other">Electromagnetic interference / compatibility</span> <span class="gl-also">也寫作：EMC</span> <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
+  <div><dt id="g-esd">ESD <small>靜電放電</small></dt><dd>帶電物體接觸晶片時瞬間的大電流；以 HBM、CDM（元件級）與 IEC 61000-4-2（系統級）測試。 <span class="gl-other">Electrostatic discharge</span>  <a class="gl-more" href="test.html#esd-lu">詳細說明 →</a></dd></div>
+  <div><dt id="g-fit">FIT <small>失效率單位</small></dt><dd>每 10⁹ 元件小時的失效次數。 <span class="gl-other">Failures in time</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+  <div><dt id="g-golden-unit">Golden unit</dt><dd>用於校驗量測系統的參考樣品。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-gr-r">GR&amp;R</dt><dd>Gage Repeatability &amp; Reproducibility，量測系統的重複性與再現性。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-hast">HAST</dt><dd>Highly Accelerated Stress Test，高加速溫濕度應力測試。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-hbm-cdm">HBM / CDM</dt><dd>Human Body Model / Charged Device Model，兩種 ESD 模型。 <span class="gl-also">也寫作：CDM、HBM</span> <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-htgb">HTGB <small>高溫閘極偏壓</small></dt><dd>高溫下對閘極長時間加偏壓，檢驗閘極氧化層與 V_T 漂移。 <span class="gl-other">High-temperature gate bias</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+  <div><dt id="g-htol">HTOL</dt><dd>High Temperature Operating Life，高溫工作壽命測試。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-htsl">HTSL <small>高溫儲存壽命</small></dt><dd>不加電放在 150–175 °C 下 1000 小時，檢驗打線與金屬間化合物。 <span class="gl-other">High-temperature storage life</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-kelvin">Kelvin</dt><dd>四線量測，force 與 sense 分開。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-lisn">LISN <small>線路阻抗穩定網路</small></dt><dd>傳導 EMI 量測時串在電源線上的標準阻抗網路。 <span class="gl-other">Line impedance stabilisation network</span>  <a class="gl-more" href="test.html#bench">詳細說明 →</a></dd></div>
+  <div><dt id="g-load-board">Load board</dt><dd>測試機與待測物之間的介面板。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pc">PC <small>預處理</small></dt><dd>可靠度測試前先吸濕並回焊三次，模擬客戶上件。 <span class="gl-other">Preconditioning</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-ptc">PTC <small>功率溫度循環</small></dt><dd>反覆通斷電讓晶片自熱、冷卻，檢驗功率元件的金屬與打線疲勞。 <span class="gl-other">Power temperature cycling</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-rh">RH <small>相對濕度</small></dt><dd>空氣中水氣佔飽和量的百分比。 <span class="gl-other">Relative humidity</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-sem">SEM <small>掃描式電子顯微鏡 / 能量色散 X 光</small></dt><dd>SEM 看微小結構；EDX 分析元素成分。失效分析常用。 <span class="gl-other">Scanning electron microscope / energy-dispersive X-ray</span> <span class="gl-also">也寫作：EDX</span> <a class="gl-more" href="complaints.html#fa">詳細說明 →</a></dd></div>
+  <div><dt id="g-skew-lot">Skew lot</dt><dd>刻意把製程參數做到角落的驗證批。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-tc">TC <small>溫度循環</small></dt><dd>在 −55/−65 °C 與 150 °C 之間反覆冷熱，檢驗打線、焊點與分層。 <span class="gl-other">Temperature cycling</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-thb">THB <small>溫濕度偏壓測試</small></dt><dd>85 °C / 85% RH 加偏壓 1000 小時，檢驗濕氣腐蝕。 <span class="gl-other">Temperature-humidity-bias test</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-uis">UIS <small>非箝位感性切換</small></dt><dd>關斷電感電流、讓元件進入雪崩，量測雪崩耐受能量。 <span class="gl-other">Unclamped inductive switching</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-qa">品質、客訴與職務</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-8d">8D</dt><dd>Eight Disciplines，八個步驟的問題解決與報告格式。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-aba">ABA <small>交換法</small></dt><dd>把好壞元件互換板子，看問題跟著元件還是跟著板子走。 <span class="gl-other">ABA swap</span>  <a class="gl-more" href="issues.html#debug-tips">詳細說明 →</a></dd></div>
+  <div><dt id="g-ae">AE <small>應用工程師 / 現場應用工程師</small></dt><dd>AE 寫應用文件與參考設計；FAE 在客戶端支援設計導入與現場問題。 <span class="gl-other">Applications / field applications engineer</span> <span class="gl-also">也寫作：FAE</span> <a class="gl-more" href="roles.html#ae">詳細說明 →</a></dd></div>
+  <div><dt id="g-containment">Containment</dt><dd>圍堵，防止可疑品繼續流到客戶端的短期措施。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-emmi">EMMI</dt><dd>Emission Microscopy，偵測缺陷處的微弱光發射。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-escape">Escape</dt><dd>流出 / 漏網，缺陷品通過測試流到客戶端。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fa">FA</dt><dd>Failure Analysis，失效分析。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fib">FIB</dt><dd>Focused Ion Beam，聚焦離子束，用於截面與電路修改。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fmea">FMEA</dt><dd>Failure Mode and Effects Analysis，失效模式與影響分析。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fta">FTA <small>故障樹分析</small></dt><dd>從頂端失效往下展開所有可能原因，再逐一以數據排除。 <span class="gl-other">Fault-tree analysis</span>  <a class="gl-more" href="complaints.html#tools">詳細說明 →</a></dd></div>
+  <div><dt id="g-iatf">IATF <small>IATF 16949</small></dt><dd>車用產業的品質管理系統標準。 <span class="gl-other">IATF 16949</span>  <a class="gl-more" href="roles.html#qra">詳細說明 →</a></dd></div>
+  <div><dt id="g-ntf-nff">NTF / NFF</dt><dd>No Trouble Found / No Fault Found，未發現異常。 <span class="gl-also">也寫作：NFF、NTF</span> <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-obirch">OBIRCH</dt><dd>Optical Beam Induced Resistance Change，雷射加熱造成的電阻變化定位。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pe">PE <small>產品工程（師）</small></dt><dd>負責量產良率、修調、Cpk、成本與變更的工程職位。 <span class="gl-other">Product engineering</span>  <a class="gl-more" href="roles.html#pe">詳細說明 →</a></dd></div>
+  <div><dt id="g-ppap">PPAP <small>生產件核准程序</small></dt><dd>車用供應商在量產前提交給客戶的文件與樣品包。 <span class="gl-other">Production part approval process</span>  <a class="gl-more" href="roles.html#qra">詳細說明 →</a></dd></div>
+  <div><dt id="g-qra">QRA <small>品質與可靠度</small></dt><dd>負責可靠度驗證、變更通知、出貨品質與客訴 8D 的部門。 <span class="gl-other">Quality and reliability assurance</span>  <a class="gl-more" href="roles.html#qra">詳細說明 →</a></dd></div>
+  <div><dt id="g-rma">RMA</dt><dd>Return Material Authorization，退貨授權。  <a class="gl-more" href="complaints.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-te">TE <small>測試工程（師）</small></dt><dd>開發與維護 ATE 測試程式與硬體的工程職位。 <span class="gl-other">Test engineering</span>  <a class="gl-more" href="roles.html#te">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-sys">系統與應用</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-adas">ADAS <small>先進駕駛輔助系統</small></dt><dd>車道維持、自動煞車等功能，電源需符合功能安全。 <span class="gl-other">Advanced driver-assistance systems</span>  <a class="gl-more" href="application.html#automotive">詳細說明 →</a></dd></div>
+  <div><dt id="g-ai">AI <small>人工智慧</small></dt><dd>AI 加速器耗電極大，推動機櫃功率與電源架構的改變。 <span class="gl-other">Artificial intelligence</span>  <a class="gl-more" href="sic.html#hvdc">詳細說明 →</a></dd></div>
+  <div><dt id="g-am">AM <small>AM 廣播頻段</small></dt><dd>約 530–1700 kHz；車用 DC-DC 會避開這個頻段以免干擾收音機。 <span class="gl-other">AM broadcast band</span>  <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
+  <div><dt id="g-cold-crank">Cold crank</dt><dd>冷啟動，引擎啟動時電瓶電壓大幅下降。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-cpu">CPU <small>中央處理器 / 圖形處理器 / 微控制器</small></dt><dd>主要的運算晶片；GPU 是 AI 運算主力，MCU 是嵌入式控制用的小處理器。 <span class="gl-other">CPU / GPU / MCU</span> <span class="gl-also">也寫作：GPU、MCU</span> <a class="gl-more" href="application.html#power-tree">詳細說明 →</a></dd></div>
+  <div><dt id="g-dc-bias">DC bias</dt><dd>MLCC 容值隨直流偏壓下降的特性。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ddr">DDR <small>雙倍資料率記憶體</small></dt><dd>主流 DRAM 介面；DDR5 模組上有自己的 PMIC。 <span class="gl-other">Double data rate memory</span> <span class="gl-also">也寫作：DDR5</span> <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-ecu">ECU <small>電子控制單元</small></dt><dd>車上的控制模組，例如引擎、車身控制器。 <span class="gl-other">Electronic control unit</span>  <a class="gl-more" href="complaints.html#c-escape">詳細說明 →</a></dd></div>
+  <div><dt id="g-eos">EOS</dt><dd>Electrical Overstress，電性過應力，超過絕對最大額定造成的損壞。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-fpga">FPGA <small>可程式邏輯閘陣列</small></dt><dd>可重新配置的數位晶片，有多路電源與上電時序要求。 <span class="gl-other">Field-programmable gate array</span>  <a class="gl-more" href="application.html#sequencing">詳細說明 →</a></dd></div>
+  <div><dt id="g-hot-loop">Hot loop</dt><dd>Buck 中電流脈衝流經的高頻迴路。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-iot">IoT <small>物聯網</small></dt><dd>大量小型聯網裝置，通常靠電池長時間待機，需要極低靜態電流。 <span class="gl-other">Internet of Things</span>  <a class="gl-more" href="application.html#segments">詳細說明 →</a></dd></div>
+  <div><dt id="g-led">LED <small>發光二極體 / 有機發光二極體 / 液晶顯示器</small></dt><dd>照明與顯示元件；背光與 OLED 需要升壓或負壓電源。 <span class="gl-other">LED / OLED / LCD</span> <span class="gl-also">也寫作：OLED、LCD</span> <a class="gl-more" href="architecture.html#boost-bb">詳細說明 →</a></dd></div>
+  <div><dt id="g-load-dump">Load dump</dt><dd>拋負載，車用發電機在負載突然斷開時產生的高壓瞬態。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-mv">MV <small>中壓</small></dt><dd>電網的中壓等級（數 kV 到數十 kV），資料中心的進線電壓。 <span class="gl-other">Medium voltage</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
+  <div><dt id="g-poe">PoE <small>乙太網路供電</small></dt><dd>用網路線同時傳輸資料與電力（約 48 V）。 <span class="gl-other">Power over Ethernet</span>  <a class="gl-more" href="process.html#bcd">詳細說明 →</a></dd></div>
+  <div><dt id="g-power-tree">Power tree</dt><dd>電源樹，系統中所有電源軌的轉換關係。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pre-bias">Pre-bias</dt><dd>輸出已有電壓時的啟動情況。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-psu">PSU <small>電源供應器</small></dt><dd>把市電轉成設備要的直流電；伺服器 PSU 通常是 PFC + LLC 兩級。 <span class="gl-other">Power supply unit</span>  <a class="gl-more" href="sic.html#psu">詳細說明 →</a></dd></div>
+  <div><dt id="g-rf">RF <small>射頻</small></dt><dd>無線通訊的高頻電路；對電源雜訊與切換頻率諧波很敏感。 <span class="gl-other">Radio frequency</span>  <a class="gl-more" href="application.html#segments">詳細說明 →</a></dd></div>
+  <div><dt id="g-rs-232">RS-232 <small>RS-232 序列介面</small></dt><dd>早期的序列通訊標準，需要正負電壓，常用電荷泵產生。 <span class="gl-other">RS-232 serial interface</span>  <a class="gl-more" href="architecture.html#charge-pump">詳細說明 →</a></dd></div>
+  <div><dt id="g-soc">SoC <small>系統單晶片</small></dt><dd>把 CPU、GPU、記憶體控制器等整合在一顆晶片，需要多路電源與嚴格時序。 <span class="gl-other">System on chip</span>  <a class="gl-more" href="application.html#power-tree">詳細說明 →</a></dd></div>
+  <div><dt id="g-spread-spectrum">Spread spectrum</dt><dd>展頻，抖動切換頻率以降低 EMI 峰值。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ssd">SSD <small>固態硬碟</small></dt><dd>以快閃記憶體為儲存的硬碟，需要多路電源與斷電保護。 <span class="gl-other">Solid-state drive</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
+  <div><dt id="g-tvs">TVS</dt><dd>Transient Voltage Suppressor，瞬態電壓抑制二極體。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ups">UPS <small>不斷電系統</small></dt><dd>停電時由電池繼續供電的設備，資料中心電源鏈的一級。 <span class="gl-other">Uninterruptible power supply</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
+  <div><dt id="g-usb">USB <small>通用序列匯流排 / USB 供電</small></dt><dd>USB 介面與其供電；USB PD（Power Delivery）可協商 5–48 V 的供電電壓。 <span class="gl-other">Universal Serial Bus / USB Power Delivery</span> <span class="gl-also">也寫作：PD</span> <a class="gl-more" href="architecture.html#boost-bb">詳細說明 →</a></dd></div>
+  <div><dt id="g-jt">Ψ<sub>JT</sub></dt><dd>接面到封裝頂部的熱特性參數，用於由表面溫度推算接面溫度。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-std">標準與組織</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-80-plus">80 PLUS <small>80 PLUS 電源效率認證</small></dt><dd>依負載點效率分級的電源認證，Titanium 為最高等級之一。 <span class="gl-other">80 PLUS efficiency certification</span>  <a class="gl-more" href="sic.html#psu">詳細說明 →</a></dd></div>
+  <div><dt id="g-aec">AEC <small>汽車電子委員會標準</small></dt><dd>AEC-Q100 是車用 IC 的驗證標準、AEC-Q101 是離散元件、AEC-Q001 是 PAT；後面的編號是個別測試方法。 <span class="gl-other">Automotive Electronics Council standards</span> <span class="gl-also">也寫作：AEC-Q100、AEC-Q101、AEC-Q001、AEC-Q100-002、AEC-Q100-004、AEC-Q100-011、AEC-Q100-012</span> <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-aqg">AQG <small>AQG 324</small></dt><dd>車用功率模組的驗證規範。 <span class="gl-other">AQG 324</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+  <div><dt id="g-iec">IEC <small>國際電工委員會</small></dt><dd>IEC 61000-4-2 是系統級 ESD 測試標準。 <span class="gl-other">International Electrotechnical Commission</span>  <a class="gl-more" href="test.html#esd-lu">詳細說明 →</a></dd></div>
+  <div><dt id="g-iso">ISO <small>國際標準組織</small></dt><dd>ISO 26262 功能安全、ISO 16750 與 ISO 7637 車用電氣環境與瞬態。 <span class="gl-other">International Organization for Standardization</span>  <a class="gl-more" href="application.html#automotive">詳細說明 →</a></dd></div>
+  <div><dt id="g-j-std-020">J-STD-020 <small>濕敏等級分類標準</small></dt><dd>定義 MSL 等級與回焊條件的 IPC/JEDEC 標準。 <span class="gl-other">Moisture-sensitivity classification</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
+  <div><dt id="g-jedec">JEDEC <small>固態技術協會</small></dt><dd>制定記憶體與半導體封裝、測試、可靠度標準的組織，例如 JESD47、JESD51。 <span class="gl-other">JEDEC Solid State Technology Association</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-jesd46">JESD46 <small>JEDEC 標準編號</small></dt><dd>JESD46 變更通知、JESD47 可靠度驗證、JESD48 停產通知、JESD51 熱量測、JESD78 latch-up。 <span class="gl-other">JEDEC standard numbers</span> <span class="gl-also">也寫作：JESD47、JESD48、JESD51、JESD78</span> <a class="gl-more" href="production.html#pcn">詳細說明 →</a></dd></div>
+  <div><dt id="g-mipi">MIPI <small>行動產業處理器介面聯盟</small></dt><dd>制定 SPMI 等行動裝置介面的組織。 <span class="gl-other">MIPI Alliance</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
+</dl>
+<h2 id="cat-wbg">寬能隙與資料中心</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-bpd">BPD</dt><dd>Basal plane dislocation，基面差排，SiC 雙極退化的源頭。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-cmti">CMTI</dt><dd>Common-mode transient immunity，隔離驅動器對共模 dV/dt 的抗擾能力。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-coolsic">CoolSiC <small>Infineon 的 SiC / GaN 產品線</small></dt><dd>CoolSiC 是 Infineon 的 SiC MOSFET 與二極體，CoolGaN 是其 GaN 電晶體。 <span class="gl-other">Infineon SiC / GaN product lines</span> <span class="gl-also">也寫作：CoolGaN</span> <a class="gl-more" href="sic.html#infineon">詳細說明 →</a></dd></div>
+  <div><dt id="g-dpt">DPT</dt><dd>Double-pulse test，雙脈衝測試，量測切換特性的標準方法。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-gan">GaN <small>氮化鎵</small></dt><dd>寬能隙半導體，切換速度最快，適合高頻、軟切換的 DC/DC。 <span class="gl-other">Gallium nitride</span>  <a class="gl-more" href="sic.html#sic-vs-gan">詳細說明 →</a></dd></div>
+  <div><dt id="g-hold-up-time">Hold-up time</dt><dd>輸入斷電後輸出仍維持在規格內的時間。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-hvdc">HVDC</dt><dd>High-voltage direct current，高壓直流配電。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ibc">IBC</dt><dd>Intermediate bus converter，中間匯流排轉換器（例如 48 V → 12 V）。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-llc">LLC</dt><dd>電感-電感-電容諧振轉換器，常用於隔離 DC/DC，可軟切換。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-seb">SEB</dt><dd>Single-event burnout，粒子撞擊引發的單粒子燒毀。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-sic">SiC <small>碳化矽</small></dt><dd>寬能隙半導體，臨界電場約為矽的 10 倍，適合高壓、大功率、硬切換。 <span class="gl-other">Silicon carbide</span>  <a class="gl-more" href="sic.html#why-wbg">詳細說明 →</a></dd></div>
+  <div><dt id="g-sst">SST</dt><dd>Solid-state transformer，固態變壓器。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-totem-pole-pfc">Totem-pole PFC</dt><dd>無橋圖騰柱功率因數校正，省去整流橋的高效率 PFC 拓撲。  <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-wide-bandgap-wbg">Wide bandgap (WBG) <small>寬能隙（WBG）</small></dt><dd>Wide bandgap，能隙明顯大於矽的半導體，例如 SiC、GaN。 <span class="gl-also">也寫作：WBG、Wide bandgap、寬能隙</span> <a class="gl-more" href="sic.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-xt">.XT <small>.XT 互連技術</small></dt><dd>Infineon 的擴散焊晶片黏著技術，改善熱阻與功率循環壽命。 <span class="gl-other">.XT interconnect</span> <span class="gl-also">也寫作：XT</span> <a class="gl-more" href="sic.html#manufacturing">詳細說明 →</a></dd></div>
+</dl>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+<script>
+(function(){
+  const q = document.getElementById('glf'), n = document.getElementById('glf-n');
+  const rows = [...document.querySelectorAll('.gl-list > div')];
+  function run(){
+    const w = q.value.trim().toLowerCase(); let k = 0;
+    rows.forEach(r => { const hit = !w || r.textContent.toLowerCase().includes(w); r.hidden = !hit; if(hit) k++; });
+    document.querySelectorAll('.gl-list').forEach(dl => { const any = [...dl.children].some(c => !c.hidden); dl.hidden = !any; dl.previousElementSibling.hidden = !any; });
+    n.textContent = w ? k + ' 筆' : '';
+  }
+  q.addEventListener('input', run);
+  if(location.hash){ const el = document.getElementById(location.hash.slice(1)); if(el) el.parentElement.classList.add('gl-target'); }
+})();
+</script>
+</body>
+</html>

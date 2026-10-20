@@ -307,3 +307,22 @@ svg line.cursor{stroke:var(--s2);stroke-width:1.6;stroke-dasharray:3 3;pointer-e
 .an-lbl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .an-lbl input{width:200px;accent-color:var(--s2)}
 .an-row .note{flex:1 1 220px}
+/* glossary: underlined terms, popup, glossary page */
+abbr.gl{text-decoration:underline dotted color-mix(in srgb,var(--accent) 70%,transparent);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:help;border-radius:3px}
+abbr.gl:hover,abbr.gl:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent);outline:none}
+.gl-pop{position:absolute;z-index:70;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 36px rgba(0,0,0,.25);padding:10px 14px;font-size:13.5px;line-height:1.55}
+.gl-pop b{font:700 15px var(--mono);color:var(--accent)}
+.gl-pop span{font-weight:600}
+.gl-pop small{display:block;color:var(--muted);font-size:12px}
+.gl-pop p{margin:6px 0 8px;color:var(--ink)}
+.gl-links{display:flex;gap:14px;font-size:12.5px}
+.gl-filter{display:flex;align-items:center;gap:10px;margin:18px 0 6px}
+.gl-filter input{flex:1;max-width:420px;font:15px var(--sans);padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.gl-filter span{font:12px var(--mono);color:var(--muted)}
+.gl-list dt small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.gl-list dt{font-family:var(--mono)}
+.gl-other{color:var(--muted);font-size:12.5px}
+.gl-also{color:var(--muted);font-size:12.5px;margin-left:4px}
+.gl-more{font-size:12.5px;white-space:nowrap}
+.gl-list > div.gl-target{background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.gl-list > div:target,.gl-list dt:target{scroll-margin-top:80px}

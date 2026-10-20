@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Glossary · PMIC Notes</title>
+<meta name="description" content="Every acronym and term on the site — UVLO, PSRR, ESD, MLCC, AEC-Q100, SiC and more — by topic, each with a one-line definition and a link to the details.">
+<link rel="alternate" hreflang="zh-Hant" href="../glossary.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="glossary">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Glossary</div>
+<h1>Glossary: every acronym and term on the site</h1>
+<p class="lead">Power-IC writing is full of acronyms. Every term used on this site is collected here by topic, each with a one-line definition and a link to the section that explains it. In the chapters, the first use of a term in each section is underlined with dots; hover it (or tap on a phone) to see the definition from this page.</p>
+<div class="gl-filter"><input id="glf" type="search" placeholder="Filter: type UVLO, capacitor, test…" autocomplete="off"><span id="glf-n"></span></div>
+<p class="note">Includes the terms from every chapter glossary and spec list: 245 in all.</p>
+<h2 id="cat-basic">Devices and basics</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-ac">AC <small>Alternating current</small></dt><dd>Electricity whose direction alternates periodically; mains is 50/60 Hz AC.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
+  <div><dt id="g-ac-dc">AC-DC <small>AC-DC conversion</small></dt><dd>Turning mains AC into DC, e.g. chargers and the front end of server PSUs.  <a class="gl-more" href="sic.html#psu">Details →</a></dd></div>
+  <div><dt id="g-bandgap-reference">Bandgap reference <small>Bandgap reference</small></dt><dd>Adds the falling V_BE and the rising ΔV_BE to get a ~1.2 V reference that barely changes with temperature. <span class="gl-also">Also: bandgap reference, bandgap references</span> <a class="gl-more" href="design.html#bandgap">Details →</a></dd></div>
+  <div><dt id="g-bcd">BCD</dt><dd>Bipolar-CMOS-DMOS integrated process.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-bjt">BJT <small>Bipolar junction transistor</small></dt><dd>Base current controls collector current; used in bandgaps and precision analogue.  <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
+  <div><dt id="g-boost">Boost <small>Boost / buck-boost converter</small></dt><dd>A boost makes the output higher than the input; a buck-boost can go either way, for batteries that cross the output voltage. <span class="gl-also">Also: Buck-Boost</span> <a class="gl-more" href="architecture.html#boost-bb">Details →</a></dd></div>
+  <div><dt id="g-bti">BTI <small>Bias temperature instability</small></dt><dd>Gate bias plus heat slowly shifts V_T; NBTI is the negative-bias PMOS case, also prominent in SiC. <span class="gl-also">Also: NBTI</span> <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+  <div><dt id="g-buck">Buck <small>Buck converter</small></dt><dd>A DC-DC that steps voltage down with a switch and inductor; ideally V_OUT = duty × V_IN, 85–95% efficient.  <a class="gl-more" href="architecture.html#buck">Details →</a></dd></div>
+  <div><dt id="g-bv">BV <small>Breakdown voltage</small></dt><dd>The voltage at which a device breaks down and conducts heavily; sets its rating.  <a class="gl-more" href="process.html#ldmos">Details →</a></dd></div>
+  <div><dt id="g-cmos">CMOS <small>Complementary MOS</small></dt><dd>Circuits built from PMOS and NMOS pairs; the mainstream for digital logic.  <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
+  <div><dt id="g-dc-dc">DC-DC <small>DC-DC converter</small></dt><dd>A switching converter from one DC voltage to another, e.g. buck or boost.  <a class="gl-more" href="architecture.html#linear-vs-switching">Details →</a></dd></div>
+  <div><dt id="g-dmos">DMOS <small>Double-diffused MOS</small></dt><dd>A power MOS whose channel is formed by two diffusions; LDMOS is the lateral version.  <a class="gl-more" href="process.html#ldmos">Details →</a></dd></div>
+  <div><dt id="g-dti">DTI</dt><dd>Deep trench isolation.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-eeprom">EEPROM <small>Electrically erasable PROM / multi-time programmable</small></dt><dd>Keeps data without power and can be rewritten; stores trim or configuration. <span class="gl-also">Also: MTP</span> <a class="gl-more" href="process.html#trim-fuse">Details →</a></dd></div>
+  <div><dt id="g-em">EM <small>Electromigration</small></dt><dd>High current density pushes metal atoms along, forming voids or hillocks that open or short lines.  <a class="gl-more" href="process.html#metal">Details →</a></dd></div>
+  <div><dt id="g-fom">FOM</dt><dd>Figure of merit, e.g. R<sub>DS(on)</sub>·Q<sub>g</sub>, comparing switching devices.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-guard-ring">Guard ring</dt><dd>A ring around a device that collects injected carriers and lowers latch-up risk.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-hemt">HEMT <small>High-electron-mobility transistor</small></dt><dd>The GaN power-device structure, conducting through a 2D electron gas at a heterojunction; very fast.  <a class="gl-more" href="sic.html#sic-vs-gan">Details →</a></dd></div>
+  <div><dt id="g-hv">HV <small>High voltage</small></dt><dd>Device variants rated for higher voltage, e.g. HV CMOS.  <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
+  <div><dt id="g-ic">IC <small>Integrated circuit</small></dt><dd>A circuit with transistors, resistors and capacitors built on one silicon die.  <a class="gl-more" href="architecture.html#why-regulate">Details →</a></dd></div>
+  <div><dt id="g-igbt">IGBT <small>Insulated-gate bipolar transistor</small></dt><dd>A MOS-gated bipolar power device for high voltage and current, e.g. motor drives and inverters.  <a class="gl-more" href="sic.html#why-wbg">Details →</a></dd></div>
+  <div><dt id="g-ji">JI <small>Junction isolation</small></dt><dd>Isolating devices from the substrate with reverse-biased PN junctions; cheap but parasitic.  <a class="gl-more" href="process.html#isolation">Details →</a></dd></div>
+  <div><dt id="g-ldmos">LDMOS</dt><dd>Laterally diffused MOS, the workhorse power device of power ICs.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ldo">LDO <small>Low-dropout regulator</small></dt><dd>A linear regulator whose pass device acts as a variable resistor and needs only a small input-output difference.  <a class="gl-more" href="architecture.html#ldo-block">Details →</a></dd></div>
+  <div><dt id="g-mim">MIM <small>MIM / MOM / PIP capacitors</small></dt><dd>On-chip capacitor structures: metal-insulator-metal, metal-oxide-metal (finger), poly-insulator-poly. <span class="gl-also">Also: MOM, PIP</span> <a class="gl-more" href="process.html#passives">Details →</a></dd></div>
+  <div><dt id="g-mos">MOS <small>Metal-oxide-semiconductor</small></dt><dd>Short for MOSFET, or the three-layer structure itself (e.g. a MOS capacitor).  <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
+  <div><dt id="g-mosfet">MOSFET <small>Metal-oxide-semiconductor field-effect transistor</small></dt><dd>A transistor whose gate voltage controls drain-source current; the main switch in power ICs. <span class="gl-also">Also: FET</span> <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
+  <div><dt id="g-nbl">NBL</dt><dd>N-type buried layer, used for junction isolation and to lower parasitic PNP gain.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-nmos">NMOS <small>N-channel MOSFET</small></dt><dd>Turns on when the gate is above the source; lower on-resistance than a same-size PMOS, low output impedance as a source follower.  <a class="gl-more" href="architecture.html#pass-device">Details →</a></dd></div>
+  <div><dt id="g-npn">NPN <small>NPN / PNP transistors</small></dt><dd>The two BJT polarities; early regulators used an NPN Darlington or a PNP as pass device. <span class="gl-also">Also: PNP</span> <a class="gl-more" href="architecture.html#pass-device">Details →</a></dd></div>
+  <div><dt id="g-otp">OTP</dt><dd>One-time programmable non-volatile memory.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-piezoresistive-effect">Piezoresistive effect</dt><dd>Stress changing semiconductor resistance and carrier mobility.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pmic">PMIC <small>Power-management IC</small></dt><dd>One chip integrating several bucks, LDOs, sequencing, monitoring and interfaces.  <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-pmos">PMOS <small>P-channel MOSFET</small></dt><dd>Turns on when the gate is below the source; the usual LDO pass device, needing no drive above V_IN.  <a class="gl-more" href="architecture.html#pass-device">Details →</a></dd></div>
+  <div><dt id="g-pn">PN <small>PN junction</small></dt><dd>The boundary between P- and N-type silicon, i.e. a diode; reverse-biased it isolates.  <a class="gl-more" href="process.html#isolation">Details →</a></dd></div>
+  <div><dt id="g-rdl">RDL <small>Redistribution layer</small></dt><dd>An extra metal layer (often copper) above the die that routes current or signals to pads or bumps.  <a class="gl-more" href="process.html#metal">Details →</a></dd></div>
+  <div><dt id="g-resurf">RESURF</dt><dd>Reduced surface field: doping and field plates that spread the drift-region field evenly to raise breakdown.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-rsp">R<sub>sp</sub></dt><dd>Specific on-resistance, R<sub>DS(on)</sub> × area.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-scr">SCR <small>Silicon-controlled rectifier (PNPN)</small></dt><dd>Once triggered it conducts until power is removed; parasitic PNPN structures cause latch-up. <span class="gl-also">Also: PNPN</span> <a class="gl-more" href="test.html#esd-lu">Details →</a></dd></div>
+  <div><dt id="g-sicr">SiCr <small>Silicon-chromium / tantalum-nitride thin film</small></dt><dd>Low-tempco thin-film resistor materials for precision references; laser-trimmable. <span class="gl-also">Also: TaN</span> <a class="gl-more" href="process.html#passives">Details →</a></dd></div>
+  <div><dt id="g-soa">SOA</dt><dd>Safe operating area: the allowed combinations of voltage, current and time.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-soi">SOI <small>Silicon on insulator</small></dt><dd>Devices sit on a buried oxide: full dielectric isolation, no substrate injection, poorer heat flow.  <a class="gl-more" href="process.html#isolation">Details →</a></dd></div>
+  <div><dt id="g-spice">SPICE <small>Circuit simulator</small></dt><dd>A tool that solves circuit equations with device models; the standard for analogue design.  <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
+  <div><dt id="g-tddb">TDDB <small>Time-dependent dielectric breakdown</small></dt><dd>Oxide damage accumulates under field until it breaks down; used to project gate-oxide life.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+</dl>
+<h2 id="cat-ckt">Circuits, control and interfaces</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-adc">ADC <small>Analogue-to-digital converter</small></dt><dd>Converts an analogue voltage to a number; very sensitive to supply noise.  <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-avs">AVS <small>Adaptive voltage scaling</small></dt><dd>Adjusting supply voltage to the chip&#x27;s actual speed and temperature to save more power.  <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-bist">BIST <small>Built-in self-test</small></dt><dd>The chip checks its own monitors and references; common in functional safety.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-boot">BOOT <small>Bootstrap pin</small></dt><dd>Holds the bootstrap capacitor so an N-type high side can be driven above SW; a series resistor slows switching to cut EMI.  <a class="gl-more" href="design.html#gate-drive">Details →</a></dd></div>
+  <div><dt id="g-ccm-dcm">CCM / DCM</dt><dd>Continuous / discontinuous conduction mode of the inductor current. <span class="gl-also">Also: CCM, DCM</span> <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-cff">C<sub>FF</sub></dt><dd>Feed-forward capacitor across the upper divider resistor.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-cot">COT</dt><dd>Constant on-time control.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-crc">CRC <small>Cyclic redundancy check</small></dt><dd>A checksum to detect read errors, e.g. verifying OTP contents.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-current-limit-short-circuit-current">Current limit / short-circuit current</dt><dd>Maximum current into a short; may be constant-current or foldback. <span class="gl-also">Also: Current limit, short-circuit current</span> <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-dcr">DCR <small>DC resistance</small></dt><dd>The DC resistance of an inductor winding; sets copper loss.  <a class="gl-more" href="application.html#inductor">Details →</a></dd></div>
+  <div><dt id="g-dldo">DLDO <small>Digital LDO</small></dt><dd>An LDO that replaces the analogue EA with digitally controlled switch arrays; works at very low voltage.  <a class="gl-more" href="design.html#capless">Details →</a></dd></div>
+  <div><dt id="g-duty-cycle-d">Duty cycle D</dt><dd>Fraction of the switching period the high-side switch is on.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-dvs">DVS</dt><dd>Dynamic voltage scaling.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ea">EA <small>Error amplifier</small></dt><dd>Compares the feedback with the reference and amplifies the difference to drive the pass device or PWM.  <a class="gl-more" href="architecture.html#ldo-block">Details →</a></dd></div>
+  <div><dt id="g-en">EN <small>Enable pin</small></dt><dd>Pull high to turn on, low to turn off; leaving it floating can half-enable the part.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-esr-esl">ESR / ESL</dt><dd>A capacitor's equivalent series resistance / inductance. <span class="gl-also">Also: ESL, ESR</span> <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fb">FB <small>Feedback pin / node</small></dt><dd>The divided-down output goes here to be compared with the reference; sets the output voltage.  <a class="gl-more" href="architecture.html#ldo-block">Details →</a></dd></div>
+  <div><dt id="g-fmeda">FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis, a functional-safety method.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-foldback">Foldback</dt><dd>Current limit that falls as output voltage falls.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fpwm">FPWM <small>Forced PWM</small></dt><dd>Fixed-frequency PWM even at light load: predictable ripple, poor efficiency, inductor current may go negative.  <a class="gl-more" href="architecture.html#buck">Details →</a></dd></div>
+  <div><dt id="g-fvf">FVF <small>Flipped voltage follower</small></dt><dd>A fast, low-output-impedance local feedback cell used in capacitor-less LDOs.  <a class="gl-more" href="design.html#capless">Details →</a></dd></div>
+  <div><dt id="g-gnd">GND <small>Ground</small></dt><dd>GND is ground; PGND carries power return current, AGND is the quiet analogue reference, joined at one point. <span class="gl-also">Also: PGND, AGND</span> <a class="gl-more" href="application.html#layout-buck">Details →</a></dd></div>
+  <div><dt id="g-ground-current-ignd">Ground current I<sub>GND</sub></dt><dd>Current to ground under load; close to I<sub>Q</sub> for PMOS LDOs, rising with load for PNP LDOs.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-hiccup">Hiccup</dt><dd>On a fault, shut down for a while and then retry.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-iq">I<sub>Q</sub></dt><dd>Quiescent current.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ir">IR <small>IR drop</small></dt><dd>Voltage lost as current I flows through resistance R, e.g. in on-chip metal or PCB copper.  <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
+  <div><dt id="g-i-c">I²C <small>Inter-integrated circuit bus</small></dt><dd>A two-wire clock-and-data interface for reading and writing registers, the most common PMIC interface; SMBus and PMBus build on it. <span class="gl-also">Also: SMBus</span> <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-lc">LC <small>Inductor-capacitor network</small></dt><dd>A filter or resonant circuit of an inductor and capacitor; a buck output filter is an LC.  <a class="gl-more" href="application.html#hot-plug">Details →</a></dd></div>
+  <div><dt id="g-lsb">LSB <small>Least significant bit</small></dt><dd>The smallest step of a digital code; in trimming, the change per step.  <a class="gl-more" href="production.html#cp-trim">Details →</a></dd></div>
+  <div><dt id="g-miller-compensation">Miller compensation</dt><dd>A capacitor across a gain stage that uses the Miller effect to move the dominant pole down and split the poles.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-mlcc">MLCC <small>Multilayer ceramic capacitor</small></dt><dd>The most common SMD capacitor; high-k types lose much capacitance to DC bias, temperature and ageing.  <a class="gl-more" href="application.html#capacitors">Details →</a></dd></div>
+  <div><dt id="g-nr">NR <small>Noise-reduction pin</small></dt><dd>A capacitor here low-pass filters the reference to cut LDO output noise.  <a class="gl-more" href="design.html#noise">Details →</a></dd></div>
+  <div><dt id="g-output-accuracy">Output accuracy</dt><dd>The sum of reference, divider, EA offset, temperature, line and load regulation; typically ±1% (25 °C) or ±2% (full temperature).  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-output-noise">Output noise</dt><dd>Integrated noise from 10 Hz to 100 kHz, in µV<sub>RMS</sub>. Low-noise LDOs reach &lt; 5 µV<sub>RMS</sub>.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-pfc">PFC <small>Power-factor correction</small></dt><dd>Makes AC input current follow the voltage waveform to cut harmonics; the front stage of a server PSU, boosting to about 400 V.  <a class="gl-more" href="sic.html#psu">Details →</a></dd></div>
+  <div><dt id="g-pfm">PFM</dt><dd>Pulse-frequency modulation: lowering switching frequency at light load for efficiency.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pg">PG <small>Power good</small></dt><dd>A status signal released once the output is in range, usually open-drain; can drive the next rail&#x27;s EN for sequencing.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-phase-margin-pm">Phase margin (PM)</dt><dd>How far the phase is from −180° where the gain falls to 0 dB. <span class="gl-also">Also: PM, Phase margin</span> <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pll">PLL <small>Phase-locked loop / voltage-controlled oscillator</small></dt><dd>Circuits that generate clocks; a VCO&#x27;s frequency follows a voltage, so supply noise becomes phase noise. <span class="gl-also">Also: VCO</span> <a class="gl-more" href="design.html#noise">Details →</a></dd></div>
+  <div><dt id="g-pmbus">PMBus <small>Power Management Bus</small></dt><dd>A power-specific command set on SMBus / I²C, common in server power.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-post-regulation">Post-regulation</dt><dd>An LDO after a DC-DC, using the LDO's PSRR to remove switching ripple.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-psrr">PSRR</dt><dd>How much input ripple is rejected, in dB, falling with frequency. See <a href="design.html#psrr">Design · PSRR</a>.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-ptat-ctat">PTAT / CTAT</dt><dd>Voltage or current proportional / complementary to absolute temperature. <span class="gl-also">Also: CTAT, PTAT</span> <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pwm">PWM <small>Pulse-width modulation</small></dt><dd>Fixed frequency with a varying on-time fraction (duty cycle) to control the output.  <a class="gl-more" href="architecture.html#buck">Details →</a></dd></div>
+  <div><dt id="g-quiescent-current-iq">Quiescent current I<sub>Q</sub></dt><dd>Current the LDO draws itself at no load. Wearables and IoT want &lt; 1 µA; high-PSRR, high-bandwidth LDOs may need tens to hundreds of µA.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-rc">RC <small>Resistor-capacitor network</small></dt><dd>A resistor-capacitor filter, delay or damping circuit.  <a class="gl-more" href="application.html#emi">Details →</a></dd></div>
+  <div><dt id="g-rhpz">RHPZ</dt><dd>Right-half-plane zero in boost / buck-boost converters, limiting loop bandwidth.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-rtc">RTC <small>Real-time clock</small></dt><dd>A clock that keeps time on a backup battery; often integrated in PMICs.  <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-shoot-through">Shoot-through</dt><dd>Both switches conducting at once, shorting V<sub>IN</sub> to ground.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-shutdown-current-isd">Shutdown current I<sub>SD</sub></dt><dd>Leakage with EN low; sets standby battery life, typically &lt; 100 nA.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-slope-compensation">Slope compensation</dt><dd>A ramp that prevents subharmonic oscillation in peak current mode above 50% duty.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-spi">SPI <small>Serial peripheral interface</small></dt><dd>A four-wire synchronous serial interface, faster than I²C.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-spmi">SPMI</dt><dd>System Power Management Interface, the MIPI bus for mobile power management.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ss">SS <small>Soft-start pin</small></dt><dd>Sets how fast the output ramps, limiting inrush; in process corners SS means slow-slow.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-stable-capacitor-range">Stable capacitor range</dt><dd>The minimum C<sub>OUT</sub> and ESR range in the datasheet. Outside it the LDO may oscillate — the most common application problem.  <a class="gl-more" href="architecture.html#ldo-specs">Details →</a></dd></div>
+  <div><dt id="g-svid">SVID <small>Processor voltage-control interfaces</small></dt><dd>SVID (Intel) and SVI3 (AMD) let the processor command its VR to change core voltage on the fly. <span class="gl-also">Also: SVI3</span> <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+  <div><dt id="g-sw">SW <small>Switch node</small></dt><dd>The node between the high- and low-side switches of a buck, at the inductor; swings fast between V_IN and 0.  <a class="gl-more" href="architecture.html#buck">Details →</a></dd></div>
+  <div><dt id="g-type-ii">Type II <small>Type II / Type III compensation</small></dt><dd>DC-DC compensation networks: Type II has one zero and two poles (current mode), Type III two zeros and three poles (voltage mode, for the LC double pole). <span class="gl-also">Also: Type III</span> <a class="gl-more" href="design.html#compensation">Details →</a></dd></div>
+  <div><dt id="g-ugb">UGB</dt><dd>Unity-gain bandwidth: the frequency where loop gain is 1, i.e. crossover.  <a class="gl-more" href="design.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-vdd">VDD <small>Supply-rail names</small></dt><dd>VDD is the main supply; in DDR, VDDQ feeds I/O and VPP the word-line boost. <span class="gl-also">Also: VDDQ, VPP</span> <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-vdo">V<sub>DO</sub></dt><dd>Dropout voltage: the minimum input–output difference needed to regulate.  <a class="gl-more" href="architecture.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-vm">VM <small>Voltage-mode control</small></dt><dd>DC-DC control that compares the error voltage with a fixed ramp to make PWM.  <a class="gl-more" href="design.html#dcdc-control">Details →</a></dd></div>
+  <div><dt id="g-vrm">VRM <small>Voltage regulator module</small></dt><dd>The multiphase buck feeding a processor or GPU core, up to thousands of amps. <span class="gl-also">Also: VR</span> <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
+  <div><dt id="g-x5r">X5R <small>MLCC dielectric classes</small></dt><dd>X5R (−55~85 °C ±15%), X7R (−55~125 °C ±15%), Y5V (huge variation, avoid for power), C0G / NP0 (stable but small values). <span class="gl-also">Also: X7R, Y5V, C0G, NP0</span> <a class="gl-more" href="application.html#capacitors">Details →</a></dd></div>
+</dl>
+<h2 id="cat-prot">Protection and sequencing</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-desat">DESAT <small>Desaturation detection</small></dt><dd>Detects an abnormal rise in on-state voltage (a short or overcurrent) and turns the switch off at once.  <a class="gl-more" href="sic.html#design">Details →</a></dd></div>
+  <div><dt id="g-ocp">OCP <small>Overcurrent protection / Open Compute Project</small></dt><dd>In circuits, overcurrent protection; in data centers (OCP Open Rack), the Open Compute Project that publishes open server and rack specs.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-ovp">OVP <small>Overvoltage protection</small></dt><dd>Shuts down when input or output voltage is too high, protecting chip and load.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-sscb">SSCB <small>Solid-state circuit breaker</small></dt><dd>A breaker using semiconductor switches instead of contacts; cuts DC fault current fast.  <a class="gl-more" href="sic.html#hvdc">Details →</a></dd></div>
+  <div><dt id="g-tsd">TSD <small>Thermal shutdown</small></dt><dd>Turns the output off when the die exceeds a threshold (typically 150–170 °C) and back on after cooling.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-uvlo">UVLO <small>Undervoltage lockout</small></dt><dd>Turns the output off when the input falls below a threshold and back on only above a higher one (hysteresis), avoiding misbehaviour and restart loops at low voltage.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+  <div><dt id="g-uvp">UVP <small>Undervoltage protection</small></dt><dd>Trips when the output falls too low (e.g. a short), often with hiccup restart.  <a class="gl-more" href="design.html#protection">Details →</a></dd></div>
+</dl>
+<h2 id="cat-mfg">Process, packaging and production</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-aoi">AOI <small>Automated optical inspection</small></dt><dd>Cameras automatically inspect solder joints and placement; QFNs need wettable flanks for visible joints.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-bin">Bin</dt><dd>Test-result category; e.g. bin 1 is good, other bins are failure types.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-bom">BOM <small>Bill of materials</small></dt><dd>All part numbers and quantities in a product; part changes are a frequent complaint trigger.  <a class="gl-more" href="complaints.html#c-mlcc">Details →</a></dd></div>
+  <div><dt id="g-cp">CP</dt><dd>Chip probing, wafer-level test.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-cpk">Cpk <small>Process capability index</small></dt><dd>Cpk = distance from the mean to the nearest spec limit ÷ 3σ; 1.33 is about 32 ppm out of spec, 1.67 about 0.3 ppm. <span class="gl-also">Also: Cp</span> <a class="gl-more" href="production.html#cpk">Details →</a></dd></div>
+  <div><dt id="g-dft">DFT <small>Design for test</small></dt><dd>Building in test modes, an analogue test bus and scan chains to make production test possible.  <a class="gl-more" href="test.html#dft">Details →</a></dd></div>
+  <div><dt id="g-dppm">DPPM</dt><dd>Defective parts per million.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ecid">ECID</dt><dd>Electronic chip ID: a unique identifier stored on the die.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ep">EP <small>Exposed pad</small></dt><dd>A metal pad under the package, soldered to the PCB to conduct heat away.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-fcqfn">FCQFN <small>Flip-chip QFN</small></dt><dd>The die is flipped onto the lead frame on bumps instead of wire bonds; lower parasitic R and L.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-ft">FT</dt><dd>Final test after packaging.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-gdbn">GDBN <small>Good die in bad neighbourhood</small></dt><dd>Screening out good dies surrounded by failures; common for automotive zero-defect.  <a class="gl-more" href="production.html#pat">Details →</a></dd></div>
+  <div><dt id="g-guard-band">Guard band</dt><dd>The margin by which test limits sit inside spec limits.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-idm">IDM <small>Integrated device manufacturer</small></dt><dd>A company that designs and also owns fabs and assembly/test; contrast with fabless.  <a class="gl-more" href="roles.html#overview">Details →</a></dd></div>
+  <div><dt id="g-ivr">IVR <small>Integrated voltage regulator</small></dt><dd>A regulator inside the processor package, right at the load, cutting power-delivery impedance.  <a class="gl-more" href="process.html#trends">Details →</a></dd></div>
+  <div><dt id="g-msl">MSL</dt><dd>Moisture sensitivity level.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ocap">OCAP</dt><dd>Out-of-control action plan.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pat">PAT</dt><dd>Part average testing: removing outliers based on the lot distribution.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pcb">PCB <small>Printed circuit board</small></dt><dd>The board carrying and connecting parts; copper area and layer count set heat spreading.  <a class="gl-more" href="application.html#layout">Details →</a></dd></div>
+  <div><dt id="g-pcn-eol-ltb">PCN / EOL / LTB</dt><dd>Product change notice / end of life / last-time buy. <span class="gl-also">Also: EOL, LTB, PCN</span> <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pvt">PVT <small>Process, voltage, temperature corners</small></dt><dd>The variation combinations design must cover: process corners (TT / FF / SS / FS / SF) × voltage × temperature.  <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
+  <div><dt id="g-qfn">QFN <small>Quad / dual flat no-lead packages</small></dt><dd>Small packages with an exposed thermal pad underneath and leads on the bottom edge; good thermal path. <span class="gl-also">Also: DFN</span> <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-sip">SiP <small>System in package</small></dt><dd>IC, inductor and capacitors in one package; common for power modules. <span class="gl-also">Also: PwrSiP</span> <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-smt">SMT <small>Surface-mount technology</small></dt><dd>Placing components on the PCB surface and reflow-soldering them.  <a class="gl-more" href="complaints.html#c-delam">Details →</a></dd></div>
+  <div><dt id="g-soic">SOIC <small>Small-outline IC packages</small></dt><dd>Packages with leads on two sides; EP (exposed pad) versions cut thermal resistance a lot. <span class="gl-also">Also: MSOP, SOIC-8</span> <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-sot-23">SOT-23 <small>Small-outline transistor packages</small></dt><dd>Small leaded packages: cheap and easy to solder, but high thermal resistance (~200 °C/W or more). <span class="gl-also">Also: SOT-23-5, SC-70</span> <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-spc">SPC <small>Statistical process control</small></dt><dd>Monitoring process mean and spread with control charts and reacting when rules are violated.  <a class="gl-more" href="production.html#cpk">Details →</a></dd></div>
+  <div><dt id="g-toll">TOLL <small>Power packages</small></dt><dd>TOLL (TO-leadless), TO-247-4 and similar power packages; the fourth pin is usually a Kelvin source. <span class="gl-also">Also: TO-247-4</span> <a class="gl-more" href="sic.html#design">Details →</a></dd></div>
+  <div><dt id="g-usl">USL <small>Upper / lower specification limit</small></dt><dd>The spec bounds used to compute Cpk. <span class="gl-also">Also: LSL</span> <a class="gl-more" href="production.html#cpk">Details →</a></dd></div>
+  <div><dt id="g-wat-pcm">WAT / PCM</dt><dd>Wafer acceptance test / process control monitor. <span class="gl-also">Also: PCM, WAT</span> <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-wlcsp">WLCSP <small>Wafer-level chip-scale package</small></dt><dd>Bumps are formed on the wafer and the die is the package after sawing; package size equals die size.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+</dl>
+<h2 id="cat-test">Test, reliability and EMC</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-ams">AMS <small>Analogue / mixed-signal simulation</small></dt><dd>Simulating digital logic and analogue circuits together, e.g. PMIC sequencing and fault handling.  <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
+  <div><dt id="g-asil">ASIL <small>Automotive safety integrity level and metrics</small></dt><dd>ISO 26262 levels ASIL A–D; SPFM, LFM and PMHF measure hardware-fault coverage and probability. <span class="gl-also">Also: SPFM, LFM, PMHF</span> <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
+  <div><dt id="g-ate">ATE</dt><dd>Automatic test equipment.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-bci">BCI <small>Bulk current injection</small></dt><dd>An automotive immunity test that injects RF current into the harness.  <a class="gl-more" href="application.html#emi">Details →</a></dd></div>
+  <div><dt id="g-c-sam">C-SAM <small>Scanning acoustic microscopy</small></dt><dd>Ultrasound that reveals delamination and voids inside a package without opening it. <span class="gl-also">Also: SAM</span> <a class="gl-more" href="complaints.html#fa">Details →</a></dd></div>
+  <div><dt id="g-cispr">CISPR <small>International Special Committee on Radio Interference</small></dt><dd>The body behind EMI standards; CISPR 25 for automotive, CISPR 32 for multimedia equipment.  <a class="gl-more" href="application.html#emi">Details →</a></dd></div>
+  <div><dt id="g-dps-pmu">DPS / PMU</dt><dd>Device power supply / precision measurement unit on a tester. <span class="gl-also">Also: DPS, PMU</span> <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-elfr">ELFR <small>Early-life failure rate</small></dt><dd>Short high-temperature bias on a large sample to catch infant mortality from defects.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-emi">EMI <small>Electromagnetic interference / compatibility</small></dt><dd>EMI is interference a circuit emits; EMC is neither disturbing nor being disturbed. Switching supplies are major EMI sources. <span class="gl-also">Also: EMC</span> <a class="gl-more" href="application.html#emi">Details →</a></dd></div>
+  <div><dt id="g-esd">ESD <small>Electrostatic discharge</small></dt><dd>The sudden current when a charged object touches a chip; tested as HBM, CDM (component) and IEC 61000-4-2 (system).  <a class="gl-more" href="test.html#esd-lu">Details →</a></dd></div>
+  <div><dt id="g-fit">FIT <small>Failures in time</small></dt><dd>Failures per 10⁹ device-hours.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+  <div><dt id="g-golden-unit">Golden unit</dt><dd>A reference sample used to verify a measurement system.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-gr-r">GR&amp;R</dt><dd>Gage repeatability and reproducibility of a measurement system.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-hast">HAST</dt><dd>Highly accelerated stress test (temperature and humidity).  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-hbm-cdm">HBM / CDM</dt><dd>Human body model / charged device model, two ESD models. <span class="gl-also">Also: CDM, HBM</span> <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-htgb">HTGB <small>High-temperature gate bias</small></dt><dd>Long gate bias at high temperature, checking gate oxide and V_T drift.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+  <div><dt id="g-htol">HTOL</dt><dd>High-temperature operating life test.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-htsl">HTSL <small>High-temperature storage life</small></dt><dd>Unpowered at 150–175 °C for 1000 hours, checking bond wires and intermetallics.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-kelvin">Kelvin</dt><dd>Four-wire measurement with separate force and sense.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-lisn">LISN <small>Line impedance stabilisation network</small></dt><dd>The standard impedance network inserted in the supply line for conducted-EMI measurement.  <a class="gl-more" href="test.html#bench">Details →</a></dd></div>
+  <div><dt id="g-load-board">Load board</dt><dd>The interface board between tester and device.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pc">PC <small>Preconditioning</small></dt><dd>Moisture soak plus three reflows before reliability tests, simulating customer assembly.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-ptc">PTC <small>Power temperature cycling</small></dt><dd>Switching power on and off so the die self-heats and cools, checking metal and wire fatigue.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-rh">RH <small>Relative humidity</small></dt><dd>Moisture in the air as a percentage of saturation.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-sem">SEM <small>Scanning electron microscope / energy-dispersive X-ray</small></dt><dd>SEM images fine structures; EDX identifies elements. Both are FA staples. <span class="gl-also">Also: EDX</span> <a class="gl-more" href="complaints.html#fa">Details →</a></dd></div>
+  <div><dt id="g-skew-lot">Skew lot</dt><dd>A qualification lot with process parameters deliberately at the corners.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-tc">TC <small>Temperature cycling</small></dt><dd>Repeated cycling between −55/−65 °C and 150 °C, checking bonds, joints and delamination.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-thb">THB <small>Temperature-humidity-bias test</small></dt><dd>85 °C / 85% RH with bias for 1000 hours, checking moisture corrosion.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-uis">UIS <small>Unclamped inductive switching</small></dt><dd>Switching off an inductive current to force avalanche and measure avalanche energy.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+</dl>
+<h2 id="cat-qa">Quality, complaints and roles</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-8d">8D</dt><dd>Eight Disciplines, an eight-step problem-solving and reporting format.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-aba">ABA <small>ABA swap</small></dt><dd>Swapping good and bad parts between boards to see whether the problem follows the part or the board.  <a class="gl-more" href="issues.html#debug-tips">Details →</a></dd></div>
+  <div><dt id="g-ae">AE <small>Applications / field applications engineer</small></dt><dd>AEs write app notes and reference designs; FAEs support design-ins and field issues at customers. <span class="gl-also">Also: FAE</span> <a class="gl-more" href="roles.html#ae">Details →</a></dd></div>
+  <div><dt id="g-containment">Containment</dt><dd>Short-term measures that stop suspect parts reaching customers.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-emmi">EMMI</dt><dd>Emission microscopy, detecting faint light from defects.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-escape">Escape</dt><dd>A defective part that passes test and reaches the customer.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fa">FA</dt><dd>Failure analysis.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fib">FIB</dt><dd>Focused ion beam, for cross-sections and circuit edits.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fmea">FMEA</dt><dd>Failure mode and effects analysis.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fta">FTA <small>Fault-tree analysis</small></dt><dd>Expanding every possible cause below a top failure and eliminating them with data.  <a class="gl-more" href="complaints.html#tools">Details →</a></dd></div>
+  <div><dt id="g-iatf">IATF <small>IATF 16949</small></dt><dd>The automotive quality-management-system standard.  <a class="gl-more" href="roles.html#qra">Details →</a></dd></div>
+  <div><dt id="g-ntf-nff">NTF / NFF</dt><dd>No trouble found / no fault found. <span class="gl-also">Also: NFF, NTF</span> <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-obirch">OBIRCH</dt><dd>Optical beam induced resistance change, a laser-heating localisation method.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pe">PE <small>Product engineering</small></dt><dd>The role owning volume yield, trim, Cpk, cost and changes.  <a class="gl-more" href="roles.html#pe">Details →</a></dd></div>
+  <div><dt id="g-ppap">PPAP <small>Production part approval process</small></dt><dd>The documentation and samples an automotive supplier submits before production.  <a class="gl-more" href="roles.html#qra">Details →</a></dd></div>
+  <div><dt id="g-qra">QRA <small>Quality and reliability assurance</small></dt><dd>The function owning qualification, change notices, outgoing quality and complaint 8Ds.  <a class="gl-more" href="roles.html#qra">Details →</a></dd></div>
+  <div><dt id="g-rma">RMA</dt><dd>Return material authorisation.  <a class="gl-more" href="complaints.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-te">TE <small>Test engineering</small></dt><dd>The role developing and maintaining ATE programs and hardware.  <a class="gl-more" href="roles.html#te">Details →</a></dd></div>
+</dl>
+<h2 id="cat-sys">Systems and applications</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-adas">ADAS <small>Advanced driver-assistance systems</small></dt><dd>Lane keeping, automatic braking and similar; their power must meet functional safety.  <a class="gl-more" href="application.html#automotive">Details →</a></dd></div>
+  <div><dt id="g-ai">AI <small>Artificial intelligence</small></dt><dd>AI accelerators draw huge power, driving changes in rack power and architecture.  <a class="gl-more" href="sic.html#hvdc">Details →</a></dd></div>
+  <div><dt id="g-am">AM <small>AM broadcast band</small></dt><dd>About 530–1700 kHz; automotive DC-DCs avoid it so the radio is not disturbed.  <a class="gl-more" href="application.html#emi">Details →</a></dd></div>
+  <div><dt id="g-cold-crank">Cold crank</dt><dd>The large battery-voltage dip when an engine starts.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-cpu">CPU <small>CPU / GPU / MCU</small></dt><dd>The main compute chips; GPUs drive AI compute, MCUs are small embedded controllers. <span class="gl-also">Also: GPU, MCU</span> <a class="gl-more" href="application.html#power-tree">Details →</a></dd></div>
+  <div><dt id="g-dc-bias">DC bias</dt><dd>The drop in MLCC capacitance with applied DC voltage.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ddr">DDR <small>Double data rate memory</small></dt><dd>The mainstream DRAM interface; DDR5 modules carry their own PMIC. <span class="gl-also">Also: DDR5</span> <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-ecu">ECU <small>Electronic control unit</small></dt><dd>A vehicle control module, e.g. engine or body controller.  <a class="gl-more" href="complaints.html#c-escape">Details →</a></dd></div>
+  <div><dt id="g-eos">EOS</dt><dd>Electrical overstress: damage from exceeding absolute maximum ratings.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-fpga">FPGA <small>Field-programmable gate array</small></dt><dd>A reconfigurable digital chip with several rails and power-up rules.  <a class="gl-more" href="application.html#sequencing">Details →</a></dd></div>
+  <div><dt id="g-hot-loop">Hot loop</dt><dd>The high-frequency loop in a buck through which pulsed current flows.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-iot">IoT <small>Internet of Things</small></dt><dd>Many small connected devices, often on batteries for years; need very low quiescent current.  <a class="gl-more" href="application.html#segments">Details →</a></dd></div>
+  <div><dt id="g-led">LED <small>LED / OLED / LCD</small></dt><dd>Lighting and display devices; backlights and OLEDs need boost or negative supplies. <span class="gl-also">Also: OLED, LCD</span> <a class="gl-more" href="architecture.html#boost-bb">Details →</a></dd></div>
+  <div><dt id="g-load-dump">Load dump</dt><dd>The high-voltage transient from an automotive alternator when its load is suddenly disconnected.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-mv">MV <small>Medium voltage</small></dt><dd>Grid voltage of a few to tens of kV; the data center&#x27;s incoming supply.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
+  <div><dt id="g-poe">PoE <small>Power over Ethernet</small></dt><dd>Carrying data and power (about 48 V) over an Ethernet cable.  <a class="gl-more" href="process.html#bcd">Details →</a></dd></div>
+  <div><dt id="g-power-tree">Power tree</dt><dd>The conversion relationships between all rails in a system.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-pre-bias">Pre-bias</dt><dd>Starting up with voltage already on the output.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-psu">PSU <small>Power supply unit</small></dt><dd>Converts mains into the DC a device needs; server PSUs are usually PFC + LLC.  <a class="gl-more" href="sic.html#psu">Details →</a></dd></div>
+  <div><dt id="g-rf">RF <small>Radio frequency</small></dt><dd>High-frequency wireless circuits; sensitive to supply noise and switching harmonics.  <a class="gl-more" href="application.html#segments">Details →</a></dd></div>
+  <div><dt id="g-rs-232">RS-232 <small>RS-232 serial interface</small></dt><dd>An early serial standard needing positive and negative voltages, often made by charge pumps.  <a class="gl-more" href="architecture.html#charge-pump">Details →</a></dd></div>
+  <div><dt id="g-soc">SoC <small>System on chip</small></dt><dd>CPU, GPU, memory controller and more on one die; needs many rails with strict sequencing.  <a class="gl-more" href="application.html#power-tree">Details →</a></dd></div>
+  <div><dt id="g-spread-spectrum">Spread spectrum</dt><dd>Dithering the switching frequency to lower EMI peaks.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ssd">SSD <small>Solid-state drive</small></dt><dd>Flash-based storage; needs several rails and power-loss protection.  <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
+  <div><dt id="g-tvs">TVS</dt><dd>Transient voltage suppressor diode.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ups">UPS <small>Uninterruptible power supply</small></dt><dd>Keeps power on from batteries during outages; one stage of the data-center power chain.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
+  <div><dt id="g-usb">USB <small>Universal Serial Bus / USB Power Delivery</small></dt><dd>The USB interface and its power; USB PD negotiates supply voltages from 5 to 48 V. <span class="gl-also">Also: PD</span> <a class="gl-more" href="architecture.html#boost-bb">Details →</a></dd></div>
+  <div><dt id="g-jt">Ψ<sub>JT</sub></dt><dd>Junction-to-top thermal characterisation parameter, used to infer junction temperature from case-top temperature.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+</dl>
+<h2 id="cat-std">Standards and bodies</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-80-plus">80 PLUS <small>80 PLUS efficiency certification</small></dt><dd>A PSU certification graded by efficiency at load points; Titanium is among the highest.  <a class="gl-more" href="sic.html#psu">Details →</a></dd></div>
+  <div><dt id="g-aec">AEC <small>Automotive Electronics Council standards</small></dt><dd>AEC-Q100 qualifies automotive ICs, AEC-Q101 discretes, AEC-Q001 is PAT; suffixes are individual test methods. <span class="gl-also">Also: AEC-Q100, AEC-Q101, AEC-Q001, AEC-Q100-002, AEC-Q100-004, AEC-Q100-011, AEC-Q100-012</span> <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-aqg">AQG <small>AQG 324</small></dt><dd>The qualification guideline for automotive power modules.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+  <div><dt id="g-iec">IEC <small>International Electrotechnical Commission</small></dt><dd>IEC 61000-4-2 is the system-level ESD test standard.  <a class="gl-more" href="test.html#esd-lu">Details →</a></dd></div>
+  <div><dt id="g-iso">ISO <small>International Organization for Standardization</small></dt><dd>ISO 26262 functional safety; ISO 16750 and ISO 7637 automotive electrical environment and transients.  <a class="gl-more" href="application.html#automotive">Details →</a></dd></div>
+  <div><dt id="g-j-std-020">J-STD-020 <small>Moisture-sensitivity classification</small></dt><dd>The IPC/JEDEC standard defining MSL levels and reflow conditions.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
+  <div><dt id="g-jedec">JEDEC <small>JEDEC Solid State Technology Association</small></dt><dd>The body setting memory and semiconductor package, test and reliability standards, e.g. JESD47, JESD51.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-jesd46">JESD46 <small>JEDEC standard numbers</small></dt><dd>JESD46 change notices, JESD47 qualification, JESD48 discontinuation, JESD51 thermal measurement, JESD78 latch-up. <span class="gl-also">Also: JESD47, JESD48, JESD51, JESD78</span> <a class="gl-more" href="production.html#pcn">Details →</a></dd></div>
+  <div><dt id="g-mipi">MIPI <small>MIPI Alliance</small></dt><dd>The body defining mobile interfaces such as SPMI.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
+</dl>
+<h2 id="cat-wbg">Wide bandgap and data centers</h2>
+<dl class="terms gl-list">
+  <div><dt id="g-bpd">BPD</dt><dd>Basal plane dislocation, the source of SiC bipolar degradation.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-cmti">CMTI</dt><dd>Common-mode transient immunity of an isolated driver.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-coolsic">CoolSiC <small>Infineon SiC / GaN product lines</small></dt><dd>CoolSiC is Infineon&#x27;s SiC MOSFETs and diodes; CoolGaN its GaN transistors. <span class="gl-also">Also: CoolGaN</span> <a class="gl-more" href="sic.html#infineon">Details →</a></dd></div>
+  <div><dt id="g-dpt">DPT</dt><dd>Double-pulse test, the standard method for switching characterisation.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-gan">GaN <small>Gallium nitride</small></dt><dd>A wide-bandgap semiconductor with the fastest switching; suits high-frequency, soft-switched DC/DC.  <a class="gl-more" href="sic.html#sic-vs-gan">Details →</a></dd></div>
+  <div><dt id="g-hold-up-time">Hold-up time</dt><dd>How long the output stays in spec after input power is lost.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-hvdc">HVDC</dt><dd>High-voltage direct-current distribution.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ibc">IBC</dt><dd>Intermediate bus converter (e.g. 48 V → 12 V).  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-llc">LLC</dt><dd>Inductor-inductor-capacitor resonant converter, common for soft-switched isolated DC/DC.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-seb">SEB</dt><dd>Single-event burnout caused by a particle strike.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-sic">SiC <small>Silicon carbide</small></dt><dd>A wide-bandgap semiconductor with about 10× silicon&#x27;s critical field; suits high voltage, high power, hard switching.  <a class="gl-more" href="sic.html#why-wbg">Details →</a></dd></div>
+  <div><dt id="g-sst">SST</dt><dd>Solid-state transformer.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-totem-pole-pfc">Totem-pole PFC</dt><dd>Bridgeless totem-pole power-factor correction, a high-efficiency PFC topology without a rectifier bridge.  <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-wide-bandgap-wbg">Wide bandgap (WBG)</dt><dd>Semiconductors with a bandgap clearly larger than silicon's, such as SiC and GaN. <span class="gl-also">Also: WBG, Wide bandgap</span> <a class="gl-more" href="sic.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-xt">.XT <small>.XT interconnect</small></dt><dd>Infineon&#x27;s diffusion-solder die-attach technology for lower thermal resistance and longer power-cycling life. <span class="gl-also">Also: XT</span> <a class="gl-more" href="sic.html#manufacturing">Details →</a></dd></div>
+</dl>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+<script>
+(function(){
+  const q = document.getElementById('glf'), n = document.getElementById('glf-n');
+  const rows = [...document.querySelectorAll('.gl-list > div')];
+  function run(){
+    const w = q.value.trim().toLowerCase(); let k = 0;
+    rows.forEach(r => { const hit = !w || r.textContent.toLowerCase().includes(w); r.hidden = !hit; if(hit) k++; });
+    document.querySelectorAll('.gl-list').forEach(dl => { const any = [...dl.children].some(c => !c.hidden); dl.hidden = !any; dl.previousElementSibling.hidden = !any; });
+    n.textContent = w ? k + ' found' : '';
+  }
+  q.addEventListener('input', run);
+  if(location.hash){ const el = document.getElementById(location.hash.slice(1)); if(el) el.parentElement.classList.add('gl-target'); }
+})();
+</script>
+</body>
+</html>

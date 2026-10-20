@@ -20,6 +20,7 @@ PAGES = [  # (file, group id used by site.js for the coloured tag)
     ("issues.html", "issues"),
     ("complaints.html", "complaints"),
     ("roles.html", "roles"),
+    ("glossary.html", "glossary"),
 ]
 EXTRA = [  # interactive pages, written by hand
     {"p": "lab.html", "a": "bode", "t": "LDO 穩定度：Bode 圖與 ESR 穩定窗口", "s": "相位裕度 phase margin 交越頻率 輸出極點 ESR 零點 tunnel of death 陶瓷電容 鉭電容 內部補償 最小電容 振盪", "g": "lab", "lv": 1},
@@ -78,7 +79,7 @@ class Collector(HTMLParser):
         elif tag == "b" and self.cur and self.cur["lv"] == 2 and self.cur["a"].startswith("c-") and not self.cur["t"]:
             self.mode = "case"
         elif tag == "dt" and not (self.cur and self.cur["a"].startswith("c-")):
-            self.cur = {"a": self.section, "t": "", "s": "", "lv": 3}
+            self.cur = {"a": a.get("id") or self.section, "t": "", "s": "", "lv": 3}
             self.entries.append(self.cur)
             self.mode = "dt"
         elif tag == "dd":

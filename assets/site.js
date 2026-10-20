@@ -17,7 +17,8 @@
     {sep:true},
     {id:'lab',   href:'lab.html',   label:t('互動實驗室', 'Lab')},
     {id:'roles', href:'roles.html', label:t('職務地圖', 'Careers')},
-    {id:'quiz',  href:'quiz.html',  label:t('測驗', 'Quiz')}
+    {id:'quiz',  href:'quiz.html',  label:t('測驗', 'Quiz')},
+    {id:'glossary', href:'glossary.html', label:t('術語表', 'Glossary')}
   ];
   const CHAPTERS = PAGES.filter(p => p.ch);
   const page = document.body.dataset.page || 'index';
@@ -97,9 +98,9 @@
   }
 
   /* ---------- find ---------- */
-  const PAGE_LABEL = EN ? {arch:'Arch', fab:'Process', design:'Design', mfg:'Prod', test:'Test', app:'Apps', issues:'Issues', complaints:'Complaints', lab:'Lab', roles:'Careers', quiz:'Quiz', index:'Home', sic:'SiC'}
-    : {arch:'架構', fab:'製程', design:'設計', mfg:'生產', test:'測試', app:'應用', issues:'問題', complaints:'客訴', lab:'實驗室', roles:'職務', quiz:'測驗', index:'首頁', sic:'SiC'};
-  const PAGE_TAG = {arch:'arc', fab:'fab', design:'des', mfg:'mfg', test:'tst', app:'use', issues:'rel', complaints:'rel', lab:'lab', roles:'dsg', quiz:'dsg', index:'lab', sic:'fab'};
+  const PAGE_LABEL = EN ? {arch:'Arch', fab:'Process', design:'Design', mfg:'Prod', test:'Test', app:'Apps', issues:'Issues', complaints:'Complaints', lab:'Lab', roles:'Careers', quiz:'Quiz', index:'Home', sic:'SiC', glossary:'Glossary'}
+    : {arch:'架構', fab:'製程', design:'設計', mfg:'生產', test:'測試', app:'應用', issues:'問題', complaints:'客訴', lab:'實驗室', roles:'職務', quiz:'測驗', index:'首頁', sic:'SiC', glossary:'術語'};
+  const PAGE_TAG = {arch:'arc', fab:'fab', design:'des', mfg:'mfg', test:'tst', app:'use', issues:'rel', complaints:'rel', lab:'lab', roles:'dsg', quiz:'dsg', index:'lab', sic:'fab', glossary:'dsg'};
   const ov = document.createElement('div');
   ov.className = 'find-ov'; ov.hidden = true;
   ov.innerHTML = '<div class="find-box" role="dialog" aria-modal="true" aria-label="' + t('全站搜尋', 'Search the site') + '">' +
@@ -158,5 +159,77 @@
   });
   hdr.querySelector('#findBtn').addEventListener('click', openFind);
   document.querySelectorAll('[data-open-find]').forEach(b => b.addEventListener('click', openFind));
+  /* ---------- glossary tooltips: the first use of a term in each section gets a dotted underline and a popup ---------- */
+  function initGlossary(){
+    const G = window.GLOSSARY; if(!G || page === 'glossary') return;
+    const roots = [...document.querySelectorAll('article, .app-head, .explain')];
+    if(!roots.length) return;
+    const byStr = new Map();
+    G.forEach((g, i) => g.m.forEach(s => byStr.set(s, i)));
+    if(!byStr.size) return;
+    const alts = [...byStr.keys()].sort((a, b) => b.length - a.length).map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const re = new RegExp('(?<![A-Za-z0-9\\-.])(' + alts.join('|') + ')(?![A-Za-z0-9\\-]|/cm)', 'g');   // "/cm": MV in "MV/cm" is a unit, not medium voltage
+    const SKIP = 'a, h1, h2, h3, dt, code, kbd, .eq, svg, .tag, abbr, button, select, option, label, .toc, .pager, .metric, .find-ov, script, style, .case-h small, .chip';
+    roots.forEach(root => {
+      const heads = [...root.querySelectorAll('h2')];
+      let hi = -1, seen = new Set();
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode: n => (!n.nodeValue.trim() || n.parentElement.closest(SKIP)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT});
+      const nodes = []; while(walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        while(hi + 1 < heads.length && (heads[hi + 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)){ hi++; seen = new Set(); }
+        const txt = node.nodeValue; re.lastIndex = 0;
+        let m, last = 0, frag = null;
+        while((m = re.exec(txt))){
+          const gi = byStr.get(m[1]);
+          if(seen.has(gi)) continue;
+          seen.add(gi);
+          frag = frag || document.createDocumentFragment();
+          frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+          const ab = document.createElement('abbr');
+          ab.className = 'gl'; ab.tabIndex = 0; ab.dataset.g = gi; ab.textContent = m[1];
+          frag.appendChild(ab); last = m.index + m[1].length;
+        }
+        if(frag){ frag.appendChild(document.createTextNode(txt.slice(last))); node.parentNode.replaceChild(frag, node); }
+      });
+    });
+    const pop = document.createElement('div');
+    pop.className = 'gl-pop'; pop.hidden = true; pop.setAttribute('role', 'tooltip');
+    document.body.appendChild(pop);
+    let cur = null, hideT = 0, shownAt = 0;
+    function show(ab){
+      clearTimeout(hideT);
+      if(cur !== ab || pop.hidden) shownAt = performance.now();
+      const g = G[+ab.dataset.g]; cur = ab;
+      // he / hz: the term as displayed (may contain <sub>); zf / ef: full names (empty for chapter-list terms)
+      const full = EN ? g.ef : g.zf, def = EN ? g.ed : g.zd;
+      pop.innerHTML = '<b>' + g.he + '</b>' + (full ? ' <span>' + esc(full) + '</span>' : '') + (!EN && g.ef ? '<small>' + esc(g.ef) + '</small>' : '') +
+        '<p>' + esc(def) + '</p><div class="gl-links"><a href="' + g.l + '">' + t('詳細說明 →', 'Details →') + '</a><a href="glossary.html#' + g.s + '">' + t('術語表', 'Glossary') + '</a></div>';
+      pop.hidden = false;
+      const r = ab.getBoundingClientRect(), w = Math.min(340, document.documentElement.clientWidth - 24);
+      pop.style.width = w + 'px';
+      let x = r.left + window.scrollX; x = Math.max(12 + window.scrollX, Math.min(x, window.scrollX + document.documentElement.clientWidth - w - 12));
+      let y = r.bottom + window.scrollY + 6;
+      pop.style.left = x + 'px'; pop.style.top = y + 'px';
+      if(r.bottom + pop.offsetHeight + 12 > window.innerHeight && r.top > pop.offsetHeight + 12) pop.style.top = (r.top + window.scrollY - pop.offsetHeight - 6) + 'px';
+    }
+    function hide(){ hideT = setTimeout(() => { pop.hidden = true; cur = null; }, 180); }
+    document.addEventListener('mouseover', e => { const ab = e.target.closest && e.target.closest('abbr.gl'); if(ab) show(ab); else if(e.target.closest && e.target.closest('.gl-pop')) clearTimeout(hideT); });
+    document.addEventListener('mouseout', e => { if(e.target.closest && (e.target.closest('abbr.gl') || e.target.closest('.gl-pop'))) hide(); });
+    document.addEventListener('focusin', e => { if(e.target.matches && e.target.matches('abbr.gl')) show(e.target); });
+    document.addEventListener('focusout', e => { if(e.target.matches && e.target.matches('abbr.gl')) hide(); });
+    document.addEventListener('click', e => {
+      const ab = e.target.closest && e.target.closest('abbr.gl');
+      // a tap fires mouseover then click: only treat it as "close" if the popup was already open before this tap
+      if(ab){ if(cur === ab && !pop.hidden && performance.now() - shownAt > 400){ pop.hidden = true; cur = null; } else show(ab); }
+      else if(!(e.target.closest && e.target.closest('.gl-pop'))){ pop.hidden = true; cur = null; }
+    });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape'){ pop.hidden = true; cur = null; } });
+    window.addEventListener('scroll', () => { if(cur && !pop.hidden) show(cur); }, {passive:true});
+  }
+  const gs = document.createElement('script');
+  gs.src = (EN ? '../' : '') + 'assets/glossary-data.js';
+  gs.onload = initGlossary;
+  document.head.appendChild(gs);
+
   window.MemSite = {openFind, isDark, EN, t};
 })();

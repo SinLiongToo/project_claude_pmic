@@ -19,6 +19,7 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `sic.html` | 專題：SiC 與資料中心電源（Si / SiC / GaN 分工、PSU、800 V HVDC、Infineon 例、SiC 設計與可靠度）|
 | `roles.html` | 職務地圖：類比設計、佈局、數位、AE/FAE、PE、TE、製程、QRA、FA |
 | `quiz.html` | 測驗：57 題，八個主題 |
+| `glossary.html` | 術語表：全站約 245 個術語，依主題分類；各章內文的術語有虛線底線，滑鼠移上去（手機點一下）顯示解釋 |
 
 `assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換）、`plot.js`（SVG 繪圖）、`lab.js`、`quiz.js`、`search-index.js` / `search-index-en.js`（自動產生）。
 
@@ -27,6 +28,17 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 中文頁面在根目錄，英文頁面在 `en/`，檔名與段落 id 一一對應；頂部的 EN / 中 按鈕會切換到對應頁面的同一段落。
 JS 介面文字用 `t('中文', 'English')` 依 `<html lang>` 切換；測驗題庫的英文版在 `assets/quiz.js` 的 `QEN`（順序與 `Q` 相同）。
 修改中文頁面時，記得同步修改 `en/` 的對應頁面。
+
+## 術語表
+
+術語來源：`tools/glossary.py`（全站術語，中英文全名與一句話解釋）＋各章頁面中所有 `<dl class="terms">` 清單（自動收錄）。修改後執行：
+
+```
+python tools/build_glossary.py
+python tools/build_index.py
+```
+
+`build_glossary.py` 會產生 `glossary.html`、`en/glossary.html` 與 `assets/glossary-data.js`（內文底線提示用的資料）。
 
 ## 修改內容後
 
