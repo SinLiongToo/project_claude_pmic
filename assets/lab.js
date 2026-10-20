@@ -106,6 +106,7 @@
       eS.set({cer:18, tan:67, el:87}[b.dataset.preset]); render();
     }));
     function params(){ return {mode:getMode(), I:Imap(iS.get()), c:CAPS[cS.get()], esr:Emap(eS.get())}; }
+    const mapCache = {key:'', pm:[]};
     const pmCls = pm => pm >= 45 ? 'ok' : pm >= 20 ? 'warn' : 'bad';
     function render(){
       const p = params(), m = margins(p);
@@ -126,13 +127,23 @@
         hlines:[{y:-180, color:'var(--bad)', label:'−180°'}], vlines:m.fc ? [{x:m.fc, color:'var(--accent)', label:'PM ' + m.pm.toFixed(0) + '°'}] : []});
       // stability map
       const NX = 40, NY = 26, ex = [1e-3, 10], iy = [1e-5, 1];
+      // the map depends only on compensation mode and C_OUT: recompute its 1040 cells only when those change
+      const key = p.mode + '|' + p.c;
+      if(key !== mapCache.key){
+        mapCache.key = key; mapCache.pm = [];
+        for(let a = 0; a < NX; a++) for(let b = 0; b < NY; b++){
+          const e0 = Math.pow(10, -3 + 4 * a / NX), e1 = Math.pow(10, -3 + 4 * (a + 1) / NX);
+          const i0 = Math.pow(10, -5 + 5 * b / NY), i1 = Math.pow(10, -5 + 5 * (b + 1) / NY);
+          mapCache.pm.push(margins({mode:p.mode, c:p.c, esr:Math.sqrt(e0 * e1), I:Math.sqrt(i0 * i1)}, 160).pm);
+        }
+      }
       plot($('bd-map'), {x:ex, y:iy, logx:true, logy:true, H:290, xlabel:'ESR (Ω)', ylabel:t('負載電流 (A)', 'Load current (A)'),
         extra:(X, Y) => {
           let s = '';
           for(let a = 0; a < NX; a++) for(let b = 0; b < NY; b++){
             const e0 = Math.pow(10, -3 + 4 * a / NX), e1 = Math.pow(10, -3 + 4 * (a + 1) / NX);
             const i0 = Math.pow(10, -5 + 5 * b / NY), i1 = Math.pow(10, -5 + 5 * (b + 1) / NY);
-            const pm = margins({mode:p.mode, c:p.c, esr:Math.sqrt(e0 * e1), I:Math.sqrt(i0 * i1)}, 160).pm;
+            const pm = mapCache.pm[a * NY + b];
             const col = pm >= 45 ? 'var(--ok)' : pm >= 20 ? 'var(--warn)' : 'var(--bad)';
             s += '<rect x="' + X(e0).toFixed(1) + '" y="' + Y(i1).toFixed(1) + '" width="' + (X(e1) - X(e0) + .6).toFixed(1) + '" height="' + (Y(i0) - Y(i1) + .6).toFixed(1) + '" style="fill:' + col + ';fill-opacity:.42"/>';
           }

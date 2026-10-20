@@ -22,11 +22,11 @@
   const T = (x, y, s, a, extra) => '<text class="ts" x="' + x + '" y="' + y + '" text-anchor="' + (a || 'middle') + '"' + (extra || '') + '>' + s + '</text>';
   const TB = (x, y, s, a) => '<text x="' + x + '" y="' + y + '" text-anchor="' + (a || 'middle') + '" style="font-size:12.5px;font-weight:600">' + s + '</text>';
   const box = (x, y, w, h, cls) => '<rect class="' + (cls || 'box') + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="5"/>';
-  const resV = (x, y1, y2) => { const l = y2 - y1, a = y1 + l * 0.2, b = y1 + l * 0.8; return W(x, y1, x, a) + '<rect class="box" x="' + (x - 7) + '" y="' + a + '" width="14" height="' + (b - a) + '" rx="2"/>' + W(x, b, x, y2); };
+  const resV = (x, y1, y2) => { const l = y2 - y1, a = y1 + l * 0.2, b = y1 + l * 0.8; return W(x, y1, x, a) + '<rect class="part" x="' + (x - 7) + '" y="' + a + '" width="14" height="' + (b - a) + '" rx="2"/>' + W(x, b, x, y2); };
   const capV = (x, y1, y2, wide) => { const m = (y1 + y2) / 2, h = wide || 14; return W(x, y1, x, m - 4) + '<line class="wt" x1="' + (x - h) + '" y1="' + (m - 4) + '" x2="' + (x + h) + '" y2="' + (m - 4) + '"/><line class="wt" x1="' + (x - h) + '" y1="' + (m + 4) + '" x2="' + (x + h) + '" y2="' + (m + 4) + '"/>' + W(x, m + 4, x, y2); };
   const ind = (x1, x2, y) => { const n = 4, w = (x2 - x1) / n; let d = 'M' + x1 + ' ' + y; for(let i = 0; i < n; i++) d += 'c0-' + (w * 0.9).toFixed(1) + ' ' + w.toFixed(1) + '-' + (w * 0.9).toFixed(1) + ' ' + w.toFixed(1) + ' 0'; return P(d); };
-  const isrc = (x, y1, y2) => { const m = (y1 + y2) / 2; return W(x, y1, x, m - 14) + '<circle class="box" cx="' + x + '" cy="' + m + '" r="14"/>' + P('M' + x + ' ' + (m - 8) + 'v16m-5-6 5 6 5-6') + W(x, m + 14, x, y2); };
-  const vsrc = (x, y1, y2) => { const m = (y1 + y2) / 2; return W(x, y1, x, m - 14) + '<circle class="box" cx="' + x + '" cy="' + m + '" r="14"/>' + T(x, m - 2, '+') + T(x, m + 10, '−') + W(x, m + 14, x, y2); };
+  const isrc = (x, y1, y2) => { const m = (y1 + y2) / 2; return W(x, y1, x, m - 14) + '<circle class="part" cx="' + x + '" cy="' + m + '" r="14"/>' + P('M' + x + ' ' + (m - 8) + 'v16m-5-6 5 6 5-6') + W(x, m + 14, x, y2); };
+  const vsrc = (x, y1, y2) => { const m = (y1 + y2) / 2; return W(x, y1, x, m - 14) + '<circle class="part" cx="' + x + '" cy="' + m + '" r="14"/>' + T(x, m - 2, '+') + T(x, m + 10, '−') + W(x, m + 14, x, y2); };
   const gnd = (x, y) => P('M' + (x - 10) + ' ' + y + 'h20M' + (x - 6) + ' ' + (y + 4) + 'h12M' + (x - 2) + ' ' + (y + 8) + 'h4');
   const tri = (x1, y1, x2, y2) => '<path class="c3" d="M' + x1 + ' ' + y1 + ' L' + x1 + ' ' + y2 + ' L' + x2 + ' ' + ((y1 + y2) / 2) + ' Z"/>';
   const G = (keys, inner) => '<g class="el" data-k="' + keys + '">' + inner + '</g>';
@@ -117,8 +117,8 @@
       G('ml-c ml-size ml-vr ml-diel ml-tol', capV(330, 80, 200, 20) + T(358, 128, esc(val('ml-c')) + ' · ' + esc(val('ml-size')) + ' · ' + esc(val('ml-vr')) + ' · ' + esc(val('ml-diel')), 'start') + T(358, 144, t('容差 ', 'tolerance ') + esc(val('ml-tol')), 'start')) +
       G('ml-v', P('M292 88V192M288 94l4-6 4 6M288 186l4 6 4-6') + T(284, 144, 'DC ' + esc(val('ml-v')), 'end')) +
       T(358, 166, t('最差有效 ≈ ', 'worst-case effective ≈ ') + esc(metric('ml-metrics', 2)), 'start', ' style="fill:var(--accent);font-weight:600"') +
-      G('ml-t', '<rect class="box" x="476" y="22" width="8" height="26" rx="4"/><circle cx="480" cy="50" r="6" style="fill:var(--bad)"/>' + T(492, 44, 'T ' + esc(val('ml-t')), 'start')) +
-      G('ml-age', '<circle class="box" cx="560" cy="36" r="10"/>' + P('M560 30v6l4 3') + T(576, 40, esc(val('ml-age')), 'start')) +
+      G('ml-t', '<rect class="part" x="476" y="22" width="8" height="26" rx="4"/><circle cx="480" cy="50" r="6" style="fill:var(--bad)"/>' + T(492, 44, 'T ' + esc(val('ml-t')), 'start')) +
+      G('ml-age', '<circle class="part" cx="560" cy="36" r="10"/>' + P('M560 30v6l4 3') + T(576, 40, esc(val('ml-age')), 'start')) +
       isrc(610, 80, 200) + W(88, 200, 610, 200) + gnd(330, 200),
       note:t('LDO 規格書要的是「有效」電容：標稱值先扣掉容差，再被直流偏壓（工作電壓）、溫度和老化各吃掉一部分。最後剩下的要大於 LDO 的最小需求。',
              'The LDO datasheet means effective capacitance: start from nominal, subtract tolerance, then lose a share to DC bias (the working voltage), temperature and ageing. What remains must exceed the LDO minimum.')}),
@@ -130,7 +130,7 @@
       G('tm-sig tm-mu', box(40, 50, 116, 52, 'c2') + TB(98, 70, t('帶隙參考', 'bandgap')) + T(98, 90, 'σ ' + esc(val('tm-sig')) + '  μ ' + esc(val('tm-mu')))) +
       W(156, 76, 172, 76) + tri(172, 58, 210, 94) + W(210, 76, 470, 76) + dot(330, 76) + T(400, 68, 'V<tspan baseline-shift="sub" font-size="8">OUT</tspan>') +
       resV(330, 76, 112) + T(345, 98, 'R1', 'start') +
-      G('tm-bits tm-lsb', '<rect class="box" x="323" y="116" width="14" height="14" rx="2"/><rect class="box" x="323" y="134" width="14" height="14" rx="2"/><rect class="box" x="323" y="152" width="14" height="14" rx="2"/>' +
+      G('tm-bits tm-lsb', '<rect class="part" x="323" y="116" width="14" height="14" rx="2"/><rect class="part" x="323" y="134" width="14" height="14" rx="2"/><rect class="part" x="323" y="152" width="14" height="14" rx="2"/>' +
         P('M337 118h8v10h-8M337 136h8v10h-8M337 154h8v10h-8', 'wd') + T(352, 136, t('修調 ', 'trim ') + esc(val('tm-bits')), 'start') + T(352, 152, 'LSB ' + esc(val('tm-lsb')), 'start')) +
       W(330, 112, 330, 116) + W(330, 166, 330, 172) + resV(330, 172, 200) + gnd(330, 200) +
       G('tm-bits', box(212, 132, 84, 38, 'c4') + T(254, 155, 'OTP / ' + t('熔絲', 'fuses')) + '<line class="wd" x1="296" y1="150" x2="322" y2="142"/>') +
@@ -204,19 +204,28 @@
     g.innerHTML = a.frame(st.p, dt || 0);
     const sl = sec.querySelector('.an-pos'); if(sl && document.activeElement !== sl) sl.value = Math.round(st.p * 1000);
   }
-  function loop(ts){
+  // The animation runs only while it is useful: playing, its tab shown, the schematic on screen and the page visible.
+  // Otherwise no frames are requested at all (saves CPU and battery). Drawing is capped at ~30 frames per second.
+  let rafId = 0;
+  function active(){
     const sec = document.querySelector('section.tabp:not([hidden])');
-    if(sec){
-      const name = sec.id.slice(4), st = play[name];
-      if(st){
-        const dt = st.last ? Math.min((ts - st.last) / 1000, 0.1) : 0;
-        st.last = ts;
-        if(st.on) st.p = (st.p + dt / ANIM[name].dur) % 1;
-        drawAnim(sec, st.on ? dt : 0);
-      }
-    }
-    requestAnimationFrame(loop);
+    const st = sec && play[sec.id.slice(4)];
+    return st && st.on && st.inView && document.visibilityState === 'visible' ? {sec, st, name:sec.id.slice(4)} : null;
   }
+  function kick(){ if(!rafId && active()) rafId = requestAnimationFrame(loop); }
+  function loop(ts){
+    rafId = 0;
+    const a = active();
+    if(!a){ Object.values(play).forEach(st => { st.last = 0; }); return; }
+    const {sec, st, name} = a;
+    if(st.last && ts - st.last < 33){ rafId = requestAnimationFrame(loop); return; }
+    const dt = st.last ? Math.min((ts - st.last) / 1000, 0.1) : 0;
+    st.last = ts;
+    st.p = (st.p + dt / ANIM[name].dur) % 1;
+    drawAnim(sec, dt);
+    rafId = requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', kick);
 
   /* ---------- panel, highlighting and linking ---------- */
   let last = {id:null, at:0};
@@ -233,7 +242,14 @@
     pan.querySelector('.schem-note').innerHTML = r.note;
     const hot = new Set(sweepingIds(sec));
     if(last.id && performance.now() - last.at < 1600) hot.add(last.id);
-    svg.querySelectorAll('g.el').forEach(g => { if(g.dataset.k.split(' ').some(k => hot.has(k))) g.classList.add('hot'); });
+    svg.querySelectorAll('g.el').forEach(g => {
+      if(g.dataset.k.split(' ').some(k => hot.has(k))) g.classList.add('hot');
+      // an invisible hit area over the whole part, so hovering or clicking anywhere near it works (not only on thin lines)
+      const bb = g.getBBox(), r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('class', 'hit');
+      r.setAttribute('x', bb.x - 4); r.setAttribute('y', bb.y - 4); r.setAttribute('width', bb.width + 8); r.setAttribute('height', bb.height + 8);
+      g.insertBefore(r, g.firstChild);
+    });
     drawAnim(sec, 0);
   }
   function ensure(sec){
@@ -250,10 +266,11 @@
       const svg = pan.querySelector('svg');
       const nm = sec.id.slice(4);
       if(ANIM[nm]){
-        play[nm] = {on:true, p:0, last:0};
+        play[nm] = {on:true, p:0, last:0, inView:true};
+        if('IntersectionObserver' in window) new IntersectionObserver(es => { play[nm].inView = es[0].isIntersecting; kick(); }).observe(pan);
         const btn = pan.querySelector('.an-play'), pos = pan.querySelector('.an-pos');
         const setBtn = () => { btn.textContent = play[nm].on ? t('❚❚ 暫停播放', '❚❚ Pause') : t('▶ 播放電流', '▶ Play currents'); btn.setAttribute('aria-pressed', play[nm].on ? 'true' : 'false'); };
-        btn.addEventListener('click', e => { e.stopPropagation(); play[nm].on = !play[nm].on; setBtn(); });
+        btn.addEventListener('click', e => { e.stopPropagation(); play[nm].on = !play[nm].on; setBtn(); kick(); });
         pos.addEventListener('input', e => { e.stopPropagation(); play[nm].on = false; setBtn(); play[nm].p = +pos.value / 1000; drawAnim(sec, 0); });
       }
       svg.addEventListener('mouseover', e => { const g = e.target.closest('g.el'); if(!g) return; g.classList.add('hover'); g.dataset.k.split(' ').forEach(k => { const c = ctlOf(k); if(c) c.classList.add('link'); }); });
@@ -283,8 +300,8 @@
     render(sec);
   }
   const current = () => document.querySelector('section.tabp:not([hidden])');
-  document.querySelectorAll('[role=tab]').forEach(tb => tb.addEventListener('click', () => ensure(current())));
-  window.addEventListener('hashchange', () => setTimeout(() => ensure(current()), 0));
+  document.querySelectorAll('[role=tab]').forEach(tb => tb.addEventListener('click', () => { ensure(current()); kick(); }));
+  window.addEventListener('hashchange', () => setTimeout(() => { ensure(current()); kick(); }, 0));
   ensure(current());
-  requestAnimationFrame(loop);
+  kick();
 })();

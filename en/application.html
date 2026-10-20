@@ -100,9 +100,11 @@
   <li><b>Nearby heat sources</b>: next to a CPU, inductor or power transistor, T<sub>A</sub> is not room temperature.</li>
   <li><b>Derating</b>: many customers require T<sub>J</sub> below 125 °C, or at least 25 °C below thermal shutdown, in the worst case.</li>
 </ul>
+<figure class="cmp" data-fig="thermal"></figure>
 <div class="tryit">▶ Try it in the lab: <a href="lab.html#thermal">dropout, dissipation and junction temperature</a></div>
 
 <h2 id="layout">PCB layout</h2>
+<p>Layout decides whether a chip reaches its datasheet performance: the same IC can differ a lot in stability, accuracy, temperature and EMI depending on layout. Each pair below shows a bad layout on the left and a good one on the right (top view of the PCB, schematic).</p>
 <h3 id="layout-buck">Buck layout</h3>
 <ul>
   <li><b>Minimise the hot loop</b>: the loop input cap → high side → low side → back to input cap carries pulsed current; its area sets parasitic inductance, SW ringing and EMI. The input capacitor must be closest to V<sub>IN</sub> and PGND, with the small high-frequency capacitor nearest.</li>
@@ -110,6 +112,8 @@
   <li><b>FB trace</b>: take it from the output capacitor (or the load), away from SW and the inductor; place the divider close to the FB pin.</li>
   <li><b>Grounding</b>: join power ground (PGND) and analogue ground (AGND) at one point under the IC or at the output-capacitor ground; a solid ground plane beats a split one.</li>
 </ul>
+<figure class="cmp" data-fig="hotloop"></figure>
+<figure class="cmp" data-fig="swfb"></figure>
 <h3 id="layout-ldo">LDO layout</h3>
 <ul>
   <li>Input and output capacitors tight to the pins, with short, wide ground returns to the GND pin.</li>
@@ -117,6 +121,7 @@
   <li>Return the NR / SS capacitor and FB divider grounds to the LDO's GND, not to a distant power ground.</li>
   <li>Size the thermal pad and copper for the dissipation.</li>
 </ul>
+<figure class="cmp" data-fig="ldo"></figure>
 
 <h2 id="emi">EMI and EMC</h2>
 <ul>
@@ -195,5 +200,6 @@
 </main>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
+<script src="../assets/figs.js"></script>
 </body>
 </html>

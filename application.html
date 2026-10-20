@@ -99,9 +99,11 @@
   <li><b>鄰近熱源</b>：PMIC 旁邊是 CPU、電感或功率電晶體時，T<sub>A</sub> 不是室溫。</li>
   <li><b>降額</b>：許多客戶要求 T<sub>J</sub> 在最壞條件下低於 125 °C 或比熱關機門檻低 25 °C 以上。</li>
 </ul>
+<figure class="cmp" data-fig="thermal"></figure>
 <div class="tryit">▶ 在實驗室試試：<a href="lab.html#thermal">壓差、功耗與接面溫度</a></div>
 
 <h2 id="layout">PCB 佈局</h2>
+<p>佈局決定了晶片能不能達到規格書上的表現：同一顆 IC，佈局不同，穩定度、精度、溫度、EMI 都可能差很多。下面每一組都是左邊不好、右邊好的對照（PCB 正上方俯視示意）。</p>
 <h3 id="layout-buck">Buck 佈局</h3>
 <ul>
   <li><b>熱迴路（hot loop）最小化</b>：輸入電容 → 高側 → 低側 → 回到輸入電容的迴路電流是脈衝，迴路面積決定寄生電感、SW 振鈴與 EMI。輸入電容一定要最靠近 V<sub>IN</sub> 與 PGND 腳，小容值高頻電容放最近。</li>
@@ -109,6 +111,8 @@
   <li><b>FB 走線</b>：從輸出電容處（或負載處）拉出，遠離 SW 與電感；分壓電阻靠近 FB 腳放。</li>
   <li><b>接地</b>：功率地（PGND）與類比地（AGND）在 IC 下方或輸出電容地單點相接；完整的地平面優於切割。</li>
 </ul>
+<figure class="cmp" data-fig="hotloop"></figure>
+<figure class="cmp" data-fig="swfb"></figure>
 <h3 id="layout-ldo">LDO 佈局</h3>
 <ul>
   <li>輸入與輸出電容緊貼接腳，地端以短而寬的路徑回到 GND 腳。</li>
@@ -116,6 +120,7 @@
   <li>NR / SS 電容與 FB 分壓的地回到 LDO 的 GND，而不是遠處的功率地。</li>
   <li>散熱墊與銅箔面積依功耗設計。</li>
 </ul>
+<figure class="cmp" data-fig="ldo"></figure>
 
 <h2 id="emi">EMI 與 EMC</h2>
 <ul>
@@ -194,5 +199,6 @@
 </main>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
+<script src="assets/figs.js"></script>
 </body>
 </html>

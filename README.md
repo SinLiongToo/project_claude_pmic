@@ -21,7 +21,7 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `quiz.html` | 測驗：57 題，八個主題 |
 | `glossary.html` | 術語表：全站約 245 個術語，依主題分類；各章內文的術語有虛線底線，滑鼠移上去（手機點一下）顯示解釋 |
 
-`assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換）、`plot.js`（SVG 繪圖）、`lab.js`、`quiz.js`、`search-index.js` / `search-index-en.js`（自動產生）。
+`assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換、術語提示）、`plot.js`（SVG 繪圖）、`lab.js`、`lab-circuit.js`（實驗電路圖與電流播放）、`figs.js`（佈局好／壞對照圖）、`quiz.js`、`glossary-data.js`、`search-index.js` / `search-index-en.js`（自動產生）。
 
 ## 中英文版
 
@@ -47,6 +47,40 @@ python tools/build_index.py
 ```
 python tools/build_index.py
 ```
+
+## 自動測試（Playwright）
+
+`tests/` 裡的測試用同一份腳本跑 Chromium、Firefox、WebKit（Safari 核心）三種瀏覽器，加上 Pixel 7 與 iPhone 14 兩個手機設定。測試時會自動用 `tests/server.js`（Node）開本機伺服器（http://127.0.0.1:8765），並擋掉 Google Fonts，所以不需要網路。
+
+- 同時只開 2 個瀏覽器（開更多在一般筆電上會記憶體不足，Firefox / WebKit 會崩潰）；偶發的瀏覽器崩潰會自動重試一次，報告裡標為 flaky。
+- **不要同時執行兩組測試**：第二組會直接報錯（`tests/run-lock.js`），因為兩組會共用伺服器並刪掉彼此的暫存檔。
+- 測試結果與報告存在系統暫存資料夾（`%TEMP%\pmic-notes-tests`），不放在 OneDrive，避免同步時寫檔失敗。完整跑一次約 30–40 分鐘。
+
+第一次使用：
+
+```
+npm install
+npx playwright install chromium firefox webkit
+```
+
+執行：
+
+```
+npm test                 # 全部（5 個設定）
+npm run test:chromium    # 只跑一種瀏覽器（也有 test:firefox、test:webkit、test:mobile）
+npm run test:report      # 用瀏覽器看上一次的報告（含失敗截圖；重試時有 trace）
+```
+
+| 檔案 | 檢查內容 |
+|---|---|
+| `static.spec.js` | 中英文頁面齊全、所有連結／錨點／資源存在、無重複 id、中英文 id 一致、英文頁沒有中文、搜尋索引與術語表是最新的、JS 語法 |
+| `pages.spec.js` | 每一頁（中英文）沒有 JS 錯誤、導覽列、目錄、語言切換、深淺色切換、章節順序 |
+| `search.spec.js` | Ctrl+K 與 / 開啟搜尋，關鍵字有結果且連到存在的頁面 |
+| `lab.spec.js` | 7 個實驗每個滑桿最小／中間／最大、每個按鈕與選項沒有 NaN；自動掃描；電路圖與參數對應；電流播放（捲離畫面時停止）；暫態模型 200 組隨機參數不超出物理範圍；與手算結果比對 |
+| `quiz.spec.js` | 中英文測驗從頭作答到結束，複習連結存在 |
+| `glossary.spec.js` | 術語底線、懸停／鍵盤提示、歧義詞沒有對錯、術語表篩選與錨點 |
+| `figures.spec.js` | 應用章的佈局好／壞對照圖：四組都畫出來、文字不超出板子 |
+| `mobile.spec.js` | 手機設定：沒有橫向捲動、觸控操作、術語提示在螢幕內，點其他地方會關閉 |
 
 ## 本機預覽
 

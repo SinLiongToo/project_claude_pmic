@@ -195,10 +195,9 @@
     const pop = document.createElement('div');
     pop.className = 'gl-pop'; pop.hidden = true; pop.setAttribute('role', 'tooltip');
     document.body.appendChild(pop);
-    let cur = null, hideT = 0, shownAt = 0;
+    let cur = null, hideT = 0;
     function show(ab){
       clearTimeout(hideT);
-      if(cur !== ab || pop.hidden) shownAt = performance.now();
       const g = G[+ab.dataset.g]; cur = ab;
       // he / hz: the term as displayed (may contain <sub>); zf / ef: full names (empty for chapter-list terms)
       const full = EN ? g.ef : g.zf, def = EN ? g.ed : g.zd;
@@ -213,14 +212,27 @@
       if(r.bottom + pop.offsetHeight + 12 > window.innerHeight && r.top > pop.offsetHeight + 12) pop.style.top = (r.top + window.scrollY - pop.offsetHeight - 6) + 'px';
     }
     function hide(){ hideT = setTimeout(() => { pop.hidden = true; cur = null; }, 180); }
-    document.addEventListener('mouseover', e => { const ab = e.target.closest && e.target.closest('abbr.gl'); if(ab) show(ab); else if(e.target.closest && e.target.closest('.gl-pop')) clearTimeout(hideT); });
-    document.addEventListener('mouseout', e => { if(e.target.closest && (e.target.closest('abbr.gl') || e.target.closest('.gl-pop'))) hide(); });
-    document.addEventListener('focusin', e => { if(e.target.matches && e.target.matches('abbr.gl')) show(e.target); });
-    document.addEventListener('focusout', e => { if(e.target.matches && e.target.matches('abbr.gl')) hide(); });
+    // A tap fires a synthetic mouseover, focus and click in turn. Track the real input type so that:
+    // mouse → hover opens; keyboard → focus opens; touch → each tap toggles (synthetic hover / focus are ignored).
+    let ptr = {type:'', t:-1e9};
+    document.addEventListener('pointerdown', e => {
+      ptr = {type:e.pointerType, t:performance.now()};
+      // close on any press outside the term and the popup: iOS Safari fires no click when you tap plain text or headings
+      if(!pop.hidden && !(e.target.closest && (e.target.closest('abbr.gl') || e.target.closest('.gl-pop')))){ pop.hidden = true; cur = null; }
+    }, true);
+    const touching = () => ptr.type && ptr.type !== 'mouse' && performance.now() - ptr.t < 1500;
+    const fromPointer = () => performance.now() - ptr.t < 600;
+    document.addEventListener('mouseover', e => {
+      if(touching()) return;
+      const ab = e.target.closest && e.target.closest('abbr.gl');
+      if(ab) show(ab); else if(e.target.closest && e.target.closest('.gl-pop')) clearTimeout(hideT);
+    });
+    document.addEventListener('mouseout', e => { if(!touching() && e.target.closest && (e.target.closest('abbr.gl') || e.target.closest('.gl-pop'))) hide(); });
+    document.addEventListener('focusin', e => { if(!fromPointer() && e.target.matches && e.target.matches('abbr.gl')) show(e.target); });
+    document.addEventListener('focusout', e => { if(!touching() && e.target.matches && e.target.matches('abbr.gl')) hide(); });
     document.addEventListener('click', e => {
       const ab = e.target.closest && e.target.closest('abbr.gl');
-      // a tap fires mouseover then click: only treat it as "close" if the popup was already open before this tap
-      if(ab){ if(cur === ab && !pop.hidden && performance.now() - shownAt > 400){ pop.hidden = true; cur = null; } else show(ab); }
+      if(ab){ if(touching() && cur === ab && !pop.hidden){ pop.hidden = true; cur = null; } else show(ab); }
       else if(!(e.target.closest && e.target.closest('.gl-pop'))){ pop.hidden = true; cur = null; }
     });
     document.addEventListener('keydown', e => { if(e.key === 'Escape'){ pop.hidden = true; cur = null; } });

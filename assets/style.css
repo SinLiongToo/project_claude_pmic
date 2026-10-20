@@ -223,7 +223,8 @@ svg .wt{stroke:var(--ink);fill:none;stroke-width:2.6;stroke-linecap:round}
 svg .wm{stroke:var(--muted);fill:none;stroke-width:1.2}
 svg .wd{stroke:var(--muted);fill:none;stroke-width:1.2;stroke-dasharray:4 4}
 svg .wa{stroke:var(--accent);fill:none;stroke-width:2.2;stroke-linecap:round}
-svg .box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+svg .box{fill:var(--surface);stroke:color-mix(in srgb,var(--ink) 50%,var(--surface));stroke-width:1.2}
+svg .part{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
 svg .boxi{fill:var(--surface);stroke:var(--ink);stroke-width:1.4}
 svg .sunk{fill:var(--sunk)}
 svg .fi{fill:var(--ink)} svg .fm{fill:var(--muted)}
@@ -289,9 +290,9 @@ svg.chain text{font-size:10px}
 svg.schem{display:block;width:100%;height:auto;max-height:300px}
 svg.schem text{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
 svg.schem g.el{cursor:pointer}
-svg.schem g.el.hover .w,svg.schem g.el.hover .wt,svg.schem g.el.hover .box{stroke:var(--accent)}
-svg.schem g.el.hot :not(text){filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 70%,transparent))}
-svg.schem g.el.hot .w,svg.schem g.el.hot .wt,svg.schem g.el.hot .box,svg.schem g.el.hot path,svg.schem g.el.hot rect{stroke:var(--accent);stroke-width:2.2}
+svg.schem g.el.hover .w,svg.schem g.el.hover .wt,svg.schem g.el.hover .box,svg.schem g.el.hover .part{stroke:var(--accent)}
+svg.schem g.el.hot :not(text):not(.hit){filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 70%,transparent))}
+svg.schem g.el.hot .w,svg.schem g.el.hot .wt,svg.schem g.el.hot .box,svg.schem g.el.hot .part,svg.schem g.el.hot path,svg.schem g.el.hot rect:not(.hit){stroke:var(--accent);stroke-width:2.2}
 svg.schem g.el.hot text{fill:var(--accent);font-weight:700;stroke-width:4px}
 svg.schem g.el.hover text{fill:var(--accent)}
 .schem-note{margin:6px 0 0;line-height:1.6}
@@ -326,3 +327,32 @@ abbr.gl:hover,abbr.gl:focus-visible{background:color-mix(in srgb,var(--accent) 1
 .gl-more{font-size:12.5px;white-space:nowrap}
 .gl-list > div.gl-target{background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 .gl-list > div:target,.gl-list dt:target{scroll-margin-top:80px}
+svg.schem rect.hit{fill:transparent;stroke:none;pointer-events:all}
+/* good-vs-bad PCB layout figures */
+figure.cmp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:700px){figure.cmp{grid-template-columns:minmax(0,1fr)}}
+figure.cmp figcaption{grid-column:1/-1;margin-top:0}
+figure.cmp .side{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px 4px;min-width:0}
+figure.cmp .side.bad{border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+figure.cmp .side.good{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+figure.cmp .side-h{font:700 14px var(--sans);margin-bottom:6px}
+figure.cmp .bad .side-h{color:var(--bad)} figure.cmp .good .side-h{color:var(--ok)}
+figure.cmp svg{max-height:none}
+figure.cmp ul{margin:6px 0 4px;padding-left:1.2em;font-size:13px;color:var(--muted)}
+figure.cmp li{margin:2px 0}
+svg .pcb{fill:color-mix(in srgb,var(--s3) 14%,var(--surface));stroke:color-mix(in srgb,var(--s3) 45%,var(--line));stroke-width:1.2}
+svg .cu{fill:none;stroke:color-mix(in srgb,var(--s6) 75%,var(--surface));stroke-linecap:round;stroke-linejoin:round}
+svg .cu.inner{stroke-dasharray:5 4;opacity:.9}
+svg .cu-fill{fill:color-mix(in srgb,var(--s6) 45%,var(--surface));stroke:color-mix(in srgb,var(--s6) 75%,var(--surface));stroke-width:1}
+svg .pad{fill:color-mix(in srgb,var(--s6) 80%,var(--surface));stroke:color-mix(in srgb,var(--ink) 40%,transparent);stroke-width:.6}
+svg .via{fill:var(--surface);stroke:color-mix(in srgb,var(--s6) 85%,var(--ink));stroke-width:1.6}
+svg .chip{fill:color-mix(in srgb,var(--ink) 78%,var(--surface));stroke:var(--ink);stroke-width:1}
+svg .chip + text.lbl,svg text.lbl{fill:var(--ink)}
+svg .part-body{fill:color-mix(in srgb,var(--ink) 55%,var(--surface))}
+svg .loop-bad{fill:color-mix(in srgb,var(--bad) 18%,transparent);stroke:var(--bad);stroke-width:1.4;stroke-dasharray:5 3}
+svg .loop-ok{fill:color-mix(in srgb,var(--ok) 22%,transparent);stroke:var(--ok);stroke-width:1.4;stroke-dasharray:5 3}
+svg .zone{fill:none;stroke:var(--bad);stroke-width:1.8;stroke-dasharray:4 3}
+svg .void{fill:var(--surface);stroke:var(--muted);stroke-width:.8;opacity:.9}
+svg text.nb{fill:var(--bad);font-weight:600} svg text.nok{fill:var(--ok);font-weight:600}
+svg text.pinl{fill:var(--ink);font-size:9.5px}
+figure.cmp svg text{paint-order:stroke;stroke:color-mix(in srgb,var(--s3) 10%,var(--surface));stroke-width:3px;stroke-linejoin:round}

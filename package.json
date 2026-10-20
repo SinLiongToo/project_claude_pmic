@@ -1,0 +1,17 @@
+{
+  "name": "pmic-notes",
+  "private": true,
+  "description": "PMIC Notes static site — automated checks (Playwright: Chromium, Firefox, WebKit, mobile)",
+  "scripts": {
+    "test": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:report": "node -e \"require('child_process').execSync('npx playwright show-report ' + require('path').join(require('os').tmpdir(), 'pmic-notes-tests', 'report'), {stdio: 'inherit'})\"",
+    "build": "python tools/build_glossary.py && python tools/build_index.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
