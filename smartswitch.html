@@ -253,15 +253,213 @@
 </table></div>
 <p>車用電源環境的電壓量級與相關標準見<a href="application.html#automotive">應用章車用電源</a>。</p>
 
-<h2 id="test">生產測試與驗證</h2>
-<p>這類元件的測試和本站<a href="test.html">測試章</a>講的 LDO 很像，但電流大了兩個數量級：</p>
+<h2 id="internals">內部電路：各區塊怎麼做</h2>
+<div class="callout"><b>先說清楚</b>　Infineon 沒有公開 BTS50025-1TEA 的電晶體級電路。以下是公開文獻、專利與教科書中智慧功率開關常見的作法，目的是幫助理解規格從哪裡來、為什麼要那樣測；數值都對照資料手冊，但實際電路可能不同。</div>
+<p>功率 DMOS 通常是<b>垂直</b>結構：電流從晶片正面的源極往下流到背面的汲極，所以封裝的散熱片就是 V<sub>S</sub>。控制電路可以和功率元件做在同一顆晶片上（smart power 製程，見<a href="process.html#bcd">製程章 BCD</a>），也可以把控制晶片疊在功率晶片上（chip-on-chip）或並排放（chip-by-chip）。大電流的料號常用後兩種，讓功率晶片可以用最好的溝槽 MOSFET 製程，控制晶片則用適合類比與邏輯的製程。</p>
+
+<h3 id="int-gate">閘極驅動、電荷泵與主動箝位</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 280" role="img" aria-label="閘極網路：電荷泵、開啟與關閉的定電流源、閘源極齊納、從汲極到閘極的主動箝位齊納串與阻擋二極體">
+  <path class="wm" d="M30 30H620M100 30V55M160 80H300V96M300 120V158M300 140H450M510 30V110M510 170V250H600M300 182V230H510M400 140V167M400 177V230M430 30V55M430 65V77M430 87V103M430 113V140"/>
+  <path style="fill:none;stroke:var(--muted);stroke-dasharray:3 3" d="M160 162H220V108H288M160 172H288"/>
+  <circle cx="300" cy="108" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M300 101V115M296 111L300 116L304 111"/>
+  <circle cx="300" cy="170" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M300 163V177M296 173L300 178L304 173"/>
+  <path style="fill:var(--muted);stroke:var(--muted)" d="M393 177H407L400 167ZM423 65H437L430 55ZM423 87H437L430 77ZM423 103H437L430 113Z"/>
+  <path class="wm" d="M391 165L393 167H407L409 169M421 53L423 55H437L439 57M421 75L423 77H437L439 79M423 113H437"/>
+  <g class="ts">
+  <text x="36" y="24">V_S</text>
+  <rect class="c2" x="40" y="55" width="120" height="50" rx="6"/><text x="100" y="76" text-anchor="middle">電荷泵</text><text x="100" y="92" text-anchor="middle" class="t-mut">振盪器 + 電容倍壓</text>
+  <text x="172" y="72">V_CP &gt; V_S + V_GS</text>
+  <text x="318" y="104">I_ON</text><text x="318" y="174">I_OFF</text>
+  <rect class="c5" x="40" y="145" width="120" height="50" rx="6"/><text x="100" y="166" text-anchor="middle">開關邏輯</text><text x="100" y="182" text-anchor="middle" class="t-mut">ON / OFF / 故障</text>
+  <text x="418" y="64" text-anchor="end">Z_CL × n</text><text x="418" y="112" text-anchor="end" class="t-mut">阻擋二極體</text>
+  <text x="410" y="200">Z_GS</text>
+  <rect class="c1" x="450" y="110" width="90" height="60" rx="6"/><text x="495" y="137" text-anchor="middle">N-DMOS</text><text x="495" y="154" text-anchor="middle" class="t-mut">C_GD（Miller）</text>
+  <text x="520" y="244">OUT → 負載</text>
+  <text x="250" y="136" text-anchor="middle" class="t-mut">閘極</text>
+  </g>
+</svg>
+<figcaption>閘極網路的典型作法。開啟時電荷泵經定電流 I<sub>ON</sub> 給閘極充電；關閉時 I<sub>OFF</sub> 把閘極電荷放到源極（OUT）。Z<sub>CL</sub> 齊納串加阻擋二極體構成主動箝位，Z<sub>GS</sub> 保護閘極氧化層。</figcaption>
+</figure>
 <ul>
-  <li><b>R<sub>DS(ON)</sub></b>：在 20 A 下量 2–5 mΩ，代表壓降只有 50–100 mV。必須用 <a href="test.html#kelvin">Kelvin 四線量測</a>，而且探針、插座的接觸電阻和元件同一個量級；電流用短脈衝以免自熱改變讀值。</li>
-  <li><b>感測比修調</b>：dk<sub>ILIS</sub> 要在測試時用兩個電流點量測，必要時修調（和 <a href="production.html#cp-trim">CP 修調</a>同樣的概念）；資料手冊的 dk<sub>ILIS</sub> 就是用 0.2 A 與 60 A 兩點定義的。</li>
-  <li><b>過流跳脫</b>：65–100 A 的跳脫值要在 ATE 上用大電流脈衝驗證，對測試機的電流源與接觸都是挑戰。</li>
-  <li><b>箝位電壓</b>：在 10 mA 下量 V<sub>DS(CL)</sub>；能量耐受（E<sub>AS</sub>、E<sub>AR</sub>）屬於驗證項目，不是每顆都測。</li>
-  <li><b>「由設計保證」的參數</b>：資料手冊註記 “Not subject to production test, specified by design” 的項目（例如 T<sub>J(TRIP)</sub> 的典型 / 最大值、熱阻、部分時間參數）不在量產中逐顆量測，而是靠特性化與設計裕度。</li>
-  <li><b>驗證</b>：AEC-Q100，加上短路耐受（AEC-Q100-012：在規定條件下反覆短路，依存活次數分級）、重複感性關斷搭配溫度循環。見<a href="test.html#qual">測試章驗證</a>。</li>
+  <li><b>電荷泵</b>：振盪器推動電容與二極體，把閘極電壓抬到 V<sub>S</sub> 之上。MOSFET 導通後閘極只需要補漏電，所以電荷泵可以很小。電池電壓低時電荷泵的輸出也跟著變低，閘極推不夠，R<sub>DS(ON)</sub> 就變大：資料手冊在 V<sub>S</sub> = 3.1 V 時 R<sub>DS(ON)</sub> 最大到 20 mΩ，就是這個原因（和 <a href="architecture.html#charge-pump">架構章電荷泵</a>同一個原理）。</li>
+  <li><b>斜率控制</b>：開啟時用定電流 I<sub>ON</sub> 充閘極。V<sub>OUT</sub> 上升期間，閘極電壓幾乎停在平台，電流全部流進 Miller 電容 C<sub>GD</sub>，所以 dV<sub>OUT</sub>/dt ≈ I<sub>ON</sub> / C<sub>GD</sub>。規格上 0.05–1 V/µs 範圍很寬，反映了 I<sub>ON</sub> 與 C<sub>GD</sub>（隨電壓變化）的公差。快速關斷就是改接一個比較大的 I<sub>OFF</sub>。</li>
+  <li><b>Z<sub>GS</sub></b>：限制 V<sub>GS</sub>，保護閘極氧化層，例如輸出突然短路、源極被拉到地時。</li>
+  <li><b>主動箝位</b>：齊納串從汲極接到閘極。V<sub>DS</sub> 超過 n·V<sub>Z</sub> 加上閘極門檻時，齊納電流把閘極拉起，MOSFET 進入線性區導通，V<sub>DS</sub> 就停在 V<sub>DS(CL)</sub>。阻擋二極體的作用是：平常閘極比 V<sub>S</sub> 還高，沒有它，閘極電荷會從齊納串漏回汲極。齊納的溫度係數為正，所以 V<sub>DS(CL)</sub> 隨溫度上升（25 °C 典型 35 V、150 °C 典型 39 V）。電感的能量全部在 DMOS 裡變成熱，所以 E<sub>AR</sub> 由晶片面積與散熱決定。</li>
+</ul>
+
+<h3 id="int-sense">電流感測：感測 FET 與運放</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 345" role="img" aria-label="電流感測電路：感測 FET 與主 DMOS 共用汲極與閘極，運放強迫兩者源極電壓相等並驅動串聯電晶體，感測電流流向 IS 腳與過流比較器，故障時改由故障電流源輸出">
+  <path class="wm" d="M30 30H620M270 30V60M455 30V60M455 110V250M270 110V200M270 230V300M270 125H345V140M455 125H395V140M370 190V215H288M270 262H210M540 30V230M540 254V290H270M270 322V328M256 328h28M262 333h16M267 338h6"/>
+  <path style="fill:none;stroke:var(--muted);stroke-dasharray:3 3" d="M320 85H400"/>
+  <path d="M330 140H410L370 190Z" style="fill:var(--surface);stroke:var(--muted)"/>
+  <circle cx="540" cy="242" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M540 235V249M536 245L540 250L544 245"/>
+  <rect x="264" y="300" width="12" height="22" rx="2" style="fill:var(--surface);stroke:var(--muted)"/>
+  <g class="ts">
+  <text x="36" y="24">V_S</text>
+  <rect class="c3" x="220" y="60" width="100" height="50" rx="6"/><text x="270" y="82" text-anchor="middle">感測 FET</text><text x="270" y="98" text-anchor="middle" class="t-mut">面積 1</text>
+  <rect class="c1" x="400" y="60" width="110" height="50" rx="6"/><text x="455" y="82" text-anchor="middle">主 DMOS</text><text x="455" y="98" text-anchor="middle" class="t-mut">面積約 k 倍</text>
+  <text x="360" y="79" text-anchor="middle" class="t-mut">共用閘極</text>
+  <text x="344" y="156">−</text><text x="390" y="156">+</text>
+  <text x="378" y="212">運放 V_os</text>
+  <rect x="252" y="200" width="36" height="30" rx="4" style="fill:var(--surface);stroke:var(--muted)"/><text x="270" y="219" text-anchor="middle">T_P</text>
+  <text x="463" y="200">OUT → 負載</text><text x="463" y="140">I_L</text>
+  <text x="278" y="254">I_L / k</text>
+  <rect class="c4" x="60" y="240" width="150" height="44" rx="6"/><text x="135" y="258" text-anchor="middle">過流比較</text><text x="135" y="274" text-anchor="middle" class="t-mut">I_IS &gt; I_CL / k</text>
+  <text x="556" y="240">I_IS(FAULT)</text><text x="556" y="256" class="t-mut">故障時開啟</text>
+  <text x="284" y="316">IS → R_IS</text>
+  </g>
+</svg>
+<figcaption>電流感測的典型作法。運放把感測 FET 的源極拉到和 OUT 一樣的電壓，兩顆 MOSFET 的 V<sub>GS</sub>、V<sub>DS</sub> 就相同，電流比等於面積比 k。串聯電晶體 T<sub>P</sub> 把多出來的電壓吃掉，讓 IS 腳電壓不影響感測。</figcaption>
+</figure>
+<p>為什麼不直接把感測 FET 接到電阻？因為那樣它的源極電壓會跟著 IS 電壓變，V<sub>DS</sub> 和主元件不同，比值就不準。運放強迫兩邊源極等電位，但運放本身有偏移電壓 V<sub>os</sub>：</p>
+<div class="eq">I<sub>IS</sub> = (I<sub>L</sub> R<sub>DS(ON)</sub> − V<sub>os</sub>) / (k R<sub>DS(ON)</sub>) = I<sub>L</sub> / k − V<sub>os</sub> / (k R<sub>DS(ON)</sub>)　→　等效負載電流偏移 I<sub>L0</sub> = V<sub>os</sub> / R<sub>DS(ON)</sub></div>
+<p>主元件在 25 °C 只有 2.7 mΩ，所以 V<sub>os</sub> = 0.35 mV 就等於 0.13 A，剛好是資料手冊 I<sub>L0</sub> 的上限。換句話說，這個運放的偏移要壓在亞毫伏等級，通常要靠大尺寸輸入對、修調或截波（chopper）技術。比值 k 的誤差則來自：</p>
+<ul>
+  <li><b>源極金屬電阻</b>：主元件的源極金屬、打線與兩支 OUT 腳的電阻只要幾百 µΩ，相對 2.7 mΩ 就是 10% 等級的誤差。這也是兩支 OUT 腳一定要在 PCB 上對稱接在一起的原因。</li>
+  <li><b>溫度梯度</b>：大電流時主元件中心比邊緣熱，感測 cell 放在哪裡會影響它看到的 R<sub>DS(ON)</sub>。</li>
+  <li><b>cell 邊緣效應與製程變異</b>：感測 FET 很小，邊緣佔的比例比主元件大。</li>
+</ul>
+<p>故障時邏輯會關掉 T<sub>P</sub> 這條路徑，改接約 12 mA 的故障電流源，所以 IS 從「比例訊號」變成「固定的大電流」。過流偵測直接比較感測電流和參考電流，經過濾波後決定是否關斷，所以 I<sub>CL(0)</sub> 的分布（65–100 A）同時包含了感測比與參考電流的公差。</p>
+
+<h3 id="calc-offset">計算器：運放偏移造成的感測誤差</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>k = 18 000</small></h3>
+    <div class="ctl"><label for="hs-vos">運放偏移 V<sub>os</sub> <output id="hs-vos-o"></output></label><input id="hs-vos" type="range" min="0" max="1000" step="10" value="200"></div>
+    <div class="ctl"><label>接面溫度</label>
+      <div class="btnrow" id="hs-ostj"><button class="btn" data-v="25" aria-pressed="true">25 °C（2.7 mΩ）</button><button class="btn" data-v="150" aria-pressed="false">150 °C（4.4 mΩ）</button></div></div>
+    <p class="note">模型：只看運放偏移，I<sub>L0</sub> = V<sub>os</sub> / R<sub>DS(ON)</sub>，誤差 = I<sub>L0</sub> / I<sub>L</sub>。比值本身的公差（約 ±14%）另外疊加。紅色虛線是資料手冊的 I<sub>L0</sub> 上限（25 °C ±0.13 A、150 °C ±0.105 A）換算成的誤差。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-os-m"></div>
+    <div class="panel"><h3>偏移造成的誤差對負載電流 <small>對數座標</small></h3><svg class="viz" id="hs-os-p" role="img" aria-label="運放偏移造成的感測誤差對負載電流"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>目前的 V<sub>os</sub></span><span><i style="background:var(--bad)"></i>資料手冊 I<sub>L0</sub> 上限</span><span><i style="background:var(--warn)"></i>比值公差</span></div>
+      <p class="note" id="hs-os-n"></p></div>
+  </div>
+</div>
+
+<h3 id="int-protect">保護、輸入與鎖存邏輯</h3>
+<div class="tblwrap"><table>
+  <tr><th>區塊</th><th>典型電路</th><th>對應的資料手冊參數</th></tr>
+  <tr><td>過流</td><td>感測電流與參考電流比較，加上濾波（遮蔽切換瞬間的雜訊）</td><td>I<sub>CL(0)</sub> 65–100 A、t<sub>OFF(TRIP)</sub> 約 7 µs</td></tr>
+  <tr><td>過功率（PSD）</td><td>兩個比較器：V<sub>DS</sub> &gt; 約 0.9 V 且 V<sub>S</sub> − V<sub>IN</sub> &lt; 約 4.3 V，再加計時器</td><td>V<sub>DS(PSD)</sub>、V<sub>VS-VIN(PSD)</sub>、t<sub>PSD(UV)</sub> 10–300 µs</td></tr>
+  <tr><td>過溫</td><td>二極體或 PTAT 溫度感測器放在功率區中心（短路時最熱的地方），接比較器；有些設計再加一個量功率區與控制區溫差的感測器，限制快速溫升</td><td>T<sub>J(TRIP)</sub> 最小 150 °C；ΔT<sub>J</sub> ≤ 60 K</td></tr>
+  <tr><td>鎖存</td><td>SR 正反器：任何故障設定它；IN 釋放並經過濾波時間後才重置，避免 IN 上的雜訊誤清故障</td><td>t<sub>IN(RESETDELAY)</sub> 6 µs–5 ms</td></tr>
+  <tr><td>輸入</td><td>以 V<sub>S</sub> 為參考、有遲滯的比較器；資料手冊的等效電路是 75 V 齊納（ESD）、約 2 mA 的電流與內建 R<sub>IN</sub>。沒有 GND 腳，導通時控制電路的電流就從 IN 流出</td><td>V<sub>IN(H)</sub>、V<sub>IN(L)</sub>、遲滯 2.1 V、I<sub>IN(ON)</sub> 1–4 mA</td></tr>
+  <tr><td>ReverSave</td><td>反接時 V<sub>S</sub> 為負，IN 經外部二極體接地，所以 IN 比 V<sub>S</sub> 高約 16 V；內部電路用這個電壓把閘極推高，讓通道導通</td><td>R<sub>DS(REV)</sub> 典型 4 mΩ（V<sub>S</sub> − V<sub>IN</sub> = −16 V）</td></tr>
+</table></div>
+
+<h2 id="test">測試：每個區塊怎麼量</h2>
+<p>這類元件的測試和本站<a href="test.html">測試章</a>講的 LDO 很像，但電流大了兩個數量級。資料手冊每個參數旁邊有編號（例如 P_6.1.3），標了 “Not subject to production test, specified by design” 的參數不是逐顆量測，而是靠特性化與設計裕度保證；其他的才是量產會測的。</p>
+
+<h3 id="test-flow">測試流程</h3>
+<div class="tblwrap"><table>
+  <tr><th>階段</th><th>典型內容</th><th>限制與理由</th></tr>
+  <tr><td>晶圓針測（CP）</td><td>漏電、輸入門檻、箝位電壓（10 mA）、低電流下的導通與功能、修調（感測偏移與比值、過流參考、溫度感測器，視設計而定）</td><td>探針無法承受數十安培；垂直元件的汲極在晶圓背面，要靠探針台的 chuck 接觸。修調要在封裝前做（見<a href="production.html#cp-trim">CP 修調</a>）</td></tr>
+  <tr><td>最終測試（FT）</td><td>R<sub>DS(ON)</sub>（20 A）、感測比（0.2 / 20 / 60 A）、過流跳脫、故障電流、反接、切換時間、鎖存重置，車用常在多個溫度（低溫、室溫、高溫）各測一次</td><td>需要 Kelvin 插座與脈衝大電流源；溫度測試靠分選機（handler）控溫</td></tr>
+  <tr><td>特性化</td><td>多批次（含製程角落批）在 −40 到 150 °C 量完整分布，定出 min / typ / max；量 “specified by design” 的參數</td><td>決定量產測試的極限與保護帶（guard band）</td></tr>
+  <tr><td>驗證（qualification）</td><td>AEC-Q100（HTOL、溫度循環、ESD、latch-up 等）、短路耐受 AEC-Q100-012、重複感性關斷加溫度循環</td><td>抽樣、多為破壞性，見<a href="test.html#qual">測試章驗證</a></td></tr>
+</table></div>
+
+<h3 id="test-table">參數、內部區塊與測法</h3>
+<div class="tblwrap"><table>
+  <tr><th>參數</th><th>驗證的區塊</th><th>測法（資料手冊條件）</th><th>階段</th></tr>
+  <tr><td>I<sub>VS(OFF)</sub>、I<sub>L(OFF)</sub></td><td>功率級漏電、輸入電路</td><td>V<sub>S</sub> = 18 V、OUT = 0 V、IN = V<sub>S</sub>，量電源電流（85 °C 最大 4 µA）</td><td>CP、FT</td></tr>
+  <tr><td>V<sub>IN(H)</sub>、V<sub>IN(L)</sub>、I<sub>IN(ON)</sub></td><td>輸入比較器</td><td>掃 V<sub>S</sub> − V<sub>IN</sub> 看 OUT 何時翻轉，兩個方向各掃一次得到遲滯；量 IN 電流</td><td>CP、FT</td></tr>
+  <tr><td>R<sub>DS(ON)</sub></td><td>DMOS、電荷泵</td><td>接法 (a)：20 A 短脈衝、Kelvin 量 V<sub>DS</sub>；低電壓條件（V<sub>S</sub> = 3.1 V、12 A）同時驗證電荷泵在低壓下推得夠不夠</td><td>FT</td></tr>
+  <tr><td>dV/dt、t<sub>ON(DELAY)</sub>、t<sub>OFF(DELAY)</sub></td><td>斜率控制、I<sub>ON</sub> / I<sub>OFF</sub></td><td>R<sub>L</sub> = 0.68 Ω、13.5 V，量 V<sub>OUT</sub> 波形的 20 / 25 / 50 / 80% 時間點</td><td>FT（E<sub>ON</sub> / E<sub>OFF</sub> 為特性化）</td></tr>
+  <tr><td>V<sub>DS(CL)</sub></td><td>主動箝位齊納串</td><td>接法 (c)：IN 關、從 OUT 抽 10 mA，量 V<sub>S</sub> − V<sub>OUT</sub></td><td>CP、FT</td></tr>
+  <tr><td>V<sub>F</sub></td><td>體二極體</td><td>OUT 流入 −20 A，量 V<sub>OUT</sub> − V<sub>S</sub></td><td>FT</td></tr>
+  <tr><td>R<sub>DS(REV)</sub></td><td>ReverSave</td><td>V<sub>S</sub> = 0、V<sub>S</sub> − V<sub>IN</sub> = −16 V、I<sub>L</sub> = −20 A，量壓降</td><td>FT</td></tr>
+  <tr><td>dk<sub>ILIS</sub>、I<sub>IS1/2/3</sub></td><td>感測 FET、運放偏移</td><td>接法 (b)：在 0.2、20、60 A 量 I<sub>IS</sub>，用兩點算斜率與偏移；不合時修調</td><td>CP（修調）、FT</td></tr>
+  <tr><td>I<sub>IS(FAULT)</sub>、I<sub>IS(LIM)</sub></td><td>故障電流源、感測輸出級</td><td>觸發故障後量 IS 電流（V<sub>S</sub> − V<sub>IS</sub> ≥ 3.5 V）</td><td>FT</td></tr>
+  <tr><td>I<sub>CL(0)</sub></td><td>過流比較器與參考</td><td>脈衝電流由低往高逐步加，看哪一步 IS 出現故障訊號；也量 t<sub>OFF(TRIP)</sub></td><td>FT</td></tr>
+  <tr><td>V<sub>DS(PSD)</sub>、t<sub>PSD(UV)</sub></td><td>過功率比較器與計時器</td><td>低 V<sub>S</sub>、讓 V<sub>DS</sub> 超過門檻，量關斷時間</td><td>FT</td></tr>
+  <tr><td>t<sub>IN(RESETDELAY)</sub></td><td>鎖存與濾波</td><td>觸發故障後，用不同長度的 IN 釋放脈衝，看是否重置</td><td>FT</td></tr>
+  <tr><td>T<sub>J(TRIP)</sub></td><td>溫度感測器</td><td>最小值：高溫測試時確認不會提早關斷；典型 / 最大值：特性化</td><td>FT（高溫）、特性化</td></tr>
+  <tr><td>E<sub>AS</sub>、E<sub>AR</sub>、短路耐受、ESD</td><td>整體</td><td>接法 (d) 與 AEC-Q100 方法，破壞性</td><td>特性化、驗證</td></tr>
+</table></div>
+
+<h3 id="test-setup">四種基本量測接法</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 340" role="img" aria-label="四種量測接法：Kelvin 量 R_DS(ON)、量感測比、量箝位電壓、感性負載關斷">
+  <g>
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M145 50V36H50V69M145 110V130H50V95M165 50V40H260V70M165 110V126H260V94M120 80H100V100M92 100h16M96 104h8"/>
+    <circle cx="50" cy="82" r="13" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M50 89V75M46 79L50 74L54 79"/>
+    <circle cx="260" cy="82" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(a) R_DS(ON)：Kelvin 四線</text>
+    <text x="155" y="78" text-anchor="middle">DUT</text><text x="155" y="94" text-anchor="middle" class="t-mut">VS 上 / OUT 下</text>
+    <text x="260" y="86" text-anchor="middle">V</text><text x="132" y="34" class="t-mut">F</text><text x="170" y="34" class="t-mut">S</text>
+    <text x="14" y="154">I = 20 A 短脈衝</text><text x="300" y="154" text-anchor="end">R = V / I</text></g>
+  </g>
+  <g transform="translate(320 0)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M155 110V137H196M190 80H232V88M232 112V118M224 118h16M228 122h8M120 80H100V100M92 100h16M96 104h8"/>
+    <circle cx="232" cy="100" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <rect x="196" y="124" width="104" height="26" rx="4" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(b) 感測比 dk_ILIS</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="40">V_S 13.5 V</text>
+    <text x="232" y="104" text-anchor="middle">A</text><text x="200" y="76" class="t-mut">IS</text>
+    <text x="248" y="141" text-anchor="middle">I_L 0.2 / 20 / 60 A</text>
+    <text x="14" y="154">dk = ΔI_L / ΔI_IS</text></g>
+  </g>
+  <g transform="translate(0 170)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M120 80H100V42H155M155 42H260V70M260 94V118H155M155 110V124M155 148V156"/>
+    <circle cx="155" cy="136" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M155 129V143M151 139L155 144L159 139"/>
+    <circle cx="260" cy="82" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(c) 箝位電壓 V_DS(CL)</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="30">V_S</text>
+    <text x="14" y="62" class="t-mut">IN = V_S（關）</text>
+    <text x="260" y="86" text-anchor="middle">V</text>
+    <text x="172" y="140">10 mA → 負電源</text>
+    <text x="14" y="154">V_DS(CL) = V_S − V_OUT</text></g>
+  </g>
+  <g transform="translate(320 170)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M84 80H120M155 110V118M155 118a5 5 0 0 1 0 8a5 5 0 0 1 0 8a5 5 0 0 1 0 8M155 142V148M147 148h16M151 152h8"/>
+    <rect x="20" y="68" width="64" height="24" rx="4" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(d) 感性負載關斷</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="40">V_S 13.5 V</text>
+    <text x="52" y="84" text-anchor="middle">IN 脈衝</text>
+    <text x="144" y="136" text-anchor="end">L</text>
+    <text x="200" y="96">示波器量</text><text x="200" y="114">V_OUT 與 I_L</text><text x="200" y="132">E = ∫ V_DS · I_L dt</text></g>
+  </g>
+</svg>
+<figcaption>四種基本接法（簡化，未畫保護與去耦）。F = force（送電流）、S = sense（量電壓）。(a)(b) 中 IN 接地表示開啟。(d) 關斷時 V<sub>OUT</sub> 會停在 V<sub>S</sub> − V<sub>DS(CL)</sub> 的平台，直到電感電流歸零。</figcaption>
+</figure>
+<ul>
+  <li><b>(a) R<sub>DS(ON)</sub></b>：電流與量電壓分開走（Kelvin，見<a href="test.html#kelvin">測試章</a>）。20 A × 2.7 mΩ 只有 54 mV，插座接觸電阻也是 mΩ 等級，不分開就等於在量插座。</li>
+  <li><b>(b) 感測比</b>：IS 接到電流表（或已知電阻），在三個負載電流量 I<sub>IS</sub>。資料手冊的 dk<sub>ILIS</sub> 用 0.2 A 與 60 A 兩點定義，偏移則由 0.2 A 那一點推回去。</li>
+  <li><b>(c) 箝位電壓</b>：開關關閉，從 OUT 抽一個小電流（10 mA）到負電源，讓元件進入箝位，量到的就是 V<sub>DS(CL)</sub>。電流小，所以不會傷到元件。</li>
+  <li><b>(d) 感性負載關斷</b>：用真正的電感，示波器同時量 V<sub>OUT</sub> 與電感電流，能量由 V<sub>DS</sub> × I<sub>L</sub> 積分得到。逐步加大 L 或 I 直到失效，就畫得出資料手冊 Figure 1 那種能量曲線。</li>
+</ul>
+
+<h3 id="test-ate">ATE 上的難處</h3>
+<ul>
+  <li><b>接觸電阻</b>：插座與接腳的接觸電阻和元件同一個量級，而且會隨插拔次數磨損。量產會監控 Kelvin 的 force 與 sense 是否接通、定期清潔插座；接觸變差最先表現成 R<sub>DS(ON)</sub> 假失效。</li>
+  <li><b>自熱</b>：60 A 時 V<sub>DS</sub> 約 0.16 V，功耗約 10 W。R<sub>DS(ON)</sub> 每升 1 K 約變 0.5%（2.7 → 4.4 mΩ / 125 K），所以脈衝要短、在固定的延遲時間點取樣，否則量到的是被自己加熱後的值。感測比也一樣。</li>
+  <li><b>大電流路徑的電感</b>：測試機的電流源要在 µs 內把電流推上去，佈線電感會讓 V<sub>OUT</sub> 振鈴，必須等它穩定再量。</li>
+  <li><b>找跳脫點</b>：I<sub>CL(0)</sub> 要逐步加電流去找，每一次跳脫對元件都是一次短路事件；測試程式要把次數壓低（例如先用粗步距再細找），並限制在規格要求的範圍內判定合格，而不是每顆都找出精確值。</li>
+  <li><b>動態範圍</b>：同一次插入要量 1 µA 的漏電，也要量 100 A 的跳脫，量測檔位切換與穩定時間是測試時間的主要來源。大電流資源有限，同時測多顆（multisite）的數量也受限。</li>
+  <li><b>過溫</b>：沒辦法在量產時把每顆加熱到 175 °C 去等它關斷。最小值通常靠高溫測試確認不會提早關斷，典型與最大值由特性化決定：在恆溫台上慢慢升溫，或用體二極體順向電壓當溫度計（TSEP），自熱到觸發。</li>
+  <li><b>保護帶</b>：量測有不確定度，所以量產極限比資料手冊更嚴一點（guard band），寬多少由<a href="test.html#correlation">相關性與 GR&amp;R</a> 決定。</li>
+</ul>
+
+<h3 id="test-char">特性化與驗證的破壞性測試</h3>
+<ul>
+  <li><b>感性能量</b>：用接法 (d) 逐步加大能量直到失效，得到能量對電流的曲線，再打折扣定出 E<sub>AS</sub>。重複脈衝版本（E<sub>AR</sub>）要在 T<sub>J(0)</sub> ≤ 105 °C 下打最多 10<sup>6</sup> 次、並搭配溫度循環，資料手冊註明此後參數可能在規格內漂移。</li>
+  <li><b>短路耐受（AEC-Q100-012）</b>：標準規定了電源線與短路線的電感、電阻，分成開進短路與導通中短路、冷態與熱態，反覆短路直到失效，依存活次數分級。這是軟體重試次數上限的依據。</li>
+  <li><b>反接</b>：V<sub>S</sub> = −16 V（絕對最大 −18 V、5 分鐘）接負載，確認 ReverSave 正常、溫度在範圍內。</li>
+  <li><b>熱阻抗</b>：先在不同溫度校正體二極體 V<sub>F</sub>（TSEP），再加熱功率脈衝、量冷卻過程的 V<sub>F</sub> 換算溫度（JESD51 的電氣量測法），得到資料手冊的 Z<sub>th</sub> 曲線。</li>
+  <li><b>EMC 與車用電壓</b>：在應用板上測傳導發射（CISPR 25）與 LV 124 的冷車啟動、拋負載等電壓波形。</li>
 </ul>
 
 <h2 id="issues">常見問題與客訴情境</h2>
@@ -308,6 +506,13 @@
   <div><dt>Inrush current</dt><dd>湧浪電流，負載剛開啟時遠大於穩態的電流。</dd></div>
   <div><dt>Glow plug</dt><dd>預熱塞，柴油引擎冷車時加熱燃燒室的元件。</dd></div>
   <div><dt>Zonal architecture</dt><dd>區域控制架構，把車上的配電與控制按位置分區。</dd></div>
+  <div><dt>感測 FET（Sense FET）</dt><dd>和主功率 MOSFET 共用汲極與閘極的小 MOSFET，電流按面積比縮小，用來量負載電流。</dd></div>
+  <div><dt>主動箝位（Active clamp）</dt><dd>用齊納串從汲極回授到閘極，讓 MOSFET 在過壓時於線性區導通、把 V<sub>DS</sub> 限制住的電路。</dd></div>
+  <div><dt>運算放大器（Op-amp / op-amp）</dt><dd>高增益差動放大器；在感測電路中強迫兩點等電位，它的偏移電壓直接變成量測誤差。</dd></div>
+  <div><dt>截波放大器（Chopper amplifier）</dt><dd>週期性交換輸入、把偏移調變掉的放大器，可把偏移壓到微伏等級。</dd></div>
+  <div><dt>TSEP</dt><dd>溫度敏感電參數，例如體二極體順向電壓，校正後可當作晶片內部的溫度計。</dd></div>
+  <div><dt>Chip-on-chip</dt><dd>把控制晶片疊在功率晶片上封裝在一起的作法；並排放置則稱 chip-by-chip。</dd></div>
+  <div><dt>Multisite</dt><dd>ATE 同時測試多顆元件，以縮短平均測試時間。</dd></div>
 </dl>
 </article>
 </main>

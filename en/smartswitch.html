@@ -253,15 +253,213 @@
 </table></div>
 <p>Voltage levels and standards for the automotive supply are in <a href="application.html#automotive">Applications · automotive</a>.</p>
 
-<h2 id="test">Production test and qualification</h2>
-<p>Testing these parts resembles the LDO testing in the <a href="test.html">Test chapter</a>, but with currents two orders of magnitude higher:</p>
+<h2 id="internals">Internal circuits: how each block is built</h2>
+<div class="callout"><b>To be clear</b>　Infineon does not publish the BTS50025-1TEA's transistor-level circuit. What follows are the usual implementations of smart power switches found in public literature, patents and textbooks, to show where the specs come from and why they are tested the way they are; the numbers are checked against the datasheet, but the real circuit may differ.</div>
+<p>The power DMOS is usually <b>vertical</b>: current flows from the source on the top of the die down to the drain on the back, which is why the package tab is V<sub>S</sub>. The control circuit can sit on the same die as the power device (a smart-power process, see <a href="process.html#bcd">Process · BCD</a>), or a control die can be stacked on the power die (chip-on-chip) or placed beside it (chip-by-chip). High-current parts often use the latter two, so the power die can use the best trench-MOSFET process and the control die a process suited to analogue and logic.</p>
+
+<h3 id="int-gate">Gate drive, charge pump and active clamp</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 280" role="img" aria-label="Gate network: charge pump, turn-on and turn-off current sources, gate-source zener, and the active-clamp zener string with blocking diode from drain to gate">
+  <path class="wm" d="M30 30H620M100 30V55M160 80H300V96M300 120V158M300 140H450M510 30V110M510 170V250H600M300 182V230H510M400 140V167M400 177V230M430 30V55M430 65V77M430 87V103M430 113V140"/>
+  <path style="fill:none;stroke:var(--muted);stroke-dasharray:3 3" d="M160 162H220V108H288M160 172H288"/>
+  <circle cx="300" cy="108" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M300 101V115M296 111L300 116L304 111"/>
+  <circle cx="300" cy="170" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M300 163V177M296 173L300 178L304 173"/>
+  <path style="fill:var(--muted);stroke:var(--muted)" d="M393 177H407L400 167ZM423 65H437L430 55ZM423 87H437L430 77ZM423 103H437L430 113Z"/>
+  <path class="wm" d="M391 165L393 167H407L409 169M421 53L423 55H437L439 57M421 75L423 77H437L439 79M423 113H437"/>
+  <g class="ts">
+  <text x="36" y="24">V_S</text>
+  <rect class="c2" x="40" y="55" width="120" height="50" rx="6"/><text x="100" y="76" text-anchor="middle">Charge pump</text><text x="100" y="92" text-anchor="middle" class="t-mut">oscillator + doubler</text>
+  <text x="172" y="72">V_CP &gt; V_S + V_GS</text>
+  <text x="318" y="104">I_ON</text><text x="318" y="174">I_OFF</text>
+  <rect class="c5" x="40" y="145" width="120" height="50" rx="6"/><text x="100" y="166" text-anchor="middle">Switch logic</text><text x="100" y="182" text-anchor="middle" class="t-mut">ON / OFF / fault</text>
+  <text x="418" y="64" text-anchor="end">Z_CL × n</text><text x="418" y="112" text-anchor="end" class="t-mut">blocking diode</text>
+  <text x="410" y="200">Z_GS</text>
+  <rect class="c1" x="450" y="110" width="90" height="60" rx="6"/><text x="495" y="137" text-anchor="middle">N-DMOS</text><text x="495" y="154" text-anchor="middle" class="t-mut">C_GD (Miller)</text>
+  <text x="520" y="244">OUT → load</text>
+  <text x="250" y="136" text-anchor="middle" class="t-mut">gate</text>
+  </g>
+</svg>
+<figcaption>A typical gate network. At turn-on the charge pump charges the gate through the constant current I<sub>ON</sub>; at turn-off I<sub>OFF</sub> discharges it into the source (OUT). The Z<sub>CL</sub> zener string with a blocking diode forms the active clamp; Z<sub>GS</sub> protects the gate oxide.</figcaption>
+</figure>
 <ul>
-  <li><b>R<sub>DS(ON)</sub></b>: 2–5 mΩ at 20 A is only a 50–100 mV drop. It needs <a href="test.html#kelvin">Kelvin four-wire measurement</a>, and probe and socket contact resistance are in the same range as the device; short current pulses avoid self-heating shifting the reading.</li>
-  <li><b>Sense-ratio trim</b>: dk<sub>ILIS</sub> is measured at two current points during test and trimmed if needed (the same idea as <a href="production.html#cp-trim">CP trim</a>); the datasheet defines dk<sub>ILIS</sub> by two points, 0.2 A and 60 A.</li>
-  <li><b>Overcurrent trip</b>: the 65–100 A trip level has to be verified on the ATE with high-current pulses, a challenge for both the tester's current source and the contacts.</li>
-  <li><b>Clamp voltage</b>: V<sub>DS(CL)</sub> is measured at 10 mA; energy capability (E<sub>AS</sub>, E<sub>AR</sub>) is a qualification item, not tested on every part.</li>
-  <li><b>"Specified by design"</b>: parameters marked "Not subject to production test, specified by design" (e.g. typical / maximum T<sub>J(TRIP)</sub>, thermal resistance, some timings) are not measured on every unit; they rely on characterization and design margin.</li>
-  <li><b>Qualification</b>: AEC-Q100, plus short-circuit endurance (AEC-Q100-012: repeated shorts under defined conditions, graded by cycles survived) and repetitive inductive switch-off combined with temperature cycling. See <a href="test.html#qual">Test · qualification</a>.</li>
+  <li><b>Charge pump</b>: an oscillator drives capacitors and diodes to lift the gate above V<sub>S</sub>. Once the MOSFET is on, the gate only needs its leakage topped up, so the pump can be small. At low battery voltage the pump output drops too, the gate is under-driven and R<sub>DS(ON)</sub> rises: that is why the datasheet allows up to 20 mΩ at V<sub>S</sub> = 3.1 V (the same principle as the <a href="architecture.html#charge-pump">charge pump in Architecture</a>).</li>
+  <li><b>Slope control</b>: the gate is charged by a constant current I<sub>ON</sub>. While V<sub>OUT</sub> rises the gate voltage sits on its plateau and all the current flows into the Miller capacitance C<sub>GD</sub>, so dV<sub>OUT</sub>/dt ≈ I<sub>ON</sub> / C<sub>GD</sub>. The wide 0.05–1 V/µs spec reflects the tolerances of I<sub>ON</sub> and of C<sub>GD</sub> (which varies with voltage). Fast switch-off simply switches in a larger I<sub>OFF</sub>.</li>
+  <li><b>Z<sub>GS</sub></b>: limits V<sub>GS</sub> to protect the gate oxide, e.g. when the output is suddenly shorted and the source is pulled to ground.</li>
+  <li><b>Active clamp</b>: a zener string runs from drain to gate. When V<sub>DS</sub> exceeds n·V<sub>Z</sub> plus the gate threshold, zener current pulls the gate up, the MOSFET conducts in its linear region, and V<sub>DS</sub> stops at V<sub>DS(CL)</sub>. The blocking diode is needed because the gate normally sits above V<sub>S</sub>; without it, gate charge would leak back to the drain through the string. Zeners have a positive temperature coefficient, so V<sub>DS(CL)</sub> rises with temperature (35 V typ. at 25 °C, 39 V typ. at 150 °C). All the inductor's energy becomes heat in the DMOS, so E<sub>AR</sub> is set by die area and cooling.</li>
+</ul>
+
+<h3 id="int-sense">Current sense: sense FET and op-amp</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 345" role="img" aria-label="Current-sense circuit: the sense FET shares drain and gate with the main DMOS; an op-amp forces equal source voltages and drives a series transistor; the sense current goes to the IS pin and the overcurrent comparator, and a fault current source takes over after a fault">
+  <path class="wm" d="M30 30H620M270 30V60M455 30V60M455 110V250M270 110V200M270 230V300M270 125H345V140M455 125H395V140M370 190V215H288M270 262H210M540 30V230M540 254V290H270M270 322V328M256 328h28M262 333h16M267 338h6"/>
+  <path style="fill:none;stroke:var(--muted);stroke-dasharray:3 3" d="M320 85H400"/>
+  <path d="M330 140H410L370 190Z" style="fill:var(--surface);stroke:var(--muted)"/>
+  <circle cx="540" cy="242" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M540 235V249M536 245L540 250L544 245"/>
+  <rect x="264" y="300" width="12" height="22" rx="2" style="fill:var(--surface);stroke:var(--muted)"/>
+  <g class="ts">
+  <text x="36" y="24">V_S</text>
+  <rect class="c3" x="220" y="60" width="100" height="50" rx="6"/><text x="270" y="82" text-anchor="middle">Sense FET</text><text x="270" y="98" text-anchor="middle" class="t-mut">area 1</text>
+  <rect class="c1" x="400" y="60" width="110" height="50" rx="6"/><text x="455" y="82" text-anchor="middle">Main DMOS</text><text x="455" y="98" text-anchor="middle" class="t-mut">area about k</text>
+  <text x="360" y="79" text-anchor="middle" class="t-mut">shared gate</text>
+  <text x="344" y="156">−</text><text x="390" y="156">+</text>
+  <text x="378" y="212">op-amp, V_os</text>
+  <rect x="252" y="200" width="36" height="30" rx="4" style="fill:var(--surface);stroke:var(--muted)"/><text x="270" y="219" text-anchor="middle">T_P</text>
+  <text x="463" y="200">OUT → load</text><text x="463" y="140">I_L</text>
+  <text x="278" y="254">I_L / k</text>
+  <rect class="c4" x="60" y="240" width="150" height="44" rx="6"/><text x="135" y="258" text-anchor="middle">Overcurrent compare</text><text x="135" y="274" text-anchor="middle" class="t-mut">I_IS &gt; I_CL / k</text>
+  <text x="556" y="240">I_IS(FAULT)</text><text x="556" y="256" class="t-mut">on after fault</text>
+  <text x="284" y="316">IS → R_IS</text>
+  </g>
+</svg>
+<figcaption>A typical current-sense circuit. The op-amp pulls the sense FET's source to the same voltage as OUT, so both MOSFETs have the same V<sub>GS</sub> and V<sub>DS</sub> and the current ratio equals the area ratio k. The series transistor T<sub>P</sub> absorbs the remaining voltage so the IS pin voltage does not disturb the sense.</figcaption>
+</figure>
+<p>Why not connect the sense FET straight to a resistor? Its source voltage would then follow the IS voltage, its V<sub>DS</sub> would differ from the main device's, and the ratio would be off. The op-amp forces both sources to the same potential, but the op-amp has its own offset voltage V<sub>os</sub>:</p>
+<div class="eq">I<sub>IS</sub> = (I<sub>L</sub> R<sub>DS(ON)</sub> − V<sub>os</sub>) / (k R<sub>DS(ON)</sub>) = I<sub>L</sub> / k − V<sub>os</sub> / (k R<sub>DS(ON)</sub>)　→　equivalent load-current offset I<sub>L0</sub> = V<sub>os</sub> / R<sub>DS(ON)</sub></div>
+<p>The main device is only 2.7 mΩ at 25 °C, so V<sub>os</sub> = 0.35 mV equals 0.13 A, exactly the datasheet I<sub>L0</sub> limit. In other words, this op-amp's offset has to be held below a millivolt, usually with large input devices, trimming or chopper techniques. Errors in the ratio k come from:</p>
+<ul>
+  <li><b>Source metal resistance</b>: a few hundred µΩ in the main device's source metal, bond wires and the two OUT pins is a 10%-class error against 2.7 mΩ. That is also why both OUT pins must be tied together symmetrically on the PCB.</li>
+  <li><b>Temperature gradients</b>: at high current the centre of the main device is hotter than its edges, so where the sense cells sit changes the R<sub>DS(ON)</sub> they see.</li>
+  <li><b>Cell edge effects and process variation</b>: the sense FET is tiny, so edges are a larger share of it than of the main device.</li>
+</ul>
+<p>After a fault the logic disconnects the T<sub>P</sub> path and switches in a fault current source of about 12 mA, so IS changes from a proportional signal to a fixed large current. Overcurrent detection compares the sense current with a reference current and decides, after filtering, whether to turn off; the I<sub>CL(0)</sub> spread (65–100 A) therefore contains the tolerances of both the sense ratio and the reference.</p>
+
+<h3 id="calc-offset">Calculator: sense error from op-amp offset</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>k = 18 000</small></h3>
+    <div class="ctl"><label for="hs-vos">Op-amp offset V<sub>os</sub> <output id="hs-vos-o"></output></label><input id="hs-vos" type="range" min="0" max="1000" step="10" value="200"></div>
+    <div class="ctl"><label>Junction temperature</label>
+      <div class="btnrow" id="hs-ostj"><button class="btn" data-v="25" aria-pressed="true">25 °C (2.7 mΩ)</button><button class="btn" data-v="150" aria-pressed="false">150 °C (4.4 mΩ)</button></div></div>
+    <p class="note">Model: offset only, I<sub>L0</sub> = V<sub>os</sub> / R<sub>DS(ON)</sub>, error = I<sub>L0</sub> / I<sub>L</sub>. The ratio tolerance itself (about ±14%) adds on top. The red dashed line is the datasheet I<sub>L0</sub> limit (±0.13 A at 25 °C, ±0.105 A at 150 °C) expressed as an error.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-os-m"></div>
+    <div class="panel"><h3>Offset error vs load current <small>log scales</small></h3><svg class="viz" id="hs-os-p" role="img" aria-label="Sense error from op-amp offset against load current"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Current V<sub>os</sub></span><span><i style="background:var(--bad)"></i>Datasheet I<sub>L0</sub> limit</span><span><i style="background:var(--warn)"></i>Ratio tolerance</span></div>
+      <p class="note" id="hs-os-n"></p></div>
+  </div>
+</div>
+
+<h3 id="int-protect">Protection, input and latch logic</h3>
+<div class="tblwrap"><table>
+  <tr><th>Block</th><th>Typical circuit</th><th>Datasheet parameters it explains</th></tr>
+  <tr><td>Overcurrent</td><td>Sense current compared with a reference current, plus a filter that blanks switching noise</td><td>I<sub>CL(0)</sub> 65–100 A, t<sub>OFF(TRIP)</sub> about 7 µs</td></tr>
+  <tr><td>Over-power (PSD)</td><td>Two comparators, V<sub>DS</sub> &gt; about 0.9 V and V<sub>S</sub> − V<sub>IN</sub> &lt; about 4.3 V, plus a timer</td><td>V<sub>DS(PSD)</sub>, V<sub>VS-VIN(PSD)</sub>, t<sub>PSD(UV)</sub> 10–300 µs</td></tr>
+  <tr><td>Overtemperature</td><td>A diode or PTAT sensor in the centre of the power area (the hottest spot during a short) feeding a comparator; some designs add a sensor for the difference between the power and control areas to limit fast temperature rise</td><td>T<sub>J(TRIP)</sub> 150 °C min.; ΔT<sub>J</sub> ≤ 60 K</td></tr>
+  <tr><td>Latch</td><td>An SR flip-flop: any fault sets it; it resets only after IN has been released for a filter time, so noise on IN cannot clear a fault</td><td>t<sub>IN(RESETDELAY)</sub> 6 µs–5 ms</td></tr>
+  <tr><td>Input</td><td>A comparator referred to V<sub>S</sub>, with hysteresis; the datasheet's equivalent circuit is a 75 V zener (ESD), a current of about 2 mA and the built-in R<sub>IN</sub>. With no GND pin, the control circuit's current flows out of IN while on</td><td>V<sub>IN(H)</sub>, V<sub>IN(L)</sub>, 2.1 V hysteresis, I<sub>IN(ON)</sub> 1–4 mA</td></tr>
+  <tr><td>ReverSave</td><td>With the battery reversed V<sub>S</sub> is negative and IN is tied to ground through the external diode, so IN is about 16 V above V<sub>S</sub>; the internal circuit uses that voltage to drive the gate high so the channel conducts</td><td>R<sub>DS(REV)</sub> 4 mΩ typ. (V<sub>S</sub> − V<sub>IN</sub> = −16 V)</td></tr>
+</table></div>
+
+<h2 id="test">Test: how each block is measured</h2>
+<p>Testing these parts resembles the LDO testing in the <a href="test.html">Test chapter</a>, but with currents two orders of magnitude higher. Each datasheet parameter has a number (e.g. P_6.1.3); those marked "Not subject to production test, specified by design" are guaranteed by characterization and design margin rather than measured on every unit, and the rest are tested in production.</p>
+
+<h3 id="test-flow">Test flow</h3>
+<div class="tblwrap"><table>
+  <tr><th>Stage</th><th>Typical content</th><th>Limits and reasons</th></tr>
+  <tr><td>Wafer probe (CP)</td><td>Leakage, input thresholds, clamp voltage (10 mA), low-current on-state and function, trim (sense offset and ratio, overcurrent reference, temperature sensor, depending on the design)</td><td>Probe needles cannot carry tens of amps; a vertical device's drain is on the wafer back and is contacted through the prober chuck. Trim must happen before packaging (see <a href="production.html#cp-trim">CP trim</a>)</td></tr>
+  <tr><td>Final test (FT)</td><td>R<sub>DS(ON)</sub> (20 A), sense ratio (0.2 / 20 / 60 A), overcurrent trip, fault current, reverse battery, switching times, latch reset; automotive parts are often tested at several temperatures (cold, room, hot)</td><td>Needs Kelvin sockets and pulsed high-current sources; temperature is set by the handler</td></tr>
+  <tr><td>Characterization</td><td>Several lots (including process-corner lots) measured from −40 to 150 °C to set min / typ / max; the "specified by design" parameters are measured here</td><td>Sets production limits and the guard band</td></tr>
+  <tr><td>Qualification</td><td>AEC-Q100 (HTOL, temperature cycling, ESD, latch-up and so on), short-circuit endurance AEC-Q100-012, repetitive inductive switch-off with temperature cycling</td><td>Sampled and mostly destructive; see <a href="test.html#qual">Test · qualification</a></td></tr>
+</table></div>
+
+<h3 id="test-table">Parameters, internal blocks and methods</h3>
+<div class="tblwrap"><table>
+  <tr><th>Parameter</th><th>Block it checks</th><th>Method (datasheet conditions)</th><th>Stage</th></tr>
+  <tr><td>I<sub>VS(OFF)</sub>, I<sub>L(OFF)</sub></td><td>Power-stage leakage, input circuit</td><td>V<sub>S</sub> = 18 V, OUT = 0 V, IN = V<sub>S</sub>; measure supply current (4 µA max. at 85 °C)</td><td>CP, FT</td></tr>
+  <tr><td>V<sub>IN(H)</sub>, V<sub>IN(L)</sub>, I<sub>IN(ON)</sub></td><td>Input comparator</td><td>Sweep V<sub>S</sub> − V<sub>IN</sub> and watch where OUT flips, once in each direction for the hysteresis; measure IN current</td><td>CP, FT</td></tr>
+  <tr><td>R<sub>DS(ON)</sub></td><td>DMOS, charge pump</td><td>Setup (a): 20 A short pulse, Kelvin V<sub>DS</sub>; the low-voltage condition (V<sub>S</sub> = 3.1 V, 12 A) also checks that the charge pump drives hard enough at low battery</td><td>FT</td></tr>
+  <tr><td>dV/dt, t<sub>ON(DELAY)</sub>, t<sub>OFF(DELAY)</sub></td><td>Slope control, I<sub>ON</sub> / I<sub>OFF</sub></td><td>R<sub>L</sub> = 0.68 Ω, 13.5 V; time the 20 / 25 / 50 / 80% points of V<sub>OUT</sub></td><td>FT (E<sub>ON</sub> / E<sub>OFF</sub> in characterization)</td></tr>
+  <tr><td>V<sub>DS(CL)</sub></td><td>Active-clamp zener string</td><td>Setup (c): IN off, draw 10 mA from OUT, measure V<sub>S</sub> − V<sub>OUT</sub></td><td>CP, FT</td></tr>
+  <tr><td>V<sub>F</sub></td><td>Body diode</td><td>−20 A into OUT, measure V<sub>OUT</sub> − V<sub>S</sub></td><td>FT</td></tr>
+  <tr><td>R<sub>DS(REV)</sub></td><td>ReverSave</td><td>V<sub>S</sub> = 0, V<sub>S</sub> − V<sub>IN</sub> = −16 V, I<sub>L</sub> = −20 A; measure the drop</td><td>FT</td></tr>
+  <tr><td>dk<sub>ILIS</sub>, I<sub>IS1/2/3</sub></td><td>Sense FET, op-amp offset</td><td>Setup (b): measure I<sub>IS</sub> at 0.2, 20 and 60 A; two points give slope and offset; trim if out</td><td>CP (trim), FT</td></tr>
+  <tr><td>I<sub>IS(FAULT)</sub>, I<sub>IS(LIM)</sub></td><td>Fault current source, sense output stage</td><td>Trigger a fault, then measure IS current (V<sub>S</sub> − V<sub>IS</sub> ≥ 3.5 V)</td><td>FT</td></tr>
+  <tr><td>I<sub>CL(0)</sub></td><td>Overcurrent comparator and reference</td><td>Step a pulsed current upward and see at which step IS shows a fault; also time t<sub>OFF(TRIP)</sub></td><td>FT</td></tr>
+  <tr><td>V<sub>DS(PSD)</sub>, t<sub>PSD(UV)</sub></td><td>Over-power comparators and timer</td><td>Low V<sub>S</sub>, V<sub>DS</sub> pushed past the threshold; time the turn-off</td><td>FT</td></tr>
+  <tr><td>t<sub>IN(RESETDELAY)</sub></td><td>Latch and filter</td><td>After a fault, release IN for different lengths and check whether it resets</td><td>FT</td></tr>
+  <tr><td>T<sub>J(TRIP)</sub></td><td>Temperature sensor</td><td>Minimum: confirm no early shutdown during the hot test; typical / maximum: characterization</td><td>FT (hot), characterization</td></tr>
+  <tr><td>E<sub>AS</sub>, E<sub>AR</sub>, short-circuit endurance, ESD</td><td>Whole device</td><td>Setup (d) and AEC-Q100 methods, destructive</td><td>Characterization, qualification</td></tr>
+</table></div>
+
+<h3 id="test-setup">Four basic measurement setups</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 340" role="img" aria-label="Four measurement setups: Kelvin R_DS(ON), sense ratio, clamp voltage and inductive switch-off">
+  <g>
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M145 50V36H50V69M145 110V130H50V95M165 50V40H260V70M165 110V126H260V94M120 80H100V100M92 100h16M96 104h8"/>
+    <circle cx="50" cy="82" r="13" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M50 89V75M46 79L50 74L54 79"/>
+    <circle cx="260" cy="82" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(a) R_DS(ON): Kelvin four-wire</text>
+    <text x="155" y="78" text-anchor="middle">DUT</text><text x="155" y="94" text-anchor="middle" class="t-mut">VS top / OUT bottom</text>
+    <text x="260" y="86" text-anchor="middle">V</text><text x="132" y="34" class="t-mut">F</text><text x="170" y="34" class="t-mut">S</text>
+    <text x="14" y="154">I = 20 A short pulse</text><text x="300" y="154" text-anchor="end">R = V / I</text></g>
+  </g>
+  <g transform="translate(320 0)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M155 110V137H196M190 80H232V88M232 112V118M224 118h16M228 122h8M120 80H100V100M92 100h16M96 104h8"/>
+    <circle cx="232" cy="100" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <rect x="196" y="124" width="104" height="26" rx="4" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(b) Sense ratio dk_ILIS</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="40">V_S 13.5 V</text>
+    <text x="232" y="104" text-anchor="middle">A</text><text x="200" y="76" class="t-mut">IS</text>
+    <text x="248" y="141" text-anchor="middle">I_L 0.2 / 20 / 60 A</text>
+    <text x="14" y="154">dk = ΔI_L / ΔI_IS</text></g>
+  </g>
+  <g transform="translate(0 170)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M120 80H100V42H155M155 42H260V70M260 94V118H155M155 110V124M155 148V156"/>
+    <circle cx="155" cy="136" r="12" style="fill:var(--surface);stroke:var(--muted)"/><path class="wm" d="M155 129V143M151 139L155 144L159 139"/>
+    <circle cx="260" cy="82" r="12" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(c) Clamp voltage V_DS(CL)</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="30">V_S</text>
+    <text x="14" y="62" class="t-mut">IN = V_S (off)</text>
+    <text x="260" y="86" text-anchor="middle">V</text>
+    <text x="172" y="140">10 mA → negative rail</text>
+    <text x="14" y="154">V_DS(CL) = V_S − V_OUT</text></g>
+  </g>
+  <g transform="translate(320 170)">
+    <rect x="4" y="4" width="312" height="162" rx="8" style="fill:none;stroke:var(--line)"/>
+    <rect class="c5" x="120" y="50" width="70" height="60" rx="6"/>
+    <path class="wm" d="M155 50V34M84 80H120M155 110V118M155 118a5 5 0 0 1 0 8a5 5 0 0 1 0 8a5 5 0 0 1 0 8M155 142V148M147 148h16M151 152h8"/>
+    <rect x="20" y="68" width="64" height="24" rx="4" style="fill:var(--surface);stroke:var(--muted)"/>
+    <g class="ts"><text x="14" y="22" style="font-weight:600">(d) Inductive switch-off</text>
+    <text x="155" y="84" text-anchor="middle">DUT</text><text x="163" y="40">V_S 13.5 V</text>
+    <text x="52" y="84" text-anchor="middle">IN pulse</text>
+    <text x="144" y="136" text-anchor="end">L</text>
+    <text x="200" y="96">Scope:</text><text x="200" y="114">V_OUT and I_L</text><text x="200" y="132">E = ∫ V_DS · I_L dt</text></g>
+  </g>
+</svg>
+<figcaption>Four basic setups (simplified, without protection and decoupling). F = force (drives current), S = sense (measures voltage). In (a) and (b), IN to ground means on. In (d), at switch-off V<sub>OUT</sub> sits on a plateau at V<sub>S</sub> − V<sub>DS(CL)</sub> until the inductor current reaches zero.</figcaption>
+</figure>
+<ul>
+  <li><b>(a) R<sub>DS(ON)</sub></b>: current and voltage measurement take separate paths (Kelvin, see the <a href="test.html#kelvin">Test chapter</a>). 20 A × 2.7 mΩ is only 54 mV, and socket contact resistance is also in the mΩ range; without separate sense lines you are measuring the socket.</li>
+  <li><b>(b) Sense ratio</b>: IS goes to an ammeter (or a known resistor) and I<sub>IS</sub> is measured at three load currents. The datasheet defines dk<sub>ILIS</sub> by two points, 0.2 A and 60 A, and the offset is extrapolated back from the 0.2 A point.</li>
+  <li><b>(c) Clamp voltage</b>: with the switch off, draw a small current (10 mA) from OUT into a negative rail so the device goes into clamp; the measured drop is V<sub>DS(CL)</sub>. The current is small, so the device is not stressed.</li>
+  <li><b>(d) Inductive switch-off</b>: a real inductor, with the scope measuring V<sub>OUT</sub> and the inductor current together; the energy is the integral of V<sub>DS</sub> × I<sub>L</sub>. Raising L or I step by step until failure gives an energy curve like the datasheet's Figure 1.</li>
+</ul>
+
+<h3 id="test-ate">Hard parts on the ATE</h3>
+<ul>
+  <li><b>Contact resistance</b>: socket and lead contact resistance is in the same range as the device and grows with insertions. Production checks that each Kelvin force and sense pair is connected and cleans sockets on a schedule; worsening contacts show up first as false R<sub>DS(ON)</sub> failures.</li>
+  <li><b>Self-heating</b>: at 60 A, V<sub>DS</sub> is about 0.16 V, about 10 W. R<sub>DS(ON)</sub> changes about 0.5% per K (2.7 → 4.4 mΩ over 125 K), so pulses must be short and sampled at a fixed delay, or you measure a self-heated value. The same goes for the sense ratio.</li>
+  <li><b>Inductance of the high-current path</b>: the tester's source must ramp the current within µs, and wiring inductance makes V<sub>OUT</sub> ring; wait for it to settle before measuring.</li>
+  <li><b>Finding the trip point</b>: I<sub>CL(0)</sub> is found by stepping the current up, and every trip is a short-circuit event for the device. Test programs keep the count low (coarse steps first, then fine) and judge pass / fail against the spec window rather than finding the exact value on every part.</li>
+  <li><b>Dynamic range</b>: one insertion measures 1 µA of leakage and a 100 A trip; range switching and settling dominate test time. High-current resources are limited, which also limits how many parts are tested at once (multisite).</li>
+  <li><b>Overtemperature</b>: production cannot heat every part to 175 °C and wait for it to shut down. The minimum is usually covered by checking that the part does not shut down early during the hot test; typical and maximum come from characterization, raising temperature slowly on a thermal chuck or self-heating the part while using the body-diode forward voltage as a thermometer (TSEP).</li>
+  <li><b>Guard band</b>: measurements carry uncertainty, so production limits are slightly tighter than the datasheet (guard band); how much tighter is set by <a href="test.html#correlation">correlation and GR&amp;R</a>.</li>
+</ul>
+
+<h3 id="test-char">Destructive tests in characterization and qualification</h3>
+<ul>
+  <li><b>Inductive energy</b>: with setup (d), raise the energy until failure to get energy against current, then derate to set E<sub>AS</sub>. The repetitive version (E<sub>AR</sub>) uses T<sub>J(0)</sub> ≤ 105 °C, up to 10<sup>6</sup> pulses, combined with temperature cycling; the datasheet notes parameters may drift within their limits afterwards.</li>
+  <li><b>Short-circuit endurance (AEC-Q100-012)</b>: the standard defines the inductance and resistance of the supply and short-circuit lines, separates switching into a short from shorting while on and cold from hot, and repeats shorts until failure, grading by cycles survived. This is the basis for the software retry limit.</li>
+  <li><b>Reverse battery</b>: V<sub>S</sub> = −16 V (absolute max. −18 V for 5 minutes) with a load, checking that ReverSave works and the temperature stays in range.</li>
+  <li><b>Thermal impedance</b>: calibrate the body-diode V<sub>F</sub> at several temperatures (TSEP), apply a heating power pulse, then convert V<sub>F</sub> during cooling to temperature (the JESD51 electrical method) to get the datasheet Z<sub>th</sub> curve.</li>
+  <li><b>EMC and automotive voltages</b>: on the application board, measure conducted emissions (CISPR 25) and run the LV 124 cold-cranking, load-dump and other voltage profiles.</li>
 </ul>
 
 <h2 id="issues">Common problems and complaint scenarios</h2>
@@ -308,6 +506,13 @@
   <div><dt>Inrush current</dt><dd>The current, far above steady state, when a load is first switched on.</dd></div>
   <div><dt>Glow plug</dt><dd>A heater that warms a diesel engine's combustion chamber for cold starts.</dd></div>
   <div><dt>Zonal architecture</dt><dd>Organizing a car's power distribution and control by physical zone.</dd></div>
+  <div><dt>Sense FET</dt><dd>A small MOSFET sharing drain and gate with the main power MOSFET, carrying a current scaled by the area ratio, used to measure load current.</dd></div>
+  <div><dt>Active clamp</dt><dd>A zener string fed back from drain to gate so that on overvoltage the MOSFET conducts in its linear region and limits V<sub>DS</sub>.</dd></div>
+  <div><dt>Op-amp / op-amp</dt><dd>A high-gain differential amplifier; in a sense circuit it forces two nodes to the same potential, and its offset becomes measurement error.</dd></div>
+  <div><dt>Chopper amplifier</dt><dd>An amplifier that periodically swaps its inputs to modulate the offset away, reaching microvolt-level offset.</dd></div>
+  <div><dt>TSEP</dt><dd>Temperature-sensitive electrical parameter, such as body-diode forward voltage; once calibrated it serves as an on-chip thermometer.</dd></div>
+  <div><dt>Chip-on-chip</dt><dd>Stacking a control die on the power die in one package; placing them side by side is chip-by-chip.</dd></div>
+  <div><dt>Multisite</dt><dd>An ATE testing several devices at once to cut average test time.</dd></div>
 </dl>
 </article>
 </main>

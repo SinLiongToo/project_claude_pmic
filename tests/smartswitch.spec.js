@@ -1,8 +1,8 @@
-// Smart-switch page: the three calculators stay finite at every setting and agree with hand calculations from the datasheet.
+// Smart-switch page: the four calculators stay finite at every setting and agree with hand calculations from the datasheet.
 const {test, expect} = require('./fixtures');
 const {LANGS, watchErrors, setRange} = require('./helpers');
 
-const CALCS = ['hs-sense', 'hs-ind', 'hs-pwm'];
+const CALCS = ['hs-sense', 'hs-ind', 'hs-pwm', 'hs-os'];
 const scan = page => page.evaluate(ids => ids.map(id => {
   const txt = document.getElementById(id + '-m').textContent + document.getElementById(id + '-n').textContent;
   const svg = document.getElementById(id + '-p').innerHTML;
@@ -16,9 +16,10 @@ for(const lang of LANGS){
     await expect(page.locator('#hs-sense-m .metric')).toHaveCount(5);
     await expect(page.locator('#hs-ind-m .metric')).toHaveCount(4);
     await expect(page.locator('#hs-pwm-m .metric')).toHaveCount(4);
+    await expect(page.locator('#hs-os-m .metric')).toHaveCount(4);
     expect(await scan(page)).toBe('');
     const ranges = await page.locator('.bench input[type=range]').evaluateAll(rs => rs.map(r => ({id:r.id, min:+r.min, max:+r.max, v:r.value})));
-    expect(ranges.length).toBe(8);
+    expect(ranges.length).toBe(9);
     for(const r of ranges){
       for(const v of [r.min, (r.min + r.max) / 2, r.max]){
         await setRange(page, r.id, v);
@@ -62,4 +63,10 @@ test('smartswitch calculators agree with hand calculations', async ({page}) => {
   await setRange(page, 'hs-pd', 50);
   await setRange(page, 'hs-pf', 300);
   await expect(page.locator('#hs-pwm-m .metric').nth(3)).toHaveClass(/bad/);
+  // op-amp offset 350 µV over 2.7 mΩ ≈ 0.13 A, the datasheet I_L0 limit at 25 °C; 500 µV is over it
+  await setRange(page, 'hs-vos', 350);
+  s = await page.evaluate(() => window.PMICHss.os);
+  expect(s.il0).toBeCloseTo(0.1296, 3);
+  await setRange(page, 'hs-vos', 500);
+  await expect(page.locator('#hs-os-m .metric').first()).toHaveClass(/bad/);
 });

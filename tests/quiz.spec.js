@@ -4,7 +4,7 @@ const {LANGS, watchErrors} = require('./helpers');
 
 for(const lang of LANGS){
   test(`${lang || 'zh/'}quiz can be completed end to end`, async ({page}) => {
-    test.setTimeout(420_000);   // 63 questions; desktop WebKit on Windows needs 1–3 s per question
+    test.setTimeout(420_000);   // 65 questions; desktop WebKit on Windows needs 1–3 s per question
     const errors = watchErrors(page);
     await page.goto(lang + 'quiz.html');
     await expect(page.locator('#qz-chips button')).toHaveCount(9);

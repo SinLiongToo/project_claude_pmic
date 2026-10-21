@@ -18,7 +18,7 @@
 <h1>術語表：全站縮寫與名詞</h1>
 <p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 262 個。</p>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 271 個。</p>
 <h2 id="cat-basic">元件與基礎</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
@@ -186,6 +186,7 @@
   <div><dt id="g-c-sam">C-SAM <small>超音波掃描顯微鏡</small></dt><dd>用超音波看封裝內部的分層與空洞，不必開封。 <span class="gl-other">Scanning acoustic microscopy</span> <span class="gl-also">也寫作：SAM</span> <a class="gl-more" href="complaints.html#fa">詳細說明 →</a></dd></div>
   <div><dt id="g-cispr">CISPR <small>國際無線電干擾特別委員會</small></dt><dd>制定 EMI 標準的組織；CISPR 25 是車用、CISPR 32 是多媒體設備。 <span class="gl-other">International Special Committee on Radio Interference</span>  <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
   <div><dt id="g-dps-pmu">DPS / PMU</dt><dd>Device Power Supply / Precision Measurement Unit，測試機的電源與精密量測單元。 <span class="gl-also">也寫作：DPS、PMU</span> <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-dut">DUT <small>待測元件</small></dt><dd>Device under test，測試時接在測試機或量測電路上的那一顆元件。 <span class="gl-other">Device under test</span>  <a class="gl-more" href="smartswitch.html#test-setup">詳細說明 →</a></dd></div>
   <div><dt id="g-elfr">ELFR <small>早期失效率</small></dt><dd>大樣本短時間高溫偏壓，抓製程缺陷造成的早夭。 <span class="gl-other">Early-life failure rate</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
   <div><dt id="g-emi">EMI <small>電磁干擾 / 電磁相容</small></dt><dd>EMI 是電路發出的干擾；EMC 是不干擾別人、也不被干擾的能力。切換式電源是主要 EMI 來源。 <span class="gl-other">Electromagnetic interference / compatibility</span> <span class="gl-also">也寫作：EMC</span> <a class="gl-more" href="application.html#emi">詳細說明 →</a></dd></div>
   <div><dt id="g-esd">ESD <small>靜電放電</small></dt><dd>帶電物體接觸晶片時瞬間的大電流；以 HBM、CDM（元件級）與 IEC 61000-4-2（系統級）測試。 <span class="gl-other">Electrostatic discharge</span>  <a class="gl-more" href="test.html#esd-lu">詳細說明 →</a></dd></div>
@@ -293,6 +294,9 @@
 </dl>
 <h2 id="cat-hss">車用智慧開關</h2>
 <dl class="terms gl-list">
+  <div><dt id="g-active-clamp">Active clamp <small>主動箝位（Active clamp）</small></dt><dd>用齊納串從汲極回授到閘極，讓 MOSFET 在過壓時於線性區導通、把 V<sub>DS</sub> 限制住的電路。 <span class="gl-also">也寫作：主動箝位</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-chip-on-chip">Chip-on-chip</dt><dd>把控制晶片疊在功率晶片上封裝在一起的作法；並排放置則稱 chip-by-chip。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-chopper-amplifier">Chopper amplifier <small>截波放大器（Chopper amplifier）</small></dt><dd>週期性交換輸入、把偏移調變掉的放大器，可把偏移壓到微伏等級。 <span class="gl-also">也寫作：截波放大器</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-efuse">eFuse <small>電子保險絲</small></dt><dd>用半導體開關加電流感測取代熔絲，過流時快速切斷、可重設；在車用區域控制架構中取代傳統保險絲盒。 <span class="gl-other">Electronic fuse</span> <span class="gl-also">也寫作：eFuses</span> <a class="gl-more" href="smartswitch.html#why-hss">詳細說明 →</a></dd></div>
   <div><dt id="g-freewheeling-diode">Freewheeling diode</dt><dd>續流二極體，給電感電流在開關關閉後一條循環路徑。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-glow-plug">Glow plug</dt><dd>預熱塞，柴油引擎冷車時加熱燃燒室的元件。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
@@ -301,13 +305,18 @@
   <div><dt id="g-latch">Latch</dt><dd>鎖存，保護動作後保持關閉，直到外部重置。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-loss-of-ground">Loss of ground</dt><dd>接地脫落，模組的地線斷開時的故障狀態。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-lv-124">LV 124 <small>德國車廠的電氣測試規範</small></dt><dd>德國車廠共同制定的 12 V 車用電子元件電氣測試規範，例如 E11 冷車啟動電壓曲線。 <span class="gl-other">German OEM electrical test specification</span> <span class="gl-also">也寫作：LV124</span> <a class="gl-more" href="smartswitch.html#automotive">詳細說明 →</a></dd></div>
+  <div><dt id="g-multisite">Multisite</dt><dd>ATE 同時測試多顆元件，以縮短平均測試時間。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-ntc">NTC <small>負溫度係數熱敏電阻</small></dt><dd>電阻隨溫度上升而下降的元件，常用來量測溫度。 <span class="gl-other">Negative-temperature-coefficient thermistor</span>  <a class="gl-more" href="smartswitch.html#what">詳細說明 →</a></dd></div>
+  <div><dt id="g-op-amp-op-amp">Op-amp / op-amp <small>運算放大器（Op-amp / op-amp）</small></dt><dd>高增益差動放大器；在感測電路中強迫兩點等電位，它的偏移電壓直接變成量測誤差。 <span class="gl-also">也寫作：Op-amp、op-amp、運算放大器</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-profet">PROFET <small>Infineon 的智慧高邊開關產品線</small></dt><dd>PROtected FET：把功率 MOSFET 與驅動、保護、電流感測整合在一起的車用開關，例如 BTS50025-1TEA。 <span class="gl-other">Infineon&#x27;s smart high-side switch family</span>  <a class="gl-more" href="smartswitch.html#what">詳細說明 →</a></dd></div>
   <div><dt id="g-psd">PSD <small>過功率關斷</small></dt><dd>電池電壓被拉低、V_DS 又偏大（例如經過長電池線的軟短路）時，電流到不了過流門檻也會關斷並鎖住的保護。 <span class="gl-other">Over-power shutdown</span>  <a class="gl-more" href="smartswitch.html#protection">詳細說明 →</a></dd></div>
   <div><dt id="g-reversave">ReverSave <small>反接時自我導通的保護</small></dt><dd>Infineon 的反接保護功能：電池接反時讓功率 MOSFET 導通，電流走通道而不是體二極體，發熱大幅降低。 <span class="gl-other">Reverse-battery self turn-on</span>  <a class="gl-more" href="smartswitch.html#reverse">詳細說明 →</a></dd></div>
+  <div><dt id="g-sense-fet">Sense FET <small>感測 FET（Sense FET）</small></dt><dd>和主功率 MOSFET 共用汲極與閘極的小 MOSFET，電流按面積比縮小，用來量負載電流。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-smart-clamping">SMART CLAMPING <small>智慧箝位</small></dt><dd>Infineon 的感性負載箝位：關斷時把 V_DS 箝在約 35 V，由元件吸收電感能量；箝位電壓隨溫度與電流上升以提高能量耐受。 <span class="gl-other">Smart clamping</span>  <a class="gl-more" href="smartswitch.html#inductive">詳細說明 →</a></dd></div>
   <div><dt id="g-smart-high-side-switch">Smart high-side switch <small>智慧高邊開關（Smart high-side switch）</small></dt><dd>放在電池與負載之間、整合驅動、保護與診斷的功率開關。 <span class="gl-also">也寫作：智慧高邊開關</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-sr-flip-flop">SR flip-flop <small>SR 正反器</small></dt><dd>有 Set 與 Reset 兩個輸入的記憶元件；保護電路用它把故障鎖住，直到外部重置。 <span class="gl-other">SR flip-flop</span>  <a class="gl-more" href="smartswitch.html#int-protect">詳細說明 →</a></dd></div>
   <div><dt id="g-to-252">TO-252 <small>表面黏著功率封裝</small></dt><dd>TO-252（DPAK）與 TO-263（D²PAK）是有大散熱片的表面黏著功率封裝，散熱片焊在 PCB 銅箔上。 <span class="gl-other">Surface-mount power packages</span> <span class="gl-also">也寫作：TO-263、DPAK、D²PAK</span> <a class="gl-more" href="smartswitch.html#block">詳細說明 →</a></dd></div>
+  <div><dt id="g-tsep">TSEP</dt><dd>溫度敏感電參數，例如體二極體順向電壓，校正後可當作晶片內部的溫度計。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-zonal-architecture">Zonal architecture</dt><dd>區域控制架構，把車上的配電與控制按位置分區。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-c">µC <small>微控制器</small></dt><dd>MCU 的另一種寫法；在車用 ECU 中負責控制智慧開關並讀取診斷訊號。 <span class="gl-other">Microcontroller</span>  <a class="gl-more" href="smartswitch.html#block">詳細說明 →</a></dd></div>
 </dl>

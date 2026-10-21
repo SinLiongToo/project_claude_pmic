@@ -193,4 +193,42 @@
     }
     draw();
   }
+
+  /* ---------- 4. sense amplifier offset → load-current offset ---------- */
+  // the op-amp forces the sense FET's source to OUT + V_os, so I_IS = (I_L·R_DS(ON) − V_os) / (k·R_DS(ON)):
+  // an offset voltage V_os looks like a load-current error of I_L0 = V_os / R_DS(ON)
+  {
+    const vS = range('hs-vos', v => v + ' µV', draw);
+    const tj = toggle('hs-ostj', draw);
+    const IL0_DS = {'25':0.13, '150':0.105};          // datasheet I_L0 limits, P_6.1.60 / 6.1.61
+    function draw(){
+      const vos = vS() * 1e-6, T = tj(), R = T === '150' ? DS.r150 : DS.r25;
+      const il0 = vos / R;
+      const err = I => il0 / I * 100;
+      HSS.os = {vos, R, il0};
+      const lim = IL0_DS[T];
+      metrics($('hs-os-m'), [
+        {l:t('等效負載電流偏移 I<sub>L0</sub>', 'Equivalent load-current offset I<sub>L0</sub>'), v:fmtSI(il0, 'A'), s:'V<sub>os</sub> / R<sub>DS(ON)</sub> (' + fmtSI(R, 'Ω', 2) + ')', cls:il0 > lim ? 'bad' : 'ok'},
+        {l:t('感測電流偏移', 'Sense-current offset'), v:fmtSI(il0 / DS.kTyp, 'A'), s:'I<sub>L0</sub> / ' + DS.kTyp},
+        {l:t('1 A 時的誤差', 'Error at 1 A'), v:'±' + err(1).toFixed(1), u:'%', cls:err(1) > 10 ? 'bad' : err(1) > 3 ? 'warn' : 'ok'},
+        {l:t('20 A 時的誤差', 'Error at 20 A'), v:'±' + err(20).toFixed(2), u:'%'}
+      ]);
+      $('hs-os-n').innerHTML = il0 > lim
+        ? t('超過資料手冊的 I<sub>L0</sub> 上限 ±' + lim + ' A：這個偏移量要靠修調或截波（chopper）放大器壓下來。', 'Above the datasheet I<sub>L0</sub> limit of ±' + lim + ' A: an offset this large has to be trimmed or removed with a chopper amplifier.')
+        : t('在資料手冊的 I<sub>L0</sub> 上限 ±' + lim + ' A 以內。注意：主元件只有幾 mΩ，所以不到 1 mV 的偏移就等於上百 mA 的負載電流。', 'Within the datasheet I<sub>L0</sub> limit of ±' + lim + ' A. With a main device of only a few mΩ, less than 1 mV of offset already equals hundreds of mA of load current.');
+      const xs = Array.from({length:61}, (_, i) => Math.pow(10, -1 + i * 2.8 / 60));
+      plot($('hs-os-p'), {
+        x:[0.1, 60], y:[0.01, 1000], logx:true, logy:true, m:{l:56},
+        xlabel:t('負載電流 I_L (A)', 'Load current I_L (A)'), ylabel:t('誤差 (%)', 'Error (%)'),
+        xticks:[0.1, 1, 10, 60], xfmt:v => String(v), yfmt:v => String(v),
+        series:[
+          {pts:xs.map(x => [x, lim / x * 100]), color:'var(--bad)', dash:'5 4', w:1.4},
+          {pts:xs.map(x => [x, err(x)]), color:'var(--s1)'}
+        ],
+        hlines:[{y:14, label:t('比值公差約 ±14%', 'ratio tolerance about ±14%'), color:'var(--warn)'}],
+        extra:(X, Y) => dot(X, Y, 1, Math.max(err(1), 0.011), 'var(--ink)')
+      });
+    }
+    draw();
+  }
 })();

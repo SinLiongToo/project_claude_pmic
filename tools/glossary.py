@@ -202,4 +202,6 @@ GLOSS = [
     ("GPIO", [], "hss", "通用輸入輸出腳", "微控制器可由軟體設定為輸入或輸出的數位腳位。", "General-purpose input/output", "A microcontroller digital pin that software can set as input or output.", "smartswitch.html#block"),
     ("NTC", [], "hss", "負溫度係數熱敏電阻", "電阻隨溫度上升而下降的元件，常用來量測溫度。", "Negative-temperature-coefficient thermistor", "A resistor whose resistance falls as temperature rises; commonly used to measure temperature.", "smartswitch.html#what"),
     ("TO-252", ["TO-263", "DPAK", "D²PAK"], "hss", "表面黏著功率封裝", "TO-252（DPAK）與 TO-263（D²PAK）是有大散熱片的表面黏著功率封裝，散熱片焊在 PCB 銅箔上。", "Surface-mount power packages", "TO-252 (DPAK) and TO-263 (D²PAK) are surface-mount power packages with a large tab soldered to PCB copper.", "smartswitch.html#block"),
+    ("DUT", [], "test", "待測元件", "Device under test，測試時接在測試機或量測電路上的那一顆元件。", "Device under test", "The device connected to the tester or measurement circuit during a test.", "smartswitch.html#test-setup"),
+    ("SR flip-flop", ["SR 正反器"], "hss", "SR 正反器", "有 Set 與 Reset 兩個輸入的記憶元件；保護電路用它把故障鎖住，直到外部重置。", "SR flip-flop", "A memory cell with Set and Reset inputs; protection circuits use it to latch a fault until reset from outside.", "smartswitch.html#int-protect"),
 ]

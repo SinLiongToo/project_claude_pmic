@@ -17,9 +17,9 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `complaints.html` | 客訴處理：流程、資訊收集、FA 流程、失效分類、8D、根因工具、10 個典型案例、溝通、指標 |
 | `lab.html` | 互動實驗室：LDO 穩定度、PSRR、負載暫態、壓差與熱、Buck 漣波、MLCC DC bias、修調與良率；每個實驗都有自動掃描（參數來回跑、殘影比較）與電路圖（`assets/lab-circuit.js`，參數對應元件會亮起、點元件跳到滑桿；負載暫態與 Buck 可播放電流，電路上顯示即時電流流向，波形上有時間游標） |
 | `sic.html` | 專題：SiC 與資料中心電源（Si / SiC / GaN 分工、PSU、800 V HVDC、Infineon 例、SiC 設計與可靠度）|
-| `smartswitch.html` | 專題：車用智慧高邊開關，以 Infineon PROFET BTS50025-1TEA 為例（方塊圖、電流感測、鎖存保護、ReverSave、SMART CLAMPING、電容負載、PWM、熱、測試、客訴情境），附三個計算器（`assets/hss.js`）|
+| `smartswitch.html` | 專題：車用智慧高邊開關，以 Infineon PROFET BTS50025-1TEA 為例（方塊圖、電流感測、鎖存保護、ReverSave、SMART CLAMPING、電容負載、PWM、熱、內部電路、各區塊測法與量測接法、客訴情境），附四個計算器（`assets/hss.js`）|
 | `roles.html` | 職務地圖：類比設計、佈局、數位、AE/FAE、PE、TE、製程、QRA、FA |
-| `quiz.html` | 測驗：63 題，九個主題 |
+| `quiz.html` | 測驗：65 題，九個主題 |
 | `glossary.html` | 術語表：全站約 260 個術語，依主題分類；各章內文的術語有虛線底線，滑鼠移上去（手機點一下）顯示解釋 |
 
 `assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換、術語提示）、`plot.js`（SVG 繪圖）、`lab.js`、`lab-circuit.js`（實驗電路圖與電流播放）、`figs.js`（佈局好／壞對照圖）、`hss.js`（智慧開關計算器）、`quiz.js`、`glossary-data.js`、`search-index.js` / `search-index-en.js`（自動產生）。
@@ -81,7 +81,7 @@ npm run test:report      # 用瀏覽器看上一次的報告（含失敗截圖�
 | `quiz.spec.js` | 中英文測驗從頭作答到結束，複習連結存在 |
 | `glossary.spec.js` | 術語底線、懸停／鍵盤提示、歧義詞沒有對錯、術語表篩選與錨點 |
 | `figures.spec.js` | 應用章的佈局好／壞對照圖：四組都畫出來、文字不超出板子 |
-| `smartswitch.spec.js` | 智慧開關頁的三個計算器：每個滑桿最小／中間／最大沒有 NaN；與資料手冊手算比對（感測電壓、感性能量、接面溫度、PWM 上限）|
+| `smartswitch.spec.js` | 智慧開關頁的四個計算器：每個滑桿最小／中間／最大沒有 NaN；與資料手冊手算比對（感測電壓、感性能量、接面溫度、PWM 上限、運放偏移）|
 | `mobile.spec.js` | 手機設定：沒有橫向捲動、觸控操作、術語提示在螢幕內，點其他地方會關閉 |
 
 ## 本機預覽
