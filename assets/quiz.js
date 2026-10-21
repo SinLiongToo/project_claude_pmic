@@ -2,8 +2,8 @@
 (function(){
   const t = (window.MemSite && window.MemSite.t) || (zh => zh);
   const EN = !!(window.MemSite && window.MemSite.EN);
-  const CH = EN ? {arc:'Architecture', fab:'Process', des:'Design', mfg:'Production', tst:'Test', use:'Applications', rel:'Issues / complaints', sic:'SiC / data center'}
-              : {arc:'架構', fab:'製程', des:'設計', mfg:'生產', tst:'測試', use:'應用', rel:'問題 / 客訴', sic:'SiC / 資料中心'};
+  const CH = EN ? {arc:'Architecture', fab:'Process', des:'Design', mfg:'Production', tst:'Test', use:'Applications', rel:'Issues / complaints', sic:'SiC / data center', hss:'Smart switches'}
+              : {arc:'架構', fab:'製程', des:'設計', mfg:'生產', tst:'測試', use:'應用', rel:'問題 / 客訴', sic:'SiC / 資料中心', hss:'車用智慧開關'};
   const Q = [
     // ---------- 架構 ----------
     {c:'arc', q:'LDO 從 3.6 V 降到 1.8 V、I_Q 可忽略時，最高效率約為？', o:['50%', '90%', '36%', '72%'], e:'LDO 效率 ≈ V_OUT / V_IN = 1.8 / 3.6 = 50%，多出來的壓差全部變成熱。', l:'architecture.html#linear-vs-switching'},
@@ -69,7 +69,14 @@
     {c:'sic', q:'Infineon 2025 年發表的 12 kW AI 伺服器 PSU 參考設計，前級 PFC 與後級 DC/DC 分別用什麼？', o:['CoolSiC 三階飛跨電容 PFC ＋ CoolGaN 全橋 LLC', '全部用 Si 超接面 MOSFET', 'GaN PFC ＋ IGBT LLC', '二極體整流 ＋ 線性穩壓器'], e:'報導指出 PFC 峰值效率 > 99.0%、LLC > 98.5%，整體功率密度最高約 113 W/in³。', l:'sic.html#infineon'},
     {c:'sic', q:'AI 機櫃往 800 V 直流配電發展的主要原因是？', o:['同功率下電流降到約 1/15，減少銅排重量、壓降與空間', '800 V 比較安全', 'GPU 直接用 800 V 工作', '可以完全不需要轉換器'], e:'機櫃上百 kW 時 54 V 匯流排電流達數千安培；提高電壓可大幅減少電流。', l:'sic.html#hvdc'},
     {c:'sic', q:'SiC MOSFET 的閘極驅動和 Si 最常見的差異是？', o:['需要較高的開啟電壓（常見 +15–20 V），關斷常用 0 V 或負壓', '只需要 5 V 開啟', '不需要關斷電壓', '可以直接沿用 Si 的 12 V 驅動'], e:'SiC 跨導較低，開啟電壓不夠時 R_DS(on) 達不到規格；負壓關斷可防米勒誤導通。依資料手冊設定。', l:'sic.html#design'},
-    {c:'sic', q:'高壓 SiC 元件在現場隨機燒毀、又找不到過壓事件，應該考慮哪一種機制？', o:['宇宙射線中子引發的單粒子燒毀（SEB），與電壓降額有關', '電容 DC bias', 'MSL 吸濕', '熔絲再生長'], e:'SEB 的 FIT 率隨施加電壓佔額定的比例急速上升，HVDC 設計要做電壓降額。', l:'sic.html#test-rel'}
+    {c:'sic', q:'高壓 SiC 元件在現場隨機燒毀、又找不到過壓事件，應該考慮哪一種機制？', o:['宇宙射線中子引發的單粒子燒毀（SEB），與電壓降額有關', '電容 DC bias', 'MSL 吸濕', '熔絲再生長'], e:'SEB 的 FIT 率隨施加電壓佔額定的比例急速上升，HVDC 設計要做電壓降額。', l:'sic.html#test-rel'},
+    // ---------- 車用智慧開關 ----------
+    {c:'hss', q:'Infineon BTS50025-1TEA 最正確的描述是？', o:['整合 N 通道功率 MOSFET、電荷泵、保護與電流感測的智慧高邊開關', '一顆分離式 P 通道功率 MOSFET', '車用低壓差線性穩壓器', 'SiC 功率 MOSFET'], e:'它是 Power PROFET 系列的智慧高邊開關：2.5 mΩ 等級的 N-DMOS 加上驅動、保護、診斷，用來取代繼電器與保險絲。', l:'smartswitch.html#what'},
+    {c:'hss', q:'負載 20 A、感測比 dk_ILIS = 18 000、R_IS = 1 kΩ，IS 腳電壓約為？', o:['1.1 V', '0.36 V', '11 V', '18 V'], e:'I_IS = 20 / 18 000 ≈ 1.1 mA，乘上 1 kΩ 約 1.1 V。比值的公差約 ±14%。', l:'smartswitch.html#sense'},
+    {c:'hss', q:'BTS50025-1TEA 短路保護動作並鎖住後，要怎麼重新開啟？', o:['把 IN 釋放（關閉）超過 t_IN(RESETDELAY)（最長 5 ms）再開啟', '等溫度下降，它會自動重啟', '一定要斷開電池', '在 IS 腳加一個電壓'], e:'所有保護動作都會鎖存，重試的時機與次數交給軟體決定；重試頻率不能超過 200 Hz。', l:'smartswitch.html#protection'},
+    {c:'hss', q:'V_S = 13.5 V、V_DS(CL) = 35 V，關斷 1 mH、19 A 的電磁閥時元件約吸收多少能量（R_L ≈ 0）？', o:['約 294 mJ', '約 180 mJ', '約 35 mJ', '約 6.6 J'], e:'E = ½LI² × V_DS(CL) / (V_DS(CL) − V_S) = 180 mJ × 35 / 21.5 ≈ 294 mJ，超過重複上限 E_AR 130 mJ。', l:'smartswitch.html#inductive'},
+    {c:'hss', q:'ReverSave 反接保護的作用是？', o:['電池反接時讓 MOSFET 通道導通，電流不走體二極體，發熱大幅降低', '保護負載不受反向電壓', '反接時自動切斷電池', '把反向電壓轉成正電壓'], e:'20 A 時體二極體約 14 W，通道（約 4 mΩ）約 1.6 W。負載仍然會看到反向電壓；外部驅動電晶體旁要並聯二極體。', l:'smartswitch.html#reverse'},
+    {c:'hss', q:'智慧開關換了下游模組後一開機就報短路故障，最先懷疑的是？', o:['下游輸入電容變大，C × dV/dt 的充電電流超過 I_CL(0) 的最小值', '開關的 R_DS(ON) 太小', '感測電阻太小', 'PWM 頻率太低'], e:'過流跳脫最小 65 A；以最快斜率 1 V/µs 估算，最壞情況只能帶約 65 µF。保護門檻要用最小值設計。', l:'smartswitch.html#loads'}
   ];
   const QEN = [
     // ---------- Architecture ----------
@@ -136,7 +143,14 @@
     {q:'In Infineon\'s 2025 12 kW AI-server PSU reference design, what are the PFC and DC/DC stages built with?', o:['CoolSiC three-level flying-capacitor PFC + CoolGaN full-bridge LLC', 'All Si super-junction MOSFETs', 'GaN PFC + IGBT LLC', 'Diode rectifier + linear regulator'], e:'Coverage reports PFC peak efficiency > 99.0%, LLC > 98.5%, and power density up to about 113 W/in³.'},
     {q:'The main reason AI racks are moving to 800 V DC distribution is?', o:['Current drops to about 1/15 for the same power, cutting busbar copper, drop and space', '800 V is safer', 'GPUs run directly from 800 V', 'It removes the need for converters'], e:'At hundreds of kW per rack a 54 V busbar carries thousands of amps; raising the voltage cuts current dramatically.'},
     {q:'The most common difference between SiC and Si MOSFET gate drive is?', o:['SiC needs a higher turn-on voltage (commonly +15–20 V) and often 0 V or negative turn-off', 'SiC turns on with only 5 V', 'SiC needs no turn-off voltage', 'A Si 12 V driver can be reused as is'], e:'SiC transconductance is lower, so too little turn-on voltage misses rated R_DS(on); negative turn-off prevents Miller false turn-on. Follow the datasheet.'},
-    {q:'High-voltage SiC devices burn out randomly in the field with no overvoltage event found. Which mechanism should you consider?', o:['Cosmic-ray neutron single-event burnout (SEB), linked to voltage derating', 'Capacitor DC bias', 'MSL moisture absorption', 'Fuse regrowth'], e:'SEB FIT rises steeply with applied voltage as a fraction of rating, so HVDC designs need voltage derating.'}
+    {q:'High-voltage SiC devices burn out randomly in the field with no overvoltage event found. Which mechanism should you consider?', o:['Cosmic-ray neutron single-event burnout (SEB), linked to voltage derating', 'Capacitor DC bias', 'MSL moisture absorption', 'Fuse regrowth'], e:'SEB FIT rises steeply with applied voltage as a fraction of rating, so HVDC designs need voltage derating.'},
+    // ---------- automotive smart switches ----------
+    {q:'Which best describes the Infineon BTS50025-1TEA?', o:['A smart high-side switch integrating an N-channel power MOSFET, charge pump, protection and current sense', 'A discrete P-channel power MOSFET', 'An automotive low-dropout regulator', 'A SiC power MOSFET'], e:'It is a Power PROFET smart high-side switch: a 2.5 mΩ-class N-DMOS plus drive, protection and diagnostics, replacing relays and fuses.'},
+    {q:'Load 20 A, sense ratio dk_ILIS = 18 000, R_IS = 1 kΩ. The IS pin voltage is about?', o:['1.1 V', '0.36 V', '11 V', '18 V'], e:'I_IS = 20 / 18 000 ≈ 1.1 mA; times 1 kΩ is about 1.1 V. The ratio tolerance is about ±14%.'},
+    {q:'After the BTS50025-1TEA short-circuit protection trips and latches, how do you turn it on again?', o:['Release IN (switch it off) for longer than t_IN(RESETDELAY) (up to 5 ms), then switch on', 'Wait for it to cool; it restarts by itself', 'The battery must be disconnected', 'Apply a voltage to the IS pin'], e:'Every protective turn-off latches, leaving when and how often to retry to software; retries must not exceed 200 Hz.'},
+    {q:'With V_S = 13.5 V and V_DS(CL) = 35 V, how much energy does the switch absorb turning off a 1 mH solenoid at 19 A (R_L ≈ 0)?', o:['About 294 mJ', 'About 180 mJ', 'About 35 mJ', 'About 6.6 J'], e:'E = ½LI² × V_DS(CL) / (V_DS(CL) − V_S) = 180 mJ × 35 / 21.5 ≈ 294 mJ, above the 130 mJ repetitive limit E_AR.'},
+    {q:'What does ReverSave reverse-battery protection do?', o:['Turns the MOSFET channel on during reverse battery so current avoids the body diode, cutting dissipation sharply', 'Protects the load from reverse voltage', 'Disconnects the battery when reversed', 'Converts the reverse voltage to a positive one'], e:'At 20 A the body diode dissipates about 14 W, the channel (about 4 mΩ) about 1.6 W. The load still sees the reverse voltage; a diode is needed across the external drive transistor.'},
+    {q:'After a downstream module change, a smart switch reports a short at every turn-on. What do you suspect first?', o:['Larger downstream input capacitance: the C × dV/dt charging current exceeds the minimum I_CL(0)', 'The switch R_DS(ON) is too low', 'The sense resistor is too small', 'The PWM frequency is too low'], e:'The overcurrent trip is 65 A min.; at the fastest 1 V/µs slope the worst case allows only about 65 µF. Design protection thresholds with the minimum value.'}
   ];
   if(EN) Q.forEach((q, i) => Object.assign(q, QEN[i]));
 

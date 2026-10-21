@@ -7,7 +7,7 @@ for(const lang of LANGS){
     test(`${lang || 'zh/'}${f} loads cleanly and its chrome works`, async ({page}) => {
       const errors = watchErrors(page);
       await page.goto(lang + f);
-      await expect(page.locator('header.top .nav a')).toHaveCount(13);
+      await expect(page.locator('header.top .nav a')).toHaveCount(14);
       if(f !== 'index.html') await expect(page.locator('header.top .nav a[aria-current="page"]')).toHaveCount(1);
       // table of contents matches the numbered sections
       const h2 = await page.locator('article h2[id]').count();

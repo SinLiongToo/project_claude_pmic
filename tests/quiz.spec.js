@@ -4,10 +4,10 @@ const {LANGS, watchErrors} = require('./helpers');
 
 for(const lang of LANGS){
   test(`${lang || 'zh/'}quiz can be completed end to end`, async ({page}) => {
-    test.setTimeout(420_000);   // 57 questions; desktop WebKit on Windows needs 1–3 s per question
+    test.setTimeout(420_000);   // 63 questions; desktop WebKit on Windows needs 1–3 s per question
     const errors = watchErrors(page);
     await page.goto(lang + 'quiz.html');
-    await expect(page.locator('#qz-chips button')).toHaveCount(8);
+    await expect(page.locator('#qz-chips button')).toHaveCount(9);
     await page.locator('#qz-n').selectOption('all');
     const total = parseInt((await page.locator('#qz-count').textContent()).replace(/\D/g, ''), 10);
     expect(total).toBeGreaterThan(50);

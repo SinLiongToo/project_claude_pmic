@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PAGES = fs.readdirSync(ROOT).filter(f => f.endsWith('.html')).sort();
 const LANGS = ['', 'en/'];
 const LAB_TABS = ['bode', 'psrr', 'transient', 'thermal', 'buck', 'mlcc', 'trim'];
-const CHAPTERS = ['architecture', 'process', 'design', 'production', 'test', 'application', 'issues', 'complaints', 'sic', 'roles'];
+const CHAPTERS = ['architecture', 'process', 'design', 'production', 'test', 'application', 'issues', 'complaints', 'sic', 'smartswitch', 'roles'];
 const BAD = /NaN|Infinity|undefined/;
 
 /** Collect JS errors, console errors and failed requests (Google Fonts are ignored: they need the internet). */

@@ -16,6 +16,7 @@ CATS = [
     ("sys", "系統與應用", "Systems and applications"),
     ("std", "標準與組織", "Standards and bodies"),
     ("wbg", "寬能隙與資料中心", "Wide bandgap and data centers"),
+    ("hss", "車用智慧開關", "Automotive smart switches"),
 ]
 
 GLOSS = [
@@ -133,7 +134,7 @@ GLOSS = [
     ("HTSL", [], "test", "高溫儲存壽命", "不加電放在 150–175 °C 下 1000 小時，檢驗打線與金屬間化合物。", "High-temperature storage life", "Unpowered at 150–175 °C for 1000 hours, checking bond wires and intermetallics.", "test.html#qual"),
     ("ELFR", [], "test", "早期失效率", "大樣本短時間高溫偏壓，抓製程缺陷造成的早夭。", "Early-life failure rate", "Short high-temperature bias on a large sample to catch infant mortality from defects.", "test.html#qual"),
     ("TC", [], "test", "溫度循環", "在 −55/−65 °C 與 150 °C 之間反覆冷熱，檢驗打線、焊點與分層。", "Temperature cycling", "Repeated cycling between −55/−65 °C and 150 °C, checking bonds, joints and delamination.", "test.html#qual"),
-    ("PTC", [], "test", "功率溫度循環", "反覆通斷電讓晶片自熱、冷卻，檢驗功率元件的金屬與打線疲勞。", "Power temperature cycling", "Switching power on and off so the die self-heats and cools, checking metal and wire fatigue.", "test.html#qual"),
+    ("PTC", [], "test", "功率溫度循環 / 正溫度係數", "在可靠度測試中指功率溫度循環：反覆通斷電讓晶片自熱、冷卻，檢驗金屬與打線疲勞；在負載語境（PTC 加熱器）指電阻隨溫度上升的材料，冷態電阻低、啟動電流大。", "Power temperature cycling / positive temperature coefficient", "In reliability testing, power temperature cycling: switching power on and off so the die self-heats and cools, checking metal and wire fatigue; for loads (PTC heaters), a material whose resistance rises with temperature, so it draws a large cold inrush.", "test.html#qual"),
     ("PC", [], "test", "預處理", "可靠度測試前先吸濕並回焊三次，模擬客戶上件。", "Preconditioning", "Moisture soak plus three reflows before reliability tests, simulating customer assembly.", "test.html#qual"),
     ("RH", [], "test", "相對濕度", "空氣中水氣佔飽和量的百分比。", "Relative humidity", "Moisture in the air as a percentage of saturation.", "test.html#qual"),
     ("HTGB", [], "test", "高溫閘極偏壓", "高溫下對閘極長時間加偏壓，檢驗閘極氧化層與 V_T 漂移。", "High-temperature gate bias", "Long gate bias at high temperature, checking gate oxide and V_T drift.", "sic.html#test-rel"),
@@ -190,4 +191,15 @@ GLOSS = [
     ("GaN", [], "wbg", "氮化鎵", "寬能隙半導體，切換速度最快，適合高頻、軟切換的 DC/DC。", "Gallium nitride", "A wide-bandgap semiconductor with the fastest switching; suits high-frequency, soft-switched DC/DC.", "sic.html#sic-vs-gan"),
     ("CoolSiC", ["CoolGaN"], "wbg", "Infineon 的 SiC / GaN 產品線", "CoolSiC 是 Infineon 的 SiC MOSFET 與二極體，CoolGaN 是其 GaN 電晶體。", "Infineon SiC / GaN product lines", "CoolSiC is Infineon's SiC MOSFETs and diodes; CoolGaN its GaN transistors.", "sic.html#infineon"),
     (".XT", ["XT"], "wbg", ".XT 互連技術", "Infineon 的擴散焊晶片黏著技術，改善熱阻與功率循環壽命。", ".XT interconnect", "Infineon's diffusion-solder die-attach technology for lower thermal resistance and longer power-cycling life.", "sic.html#manufacturing"),
+    # ---------- automotive smart switches ----------
+    ("PROFET", [], "hss", "Infineon 的智慧高邊開關產品線", "PROtected FET：把功率 MOSFET 與驅動、保護、電流感測整合在一起的車用開關，例如 BTS50025-1TEA。", "Infineon's smart high-side switch family", "PROtected FET: automotive switches integrating a power MOSFET with drive, protection and current sense, e.g. the BTS50025-1TEA.", "smartswitch.html#what"),
+    ("ReverSave", [], "hss", "反接時自我導通的保護", "Infineon 的反接保護功能：電池接反時讓功率 MOSFET 導通，電流走通道而不是體二極體，發熱大幅降低。", "Reverse-battery self turn-on", "Infineon's reverse-battery feature: with the battery reversed the power MOSFET turns on, so current flows through the channel rather than the body diode and dissipation drops sharply.", "smartswitch.html#reverse"),
+    ("SMART CLAMPING", [], "hss", "智慧箝位", "Infineon 的感性負載箝位：關斷時把 V_DS 箝在約 35 V，由元件吸收電感能量；箝位電壓隨溫度與電流上升以提高能量耐受。", "Smart clamping", "Infineon's inductive-load clamp: at switch-off V_DS is held at about 35 V and the device absorbs the inductor's energy; the clamp rises with temperature and current to raise energy capability.", "smartswitch.html#inductive"),
+    ("PSD", [], "hss", "過功率關斷", "電池電壓被拉低、V_DS 又偏大（例如經過長電池線的軟短路）時，電流到不了過流門檻也會關斷並鎖住的保護。", "Over-power shutdown", "Protection that turns off and latches when the battery is pulled down while V_DS is high (e.g. a soft short through a long battery line), even though the current never reaches the overcurrent threshold.", "smartswitch.html#protection"),
+    ("LV 124", ["LV124"], "hss", "德國車廠的電氣測試規範", "德國車廠共同制定的 12 V 車用電子元件電氣測試規範，例如 E11 冷車啟動電壓曲線。", "German OEM electrical test specification", "The joint German OEM electrical test specification for 12 V automotive components, e.g. the E11 cold-start voltage profiles.", "smartswitch.html#automotive"),
+    ("eFuse", ["eFuses"], "hss", "電子保險絲", "用半導體開關加電流感測取代熔絲，過流時快速切斷、可重設；在車用區域控制架構中取代傳統保險絲盒。", "Electronic fuse", "A semiconductor switch with current sensing that replaces a fuse, cutting off fast on overcurrent and resettable; replaces the fuse box in zonal vehicle architectures.", "smartswitch.html#why-hss"),
+    ("µC", [], "hss", "微控制器", "MCU 的另一種寫法；在車用 ECU 中負責控制智慧開關並讀取診斷訊號。", "Microcontroller", "Another way to write MCU; in an automotive ECU it drives the smart switches and reads their diagnostics.", "smartswitch.html#block"),
+    ("GPIO", [], "hss", "通用輸入輸出腳", "微控制器可由軟體設定為輸入或輸出的數位腳位。", "General-purpose input/output", "A microcontroller digital pin that software can set as input or output.", "smartswitch.html#block"),
+    ("NTC", [], "hss", "負溫度係數熱敏電阻", "電阻隨溫度上升而下降的元件，常用來量測溫度。", "Negative-temperature-coefficient thermistor", "A resistor whose resistance falls as temperature rises; commonly used to measure temperature.", "smartswitch.html#what"),
+    ("TO-252", ["TO-263", "DPAK", "D²PAK"], "hss", "表面黏著功率封裝", "TO-252（DPAK）與 TO-263（D²PAK）是有大散熱片的表面黏著功率封裝，散熱片焊在 PCB 銅箔上。", "Surface-mount power packages", "TO-252 (DPAK) and TO-263 (D²PAK) are surface-mount power packages with a large tab soldered to PCB copper.", "smartswitch.html#block"),
 ]

@@ -35,7 +35,7 @@ def finish():
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
          '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">')
 CHAPTER_CAT = {"architecture": "ckt", "process": "basic", "design": "ckt", "production": "mfg", "test": "test",
-               "application": "sys", "complaints": "qa", "sic": "wbg"}
+               "application": "sys", "complaints": "qa", "sic": "wbg", "smartswitch": "hss"}
 ASCII = re.compile(r"^[A-Za-z0-9&.+\- ]{2,}$")
 CJK = re.compile(r"^[一-鿿]{2,}$")
 SPLIT_EN = re.compile(r"\s*/\s*|\s*[()（）]\s*")

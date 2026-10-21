@@ -1,0 +1,196 @@
+/* PMIC Notes — smart high-side switch page: three small calculators built on BTS50025-1TEA datasheet values (Rev.1.1).
+   1. current sense (I_IS = I_L / dkILIS + I_IS0, fault current, ADC range)
+   2. inductive switch-off energy with SMART CLAMPING
+   3. PWM power and junction temperature */
+(function(){
+  const {plot, fmtSI} = window.MemPlot;
+  const t = (window.MemSite && window.MemSite.t) || (zh => zh);
+  const $ = id => document.getElementById(id);
+  if(!$('hs-il')) return;
+  const HSS = window.PMICHss = {};   // last results, read by the tests
+
+  // datasheet values (BTS50025-1TEA, Rev.1.1, 2019-09-30)
+  const DS = {
+    kMin:15500, kTyp:18000, kMax:20500,           // dkILIS, P_6.1.41
+    is0Min:-5.95e-6, is0Max:8.25e-6,              // I_IS0 at 25 °C, P_6.1.58
+    isFault:[5e-3, 12e-3, 18e-3],                 // I_IS(FAULT) min / typ / max, P_6.1.39
+    isLim:4.4e-3,                                 // sense saturation current, min, P_6.1.40
+    icl:[65, 82, 100],                            // I_CL(0) min / typ / max, P_6.1.30
+    vcl:35, vclMax:45,                            // V_DS(CL) typ / max at 25 °C, P_6.1.8
+    ear:[[19, 0.130], [40, 0.080]], eas:0.600,    // E_AR (T_J(0) ≤ 105 °C) and E_AS (single pulse) at 13.5 V
+    r25:2.7e-3, r150:4.4e-3, r150max:5e-3,        // R_DS(ON) at 20 A, P_6.1.3 / 6.1.4
+    eon:5.5e-3, eoff:4e-3, eI:13.5 / 0.68,        // switching energies at R_L = 0.68 Ω, 13.5 V (≈ 19.9 A)
+    fin:200, tjTrip:150,                          // max input frequency; T_J(TRIP) min
+    rth:{'2s2p':22, '1s0p':35}                    // R_thJA, K/W
+  };
+  const VS = 13.5;
+  const RIS = [470, 1000, 1500, 2200, 3300, 4700];
+
+  function metrics(el, arr){
+    el.innerHTML = arr.map(m => '<div class="metric ' + (m.cls || '') + '"><div class="ml">' + m.l + '</div><div class="mv">' + m.v +
+      (m.u ? ' <small>' + m.u + '</small>' : '') + '</div>' + (m.s ? '<div class="ms">' + m.s + '</div>' : '') + '</div>').join('');
+  }
+  function range(id, fmt, onChange){
+    const el = $(id), out = $(id + '-o');
+    const upd = () => { if(out) out.textContent = fmt(+el.value); };
+    el.addEventListener('input', () => { upd(); onChange(); });
+    upd();
+    return () => +el.value;
+  }
+  function toggle(id, onChange){
+    const box = $(id);
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button[data-v]'); if(!b) return;
+      box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+      onChange();
+    });
+    return () => box.querySelector('[aria-pressed="true"]').dataset.v;
+  }
+  const dot = (X, Y, x, y, c) => '<circle cx="' + X(x).toFixed(1) + '" cy="' + Y(y).toFixed(1) + '" r="5" style="fill:' + c + ';stroke:var(--surface);stroke-width:2"/>';
+
+  /* ---------- 1. current sense ---------- */
+  const iisMin = il => Math.max(0, il / DS.kMax + DS.is0Min);
+  const iisTyp = il => Math.max(0, il / DS.kTyp);
+  const iisMax = il => il / DS.kMin + DS.is0Max;
+  {
+    const il = range('hs-il', v => v.toFixed(1) + ' A', draw);
+    const ris = range('hs-ris', v => fmtSI(RIS[v], 'Ω'), draw);
+    const adc = toggle('hs-adc', draw);
+    function draw(){
+      const I = il(), R = RIS[ris()], FS = +adc();
+      const vTyp = iisTyp(I) * R, vMin = iisMin(I) * R, vMax = iisMax(I) * R;
+      // load current a controller would infer from the typical reading, using the worst-case ratio and offset
+      const iTyp = iisTyp(I);
+      const loA = Math.max(0, DS.kMin * (iTyp - DS.is0Max)), hiA = DS.kMax * (iTyp - DS.is0Min);
+      const vNomMax = iisMax(24) * R;                 // highest normal reading at I_L(NOM) = 24 A
+      const vFaultMin = DS.isFault[0] * R;
+      const trip = I >= DS.icl[2] ? 2 : I >= DS.icl[0] ? 1 : 0;
+      const sat = iisMax(I) > DS.isLim;
+      HSS.sense = {I, R, FS, vTyp, vMin, vMax, loA, hiA, vFaultMin, vNomMax};
+      const sep = vFaultMin > Math.min(FS, vNomMax) * 1.1;
+      metrics($('hs-sense-m'), [
+        {l:t('感測電流 I<sub>IS</sub>（典型）', 'Sense current I<sub>IS</sub> (typ.)'), v:fmtSI(iTyp, 'A'), s:'I<sub>L</sub> / ' + DS.kTyp},
+        {l:t('V<sub>IS</sub> 範圍', 'V<sub>IS</sub> range'), v:fmtSI(vTyp, 'V'), s:fmtSI(vMin, 'V') + ' … ' + fmtSI(vMax, 'V'), cls:vMax > FS ? 'bad' : ''},
+        {l:t('由典型讀值推回 I<sub>L</sub>', 'I<sub>L</sub> inferred from a typ. reading'), v:loA.toFixed(1) + '–' + hiA.toFixed(1), u:'A',
+          s:I > 0.05 ? '±' + Math.round(Math.max(I - loA, hiA - I) / I * 100) + '%' : t('輕載：只剩偏移量', 'light load: offset only'), cls:I > 0.05 && (hiA - loA) / I > 0.4 ? 'warn' : ''},
+        {l:t('故障時 V<sub>IS</sub>（最小）', 'Fault V<sub>IS</sub> (min.)'), v:fmtSI(vFaultMin, 'V'), s:'5 mA × R<sub>IS</sub>', cls:sep ? 'ok' : 'bad'},
+        {l:t('過流跳脫', 'Overcurrent trip'), v:trip === 2 ? t('一定跳', 'certain') : trip === 1 ? t('可能跳', 'possible') : t('不會', 'no'),
+          s:'I<sub>CL(0)</sub> 65–100 A', cls:trip === 2 ? 'bad' : trip === 1 ? 'warn' : 'ok'}
+      ]);
+      const notes = [];
+      if(vNomMax > FS) notes.push(t('24 A 時的最大讀值 ' + fmtSI(vNomMax, 'V') + ' 超過 ADC 滿刻度：R<sub>IS</sub> 太大。', 'The highest reading at 24 A, ' + fmtSI(vNomMax, 'V') + ', is above ADC full scale: R<sub>IS</sub> is too large.'));
+      if(!sep) notes.push(t('故障電流的最小值換成電壓後，和正常讀值分不開：故障可能被誤讀成大電流。', 'The minimum fault current, as a voltage, overlaps normal readings: a fault could be read as a large load current.'));
+      if(sat) notes.push(t('這個電流下感測電流可能接近飽和（I<sub>IS(LIM)</sub> 最小 4.4 mA），讀值不再線性。', 'At this current the sense output may approach saturation (I<sub>IS(LIM)</sub> min. 4.4 mA); the reading is no longer linear.'));
+      if(vFaultMin > FS) notes.push(t('故障時 V<sub>IS</sub> 會超過 ADC 電源：要加 R<sub>IS_PROT</sub> 限流，並靠 ADC 腳的保護二極體或箝位。', 'In a fault V<sub>IS</sub> exceeds the ADC supply: add R<sub>IS_PROT</sub> to limit the current into the ADC pin and its clamp.'));
+      $('hs-sense-n').innerHTML = notes.length ? notes.join('<br>') : t('R<sub>IS</sub> 選得剛好：正常讀值在 ADC 範圍內，故障時明顯更高。', 'R<sub>IS</sub> fits: normal readings stay inside the ADC range and a fault reads clearly higher.');
+      const xs = Array.from({length:101}, (_, i) => i);
+      const yMax = Math.max(FS * 1.25, 1);
+      plot($('hs-sense-p'), {
+        x:[0, 100], y:[0, yMax], xlabel:t('負載電流 I_L (A)', 'Load current I_L (A)'), ylabel:'V_IS (V)',
+        series:[
+          {pts:xs.map(x => [x, iisMax(x) * R]), color:'var(--s3)', w:1.2, dash:'4 3'},
+          {pts:xs.map(x => [x, iisMin(x) * R]), color:'var(--s3)', w:1.2, dash:'4 3'},
+          {pts:xs.map(x => [x, iisTyp(x) * R]), color:'var(--s1)'}
+        ],
+        hlines:[{y:FS, label:'ADC ' + FS + ' V', color:'var(--warn)'}, {y:vFaultMin, label:t('故障 最小 5 mA', 'fault min. 5 mA'), color:'var(--bad)'}],
+        vlines:[{x:DS.icl[0], label:'I_CL(0) min', color:'var(--bad)', anchor:'end'}],
+        extra:(X, Y) => '<rect x="' + X(DS.icl[0]).toFixed(1) + '" y="' + Y(yMax).toFixed(1) + '" width="' + (X(100) - X(DS.icl[0])).toFixed(1) + '" height="' + (Y(0) - Y(yMax)).toFixed(1) + '" style="fill:var(--bad);opacity:.07"/>' + dot(X, Y, I, Math.min(vTyp, yMax), 'var(--ink)')
+      });
+    }
+    draw();
+  }
+
+  /* ---------- 2. inductive switch-off ---------- */
+  const LMIN = 10e-6, LMAX = 10e-3;
+  const Lmap = v => Math.pow(10, Math.log10(LMIN) + (Math.log10(LMAX) - Math.log10(LMIN)) * v / 100);
+  const eClamp = (L, I, vcl) => 0.5 * L * I * I * vcl / (vcl - VS);   // datasheet eq. 5.2 (R_L = 0)
+  function earLimit(I){
+    const [[i1, e1], [i2, e2]] = DS.ear;
+    if(I <= i1) return e1;
+    return e1 * Math.pow(I / i1, Math.log(e2 / e1) / Math.log(i2 / i1));   // log-log line through the two datasheet points
+  }
+  {
+    const lS = range('hs-l', v => fmtSI(Lmap(v), 'H'), draw);
+    const iS = range('hs-ii', v => v + ' A', draw);
+    function draw(){
+      const L = Lmap(lS()), I = iS();
+      const E = eClamp(L, I, DS.vcl), lim = earLimit(I);
+      const tDemag = L * I / (DS.vcl - VS);
+      HSS.ind = {L, I, E, lim};
+      const r = E / lim;
+      metrics($('hs-ind-m'), [
+        {l:t('關斷時 V<sub>OUT</sub>', 'V<sub>OUT</sub> while clamping'), v:'−' + (DS.vcl - VS).toFixed(1), u:'V', s:'V<sub>S</sub> − V<sub>DS(CL)</sub>'},
+        {l:t('去磁時間', 'Demagnetization time'), v:fmtSI(tDemag, 's'), s:'L·I / (V<sub>DS(CL)</sub> − V<sub>S</sub>)'},
+        {l:t('元件吸收的能量', 'Energy absorbed by the switch'), v:fmtSI(E, 'J'), s:'½LI² × ' + (DS.vcl / (DS.vcl - VS)).toFixed(2), cls:r > 1 ? 'bad' : r > 0.7 ? 'warn' : 'ok'},
+        {l:t('重複脈衝上限（近似）', 'Repetitive limit (approx.)'), v:fmtSI(lim, 'J'), s:Math.round(r * 100) + '% ' + t('已使用', 'used'), cls:r > 1 ? 'bad' : r > 0.7 ? 'warn' : 'ok'}
+      ]);
+      $('hs-ind-n').innerHTML = r > 1
+        ? (E > DS.eas ? t('連單次脈衝上限 E<sub>AS</sub> 600 mJ 都超過：外加續流二極體或 TVS，或改用較小的電感。', 'Even the single-pulse limit E<sub>AS</sub> 600 mJ is exceeded: add a freewheeling diode or TVS, or use a smaller inductance.')
+                      : t('超過重複脈衝上限：每次關斷都會累積損傷。若只是偶發（例如一生一次）可對照 E<sub>AS</sub>；否則外加續流路徑。', 'Above the repetitive limit: every switch-off adds damage. For a rare event compare with E<sub>AS</sub>; otherwise add a freewheeling path.'))
+        : t('在重複脈衝上限內。注意：這裡只用資料手冊的兩個點近似，實際以 Figure 1 曲線為準。', 'Inside the repetitive limit. Only two datasheet points are used here; Figure 1 of the datasheet is authoritative.');
+      const xs = Array.from({length:81}, (_, i) => 0.5 + i * 0.5);
+      plot($('hs-ind-p'), {
+        x:[1, 40], y:[1e-3, 10], logy:true, xlabel:t('關斷電流 I_L (A)', 'Switch-off current I_L (A)'), ylabel:t('能量 (J)', 'Energy (J)'),
+        yfmt:v => fmtSI(v, 'J', 3), m:{l:70},
+        series:[
+          {pts:xs.map(x => [x, eClamp(L, x, DS.vcl)]), color:'var(--s1)'},
+          {pts:xs.map(x => [x, earLimit(x)]), color:'var(--bad)', dash:'5 4'}
+        ],
+        hlines:[{y:DS.eas, label:'E_AS 600 mJ', color:'var(--warn)'}],
+        extra:(X, Y) => dot(X, Y, I, E, 'var(--ink)') + '<text class="ts" x="' + (X(40) - 4) + '" y="' + (Y(earLimit(40)) + 14).toFixed(1) + '" text-anchor="end" style="fill:var(--bad)">E_AR</text>'
+      });
+    }
+    draw();
+  }
+
+  /* ---------- 3. PWM power and T_J ---------- */
+  const rds = tj => DS.r25 + (DS.r150 - DS.r25) * (tj - 25) / 125;
+  function solveTj(I, D, f, rth, ta){
+    let tj = ta;
+    for(let k = 0; k < 30; k++){
+      const pc = I * I * rds(Math.min(tj, 200)) * D;
+      const ps = D > 0 && D < 1 ? f * (DS.eon + DS.eoff) * I / DS.eI : 0;
+      tj = ta + (pc + ps) * rth;
+      if(tj > 400) break;
+    }
+    const pc = I * I * rds(Math.min(tj, 200)) * D, ps = D > 0 && D < 1 ? f * (DS.eon + DS.eoff) * I / DS.eI : 0;
+    return {tj, pc, ps};
+  }
+  {
+    const iS = range('hs-pi', v => v + ' A', draw);
+    const dS = range('hs-pd', v => v + '%', draw);
+    const fS = range('hs-pf', v => v + ' Hz', draw);
+    const taS = range('hs-pta', v => v + ' °C', draw);
+    const pcb = toggle('hs-pcb', draw);
+    function draw(){
+      const I = iS(), D = dS() / 100, f = fS(), ta = taS(), rth = DS.rth[pcb()];
+      const r = solveTj(I, D, f, rth, ta);
+      HSS.pwm = {I, D, f, ta, rth, ...r};
+      const over = f > DS.fin;
+      metrics($('hs-pwm-m'), [
+        {l:t('導通損耗', 'Conduction loss'), v:fmtSI(r.pc, 'W'), s:'I² R<sub>DS(ON)</sub>(T<sub>J</sub>) × D'},
+        {l:t('切換損耗', 'Switching loss'), v:fmtSI(r.ps, 'W'), s:'f × (E<sub>ON</sub> + E<sub>OFF</sub>)'},
+        {l:t('接面溫度 T<sub>J</sub>', 'Junction temperature T<sub>J</sub>'), v:r.tj > 300 ? '> 300' : r.tj.toFixed(0), u:'°C', s:'R<sub>thJA</sub> ' + rth + ' K/W',
+          cls:r.tj >= DS.tjTrip ? 'bad' : r.tj > 125 ? 'warn' : 'ok'},
+        {l:t('PWM 頻率', 'PWM frequency'), v:f, u:'Hz', s:t('上限 200 Hz', 'max. 200 Hz'), cls:over ? 'bad' : 'ok'}
+      ]);
+      const notes = [];
+      if(over) notes.push(t('超過 F<sub>in</sub> 200 Hz：過功率保護會把元件鎖住，輸出出現漏脈衝。', 'Above F<sub>in</sub> 200 Hz: the over-power protection latches the device and output pulses go missing.'));
+      if(r.tj >= DS.tjTrip) notes.push(t('T<sub>J</sub> 到達熱關機的最小門檻 150 °C：元件會關斷並鎖住，要等 IN 拉高重置。', 'T<sub>J</sub> reaches the minimum thermal-shutdown threshold of 150 °C: the device turns off and latches until IN is released.'));
+      if(!notes.length) notes.push(t('切換損耗與頻率成正比；斜率刻意做慢（約 0.25 V/µs）來壓低 EMI，所以這顆不適合高頻 PWM。', 'Switching loss scales with frequency; the slopes are deliberately slow (about 0.25 V/µs) for low EMI, so this part is not for fast PWM.'));
+      $('hs-pwm-n').innerHTML = notes.join('<br>');
+      const xs = Array.from({length:81}, (_, i) => i * 0.5);
+      plot($('hs-pwm-p'), {
+        x:[0, 40], y:[ta - 5 < 0 ? Math.floor((ta - 5) / 20) * 20 : 0, 220], xlabel:t('負載電流 I_L (A)', 'Load current I_L (A)'), ylabel:'T_J (°C)',
+        series:[
+          {pts:xs.map(x => [x, Math.min(solveTj(x, D, f, DS.rth['1s0p'], ta).tj, 260)]), color:'var(--s3)', w:pcb() === '1s0p' ? 2 : 1.3, dash:pcb() === '1s0p' ? '' : '4 3'},
+          {pts:xs.map(x => [x, Math.min(solveTj(x, D, f, DS.rth['2s2p'], ta).tj, 260)]), color:'var(--s1)', w:pcb() === '2s2p' ? 2 : 1.3, dash:pcb() === '2s2p' ? '' : '4 3'}
+        ],
+        hlines:[{y:DS.tjTrip, label:'T_J(TRIP) min 150 °C', color:'var(--bad)'}],
+        vlines:[{x:24, label:'I_L(NOM) 24 A', anchor:'end'}],
+        extra:(X, Y) => dot(X, Y, I, Math.min(r.tj, 219), 'var(--ink)')
+      });
+    }
+    draw();
+  }
+})();

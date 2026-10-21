@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>車用智慧高邊開關 · PMIC Notes</title>
+<meta name="description" content="車用專題：智慧高邊開關（smart high-side switch）是什麼、為什麼取代繼電器與保險絲，以 Infineon PROFET BTS50025-1TEA 為例說明方塊圖、腳位、電流感測、鎖存保護、ReverSave 反接保護、SMART CLAMPING 感性負載、電容負載、PWM、熱設計、測試與常見問題，附三個互動計算器。">
+<link rel="alternate" hreflang="en" href="en/smartswitch.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="hss" data-ch="use">
+<main class="doc">
+<nav class="toc" aria-label="本頁目錄"></nav>
+<article>
+<div class="eyebrow">Topic · Automotive power switch</div>
+<h1>車用智慧高邊開關：以 BTS50025-1TEA 為例</h1>
+<p class="lead">BTS50025-1TEA 常被叫做「Infineon 的功率 MOSFET」，但它其實是一顆<b>智慧高邊開關</b>（smart high-side switch，Infineon 的產品名是 Power PROFET™ + 12 V）：裡面有一顆 2.5 mΩ 等級的 N 通道功率 MOSFET，再加上電荷泵、閘極驅動、電流感測、過流 / 過溫 / 過功率保護、反接保護與感性負載箝位，全部做在一個 TO-252 封裝裡。它的工作是取代車上的繼電器和保險絲，直接驅動加熱器、預熱塞、風扇與幫浦這類幾十安培的負載。這一頁說明這類元件的原理、怎麼用、怎麼測，以及容易出問題的地方。</p>
+<div class="callout"><b>關於產品資訊</b>　本頁的數值取自 Infineon 公開的 BTS50025-1TEA 資料手冊 Rev.1.1（2019-09-30）與產品頁（見<a href="#sources">資料來源</a>），整理時間為 2026 年 10 月。表中多數是典型值或特定條件下的值，設計時請以最新版資料手冊的完整條件與曲線為準。本頁不代表 Infineon 官方立場。</div>
+
+<h2 id="what">它不是一顆單純的 MOSFET</h2>
+<p>一顆分離式功率 MOSFET 只有閘極、汲極、源極，驅動、保護、診斷都要外面的電路來做。智慧開關把這些功能和功率元件整合在一起，通常用同一套智慧功率（smart power）製程，或把控制晶片與功率晶片疊在同一個封裝裡。</p>
+<div class="tblwrap"><table>
+  <tr><th></th><th>分離式 N-MOSFET</th><th>智慧高邊開關（BTS50025-1TEA）</th></tr>
+  <tr><td>當高邊開關的閘極驅動</td><td>閘極要高於電池電壓，需外部電荷泵或自舉電路</td><td>內建電荷泵，邏輯準位的 IN 腳就能開關</td></tr>
+  <tr><td>短路 / 過流</td><td>外部感測電阻 + 比較器 + 保險絲</td><td>內建：電流超過 I<sub>CL(0)</sub>（最小 65 A）約 7 µs 內關斷並鎖住</td></tr>
+  <tr><td>過溫</td><td>外部 NTC 或沒有</td><td>溫度感測器做在功率元件上，T<sub>J(TRIP)</sub> 最小 150 °C</td></tr>
+  <tr><td>負載電流量測</td><td>分流電阻 + 放大器</td><td>IS 腳輸出 I<sub>L</sub> / 18 000 的感測電流</td></tr>
+  <tr><td>關斷感性負載</td><td>續流二極體或 TVS</td><td>SMART CLAMPING：把 V<sub>DS</sub> 箝在約 35 V，由元件吸收能量</td></tr>
+  <tr><td>電池反接</td><td>串聯二極體或背對背 MOSFET</td><td>ReverSave：反接時讓 MOSFET 自己導通，避免體二極體發熱</td></tr>
+  <tr><td>EMC</td><td>靠閘極電阻調切換速度</td><td>內建斜率控制（典型 0.25 V/µs）</td></tr>
+</table></div>
+<p>本站其他章節的觀念在這裡都用得到：功率元件是 <a href="process.html#ldmos">DMOS</a>；高邊 NMOS 需要比電源更高的閘極電壓，和 <a href="architecture.html#pass-device">NMOS LDO</a> 的問題一樣，解法也是<a href="architecture.html#charge-pump">電荷泵</a>；過流、過溫保護的設計與 <a href="design.html#protection">LDO 的保護電路</a>同源，只是這裡選擇<b>鎖住</b>而不是自動重啟。</p>
+
+<h2 id="why-hss">為什麼要高邊、為什麼取代繼電器</h2>
+<p>車上的負載一端通常直接接車身（地），所以開關放在電池和負載之間，也就是<b>高邊</b>。這樣負載在關閉時不帶電，線束對車身短路時也不會讓負載自己啟動；但代價是 N 通道 MOSFET 的閘極要比電池電壓更高。</p>
+<div class="tblwrap"><table>
+  <tr><th>項目</th><th>繼電器 + 保險絲</th><th>智慧開關</th></tr>
+  <tr><td>壽命與可靠度</td><td>機械接點有磨耗、電弧、氧化</td><td>沒有運動件；壽命取決於溫度循環與短路次數</td></tr>
+  <tr><td>保護</td><td>保險絲熔斷後要人工更換，反應慢（ms 到 s）</td><td>µs 等級關斷，可由軟體重新開啟，不必換零件</td></tr>
+  <tr><td>診斷</td><td>只知道開或關</td><td>有負載電流讀值，也能判斷短路、過溫</td></tr>
+  <tr><td>PWM 調功率</td><td>不行</td><td>可以（低頻，這顆最高 200 Hz）</td></tr>
+  <tr><td>待機電流</td><td>線圈要電流</td><td>關閉時典型 1 µA（25 °C 最大 4 µA）</td></tr>
+  <tr><td>體積、噪音</td><td>大、有喀嚓聲</td><td>TO-252 表面黏著，無聲</td></tr>
+  <tr><td>成本</td><td>單價低</td><td>單價高，但能省掉保險絲盒、線束與維修</td></tr>
+</table></div>
+<p>車廠走向區域控制架構（zonal architecture）後，配電從集中的保險絲盒分散到各區域控制器，智慧開關與電子保險絲（eFuse）就成了配電的主角。</p>
+
+<h2 id="block">方塊圖與腳位</h2>
+<figure>
+<svg class="chain" viewBox="0 0 660 340" role="img" aria-label="BTS50025-1TEA 方塊圖：電荷泵、閘極驅動、輸入與鎖存邏輯、N-DMOS、感測鏡、保護電路，外接微控制器、驅動電晶體、感測電阻與負載">
+  <rect x="170" y="40" width="340" height="240" rx="10" style="fill:none;stroke:var(--muted);stroke-dasharray:6 4"/>
+  <text x="180" y="272" class="ts t-mut">BTS50025-1TEA</text>
+  <path class="wm" d="M415 18V72M415 52H245V72M245 112V128M300 148H330V102H350M245 196V168M415 132V148M415 184V200M320 226H300M480 102H580V150M580 200V250M566 250h28M572 256h16M578 262h4M480 166H500V296M500 296V300M500 322V328M490 328h20M495 333h10M500 296H44V230M80 214H112M158 224H190M135 244V262M124 262h22M129 267h12M133 272h4"/>
+  <g class="ts">
+  <text x="425" y="24">V<tspan dy="3" font-size="8">S</tspan><tspan dy="-3"> = V</tspan><tspan dy="3" font-size="8">BAT</tspan><tspan dy="-3">（腳 3 + 散熱片）</tspan></text>
+  <rect class="c2" x="190" y="72" width="110" height="40" rx="6"/><text x="245" y="96" text-anchor="middle">電荷泵</text>
+  <rect class="c2" x="190" y="128" width="110" height="40" rx="6"/><text x="245" y="146" text-anchor="middle">閘極驅動</text><text x="245" y="160" text-anchor="middle" class="t-mut">斜率控制</text>
+  <rect class="c5" x="190" y="196" width="110" height="56" rx="6"/><text x="245" y="218" text-anchor="middle">輸入 + 鎖存</text><text x="245" y="234" text-anchor="middle" class="t-mut">以 V_S 為參考</text>
+  <rect class="c1" x="350" y="72" width="130" height="60" rx="6"/><text x="415" y="98" text-anchor="middle">N-DMOS</text><text x="415" y="114" text-anchor="middle" class="t-mut">2.7 mΩ typ. 25 °C</text>
+  <rect class="c3" x="350" y="148" width="130" height="36" rx="6"/><text x="415" y="170" text-anchor="middle">感測鏡 1 : 18 000</text>
+  <rect class="c4" x="320" y="200" width="170" height="52" rx="6"/><text x="405" y="221" text-anchor="middle">保護：I_CL · T_J · PSD</text><text x="405" y="238" text-anchor="middle" class="t-mut">SMART CLAMPING · ReverSave</text>
+  <rect class="c5" x="545" y="150" width="70" height="50" rx="6"/><text x="580" y="179" text-anchor="middle">負載</text>
+  <text x="520" y="96">OUT（腳 1、5）</text>
+  <text x="174" y="218" class="t-mut">IN</text>
+  <text x="508" y="292" class="t-mut">IS（腳 4）</text>
+  <rect x="494" y="300" width="12" height="22" rx="2" style="fill:var(--surface);stroke:var(--muted)"/><text x="514" y="316">R_IS 1 kΩ</text>
+  <text x="270" y="290" text-anchor="middle">R_IS_PROT 10 kΩ → ADC</text>
+  <rect class="c5" x="8" y="170" width="72" height="60" rx="6"/><text x="44" y="198" text-anchor="middle">µC</text><text x="44" y="214" text-anchor="middle" class="t-mut">GPIO / ADC</text>
+  <rect x="112" y="204" width="46" height="40" rx="4" style="fill:var(--surface);stroke:var(--muted)"/><text x="135" y="222" text-anchor="middle">T1</text><text x="135" y="237" text-anchor="middle" class="t-mut">∥ D</text>
+  <text x="96" y="206" text-anchor="middle" class="t-mut">R_IN</text>
+  </g>
+</svg>
+<figcaption>功能示意（不是電晶體級電路）。注意它<b>沒有 GND 腳</b>：輸入電路以 V<sub>S</sub> 為參考，外部 NPN（T1）把 IN 拉向地就開啟（active low，導通時 IN 腳約流 2 mA）；T1 旁並聯的二極體 D 是 ReverSave 反接保護需要的路徑。外部元件值取自資料手冊的應用電路 BOM。</figcaption>
+</figure>
+<div class="tblwrap"><table>
+  <tr><th>腳位</th><th>名稱</th><th>功能與注意事項</th></tr>
+  <tr><td>1、5</td><td>OUT</td><td>保護後的輸出。兩支 OUT 在內部相連，但 PCB 上<b>一定要接在一起</b>，而且到共同點的走線電阻要匹配；否則導通電阻變大、感測與過流跳脫精度變差，大電流短路時的耐受度也會下降。</td></tr>
+  <tr><td>2</td><td>IN</td><td>輸入，以 V<sub>S</sub> 為參考。V<sub>S</sub> − V<sub>IN</sub> &gt; 約 4.8 V（V<sub>IN(H)</sub> 最大 5.8 V）開啟，&lt; 約 2.7 V（V<sub>IN(L)</sub> 最小 2.3 V）關閉，遲滯約 2.1 V；內建約 200 Ω 輸入電阻。</td></tr>
+  <tr><td>3、散熱片</td><td>VS</td><td>電池電壓。散熱片就是 V<sub>S</sub>，大電流與散熱都走這裡，銅箔要大。</td></tr>
+  <tr><td>4</td><td>IS</td><td>感測輸出：正常時是與負載電流成比例的電流，故障時是固定的故障電流。不用可以空接。</td></tr>
+</table></div>
+
+<h2 id="specs">重點規格</h2>
+<div class="tblwrap"><table>
+  <tr><th>參數</th><th>數值</th><th>條件 / 說明</th></tr>
+  <tr><td>工作電壓 V<sub>S(OP)</sub></td><td>5.8–18 V</td><td>規格全部保證的範圍</td></tr>
+  <tr><td>延伸電壓 V<sub>S(EXT)</sub></td><td>3.1–27 V</td><td>冷車啟動與跨接啟動；低壓時 R<sub>DS(ON)</sub> 會變大（3.1 V、150 °C 最大 20 mΩ）</td></tr>
+  <tr><td>R<sub>DS(ON)</sub></td><td>典型 2.7 mΩ（25 °C）／ 4.4 mΩ，最大 5 mΩ（150 °C）</td><td>I<sub>L</sub> = 20 A。產品名的「2.5 mΩ」是等級名稱</td></tr>
+  <tr><td>額定負載電流 I<sub>L(NOM)</sub></td><td>最小 24 A（典型 26 A）</td><td>T<sub>A</sub> = 85 °C、2s2p 板、溫升 65 K 推算</td></tr>
+  <tr><td>過流跳脫 I<sub>CL(0)</sub></td><td>65 / 82 / 100 A（最小 / 典型 / 最大）</td><td>5.8–27 V；跳脫後約 7 µs 關斷</td></tr>
+  <tr><td>熱關機 T<sub>J(TRIP)</sub></td><td>最小 150 °C（典型 175 °C）</td><td>典型值與最大值由設計保證</td></tr>
+  <tr><td>感測比 dk<sub>ILIS</sub></td><td>15 500 / 18 000 / 20 500</td><td>I<sub>L</sub> 0.2 A 到 60 A 的差分比</td></tr>
+  <tr><td>故障感測電流 I<sub>IS(FAULT)</sub></td><td>5 / 12 / 18 mA</td><td>短路、過溫後輸出</td></tr>
+  <tr><td>箝位電壓 V<sub>DS(CL)</sub></td><td>30 / 35 / 45 V（25 °C）</td><td>150 °C 時 35 / 39 / 50 V；隨溫度與電流上升</td></tr>
+  <tr><td>感性關斷能量</td><td>E<sub>AS</sub> 600 mJ（單次）；E<sub>AR</sub> 130 mJ @ 19 A、80 mJ @ 40 A（重複）</td><td>V<sub>S</sub> = 13.5 V；重複脈衝 T<sub>J(0)</sub> ≤ 105 °C</td></tr>
+  <tr><td>反接</td><td>−V<sub>S(REV)</sub> 最大 16 V（工作）；18 V、&lt; 5 分鐘（絕對最大）</td><td>反接時 R<sub>DS(REV)</sub> 典型 4 mΩ</td></tr>
+  <tr><td>拋負載</td><td>45 V</td><td>抑制後的拋負載（ISO 16750-2）</td></tr>
+  <tr><td>切換斜率</td><td>0.05 / 0.25 / 1 V/µs</td><td>R<sub>L</sub> = 0.68 Ω、13.5 V</td></tr>
+  <tr><td>最高輸入頻率 F<sub>in</sub></td><td>200 Hz</td><td>故障時的重試頻率也不能超過 200 Hz</td></tr>
+  <tr><td>待機電流</td><td>典型 1 µA，最大 4 µA（≤ 85 °C）</td><td>150 °C 時最大 100 µA</td></tr>
+  <tr><td>熱阻</td><td>R<sub>thJC</sub> 0.8 K/W；R<sub>thJA</sub> 22 K/W（2s2p）、35 K/W（1s0p、600 mm²）</td><td>JEDEC JESD51 模擬條件</td></tr>
+  <tr><td>封裝 / 驗證</td><td>PG-TO-252-5-11，標記 S50025A</td><td>AEC-Q100；冷車啟動相容 LV 124 E11（severe cold start）</td></tr>
+</table></div>
+
+<h2 id="sense">電流感測：IS 腳怎麼用</h2>
+<p>功率 MOSFET 旁邊做了一顆很小的「感測鏡」MOSFET，和主元件共用汲極與閘極，面積比例約 1 : 18 000，所以流過它的電流約是負載電流的 1/18 000。這股電流從 IS 腳流出，經過到地的電阻 R<sub>IS</sub> 變成電壓給 ADC 讀：</p>
+<div class="eq">I<sub>IS</sub> = I<sub>L</sub> / dk<sub>ILIS</sub> + I<sub>IS0</sub>　　V<sub>IS</sub> = I<sub>IS</sub> × R<sub>IS</sub>　　例：20 A → 20 / 18 000 ≈ 1.1 mA → 1 kΩ 上約 1.1 V</div>
+<ul>
+  <li><b>精度</b>：dk<sub>ILIS</sub> 範圍 15 500–20 500，約 ±14%；偏移量換算成負載電流約 ±0.13 A（25 °C）。所以大電流時是百分比誤差，輕載時誤差由偏移量主導，0.2 A 以下的負載幾乎讀不出來。</li>
+  <li><b>兩點校正</b>：在產線或開機時用兩個已知電流量 I<sub>IS</sub>，算出個別元件的斜率與偏移，之後的誤差只剩溫度與老化造成的漂移（−40 °C 到 150 °C 相對 25 °C 約 −3.5% 到 +2%）。</li>
+  <li><b>故障訊號</b>：短路或過溫鎖住後，IS 輸出固定的 I<sub>IS(FAULT)</sub>（5–18 mA），比正常最大值高很多。1 kΩ 時至少 5 V，所以 ADC 讀到滿刻度就代表故障。這個電壓會超過 3.3 V 或 5 V ADC 的電源，所以要串 R<sub>IS_PROT</sub>（例 10 kΩ）限流。</li>
+  <li><b>電壓餘裕</b>：感測只在 V<sub>IS</sub> ≤ V<sub>OUT</sub> − 3.5 V 時線性。R<sub>IS</sub> 越大，訊號越大，但越容易在低電池電壓時飽和。</li>
+  <li><b>時間</b>：開啟後最多 1.5 ms 才穩定（到 ±10% 最多 700 µs），負載變化後約 5 µs。軟體取樣要避開剛開啟的那段時間，PWM 時要在導通期間的後段取樣。</li>
+  <li><b>開路負載</b>：只能在<b>開啟時</b>從「電流接近零」判斷；關閉時 IS 沒有訊號，這顆沒有關閉狀態的開路偵測。</li>
+</ul>
+
+<h3 id="calc-sense">計算器：感測電阻與 ADC 範圍</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>V<sub>S</sub> 13.5 V · 25 °C</small></h3>
+    <div class="ctl"><label for="hs-il">負載電流 I<sub>L</sub> <output id="hs-il-o"></output></label><input id="hs-il" type="range" min="0" max="100" step="0.5" value="20"></div>
+    <div class="ctl"><label for="hs-ris">感測電阻 R<sub>IS</sub> <output id="hs-ris-o"></output></label><input id="hs-ris" type="range" min="0" max="5" step="1" value="1"></div>
+    <div class="ctl"><label>ADC 滿刻度</label>
+      <div class="btnrow" id="hs-adc"><button class="btn" data-v="3.3" aria-pressed="true">3.3 V</button><button class="btn" data-v="5" aria-pressed="false">5 V</button></div></div>
+    <p class="note">模型：I<sub>IS</sub> 的最小 / 最大用 dk<sub>ILIS</sub> 20 500 / 15 500 與 25 °C 的 I<sub>IS0</sub>（−5.95 / +8.25 µA）。「推回 I<sub>L</sub>」是控制器只知道典型比值時，實際電流可能落在的範圍。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-sense-m"></div>
+    <div class="panel"><h3>V<sub>IS</sub> 對負載電流 <small>典型與最小 / 最大</small></h3><svg class="viz" id="hs-sense-p" role="img" aria-label="感測電壓對負載電流，含誤差範圍、ADC 滿刻度與故障電流"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>典型</span><span><i style="background:var(--s3)"></i>最小 / 最大</span><span><i style="background:var(--warn)"></i>ADC 滿刻度</span><span><i style="background:var(--bad)"></i>故障最小值、過流跳脫區</span></div>
+      <p class="note" id="hs-sense-n"></p></div>
+  </div>
+</div>
+
+<h2 id="protection">保護：為什麼是「鎖住」</h2>
+<p>這顆的所有保護動作都會<b>鎖存</b>（latch）：關斷後就保持關閉，IS 送出故障電流，直到控制器把 IN 釋放（關閉）超過 t<sub>IN(RESETDELAY)</sub>（6 µs 到 5 ms）才重置。和 LDO 常見的<a href="lab.html#thermal">熱關機自動重啟（打嗝）</a>不同，這樣做是把「要不要再試、試幾次」的決定交給軟體，避免元件在短路時自己反覆加熱。</p>
+<div class="tblwrap"><table>
+  <tr><th>保護</th><th>觸發條件</th><th>動作</th></tr>
+  <tr><td>短路類型 1（開進短路）</td><td>開啟時負載已經短路，電流上升到 I<sub>CL(0)</sub></td><td>約 7 µs（t<sub>OFF(TRIP)</sub>）後關斷並鎖住</td></tr>
+  <tr><td>短路類型 2（導通中短路）</td><td>已開啟時輸出對地短路，電流超過 I<sub>CL(0)</sub></td><td>自動關斷並鎖住</td></tr>
+  <tr><td>過功率關斷（PSD）</td><td>電池電壓被拉低（V<sub>S</sub> − V<sub>IN</sub> &lt; 約 4.3 V）且 V<sub>DS</sub> &gt; 約 0.9 V：例如電池線很長或有電感的「軟短路」，電流到不了 I<sub>CL(0)</sub></td><td>t<sub>PSD(UV)</sub>（10–300 µs）後關斷並鎖住；PWM 超過 F<sub>in</sub> 時也會動作</td></tr>
+  <tr><td>過溫</td><td>功率元件上的溫度感測器到 T<sub>J(TRIP)</sub></td><td>關斷並鎖住，故障訊號約 100 µs 內出現</td></tr>
+  <tr><td>快速關斷</td><td>關閉時 V<sub>DS</sub> 超過約 28 V，或偵測到短路 / 過溫</td><td>改用較快的關斷，減少感性與短路負載的應力</td></tr>
+</table></div>
+<figure>
+<svg class="chain" viewBox="0 0 640 230" role="img" aria-label="短路保護時序：IN 開啟、負載電流上升到跳脫值後關斷、IS 輸出故障電流，IN 釋放超過重置延遲後才能重新開啟">
+  <g class="ts t-mut"><text x="8" y="50">IN（ON）</text><text x="8" y="112">I_L</text><text x="8" y="188">I_IS</text></g>
+  <path d="M80 62H120V32H330V62H400V32H630" style="fill:none;stroke:var(--s2);stroke-width:2"/>
+  <path d="M80 135H120L130 118H200L212 84L220 135H400L410 118H630" style="fill:none;stroke:var(--s1);stroke-width:2"/>
+  <path d="M80 205H125L135 190H212L216 160H330L334 205H405L415 190H630" style="fill:none;stroke:var(--s3);stroke-width:2"/>
+  <path d="M80 86H630" style="stroke:var(--bad);stroke-dasharray:5 4;stroke-width:1"/>
+  <path d="M216 20V215M330 20V215M400 20V215" style="stroke:var(--muted);stroke-dasharray:3 4;stroke-width:1"/>
+  <g class="ts">
+  <text x="624" y="80" text-anchor="end" style="fill:var(--bad)">I_CL(0)</text>
+  <text x="160" y="112" text-anchor="middle">正常負載</text>
+  <text x="206" y="74" text-anchor="end">短路</text>
+  <text x="222" y="104">≈ 7 µs 關斷、鎖住</text>
+  <text x="140" y="183">I_L / dkILIS</text>
+  <text x="222" y="154">I_IS(FAULT) ≈ 12 mA</text>
+  <text x="365" y="56" text-anchor="middle">釋放 IN</text>
+  <text x="406" y="74" class="t-mut">&gt; t_IN(RESETDELAY)</text>
+  <text x="515" y="112" text-anchor="middle">重新開啟（短路已排除）</text>
+  </g>
+</svg>
+<figcaption>短路類型 2 的保護時序示意（時間不按比例）。如果 IN 釋放的時間比 t<sub>IN(RESETDELAY)</sub> 短，鎖存不會重置，IS 仍輸出故障電流。</figcaption>
+</figure>
+<div class="callout"><b>重試策略</b>　保護功能是給「不正常狀況」用的，資料手冊明講不是設計給連續或重複動作。軟體重試的頻率不能超過 f<sub>fault</sub> 200 Hz，而且短路耐受有次數限制（依 AEC-Q100-012 驗證）。實務上會限制重試次數（例如幾次後就停止並回報診斷碼），而且讓每次的間隔越來越長。</div>
+
+<h2 id="reverse">ReverSave：電池反接</h2>
+<p>電池接反時，V<sub>S</sub> 變成負的，電流會從地經過負載、經過 MOSFET 的<b>體二極體</b>流回電池。20 A 時體二極體壓降約 0.7 V，功耗約 14 W，TO-252 撐不了多久。</p>
+<p>ReverSave 的做法是：反接時讓 MOSFET 自己導通，電流改走通道，R<sub>DS(REV)</sub> 典型 4 mΩ（150 °C 最大 10 mΩ），20 A 時功耗約 1.6 W。前提是外部驅動電晶體旁要並聯二極體 D，讓 IN 在反接時有路徑。要注意：</p>
+<ul>
+  <li>ReverSave 保護的是<b>開關本身</b>，負載仍然會看到反向電壓。馬達會反轉、電子負載要自己有反接保護。</li>
+  <li>反接時的電流由負載決定，資料手冊的測試條件是 R<sub>L</sub> ≥ 0.68 Ω、最多 5 分鐘。</li>
+  <li>µC 這端要靠 R<sub>IN</sub>（例 4.7 kΩ）與 R<sub>IS_PROT</sub> 限流，反接和接地脫落（loss of ground）時才不會有大電流灌進 µC 腳位。</li>
+</ul>
+
+<h2 id="inductive">感性負載與 SMART CLAMPING</h2>
+<p>關掉電感負載（電磁閥、繼電器線圈、馬達）時，電感會維持電流，把 OUT 拉到地以下。如果沒有東西接住，電壓會一直往下直到元件崩潰。SMART CLAMPING 把 V<sub>DS</sub> 箝在 V<sub>DS(CL)</sub>（25 °C 典型 35 V），讓 OUT 停在 V<sub>S</sub> − V<sub>DS(CL)</sub> ≈ 13.5 − 35 = −21.5 V，電感的能量由 MOSFET 在主動區吸收。忽略負載電阻（R<sub>L</sub> = 0，最保守）時：</p>
+<div class="eq">E = ½ L I<sub>L</sub><sup>2</sup> × V<sub>DS(CL)</sub> / (V<sub>DS(CL)</sub> − V<sub>S</sub>)　例：1 mH、19 A → ½ × 1 m × 361 × 35 / 21.5 ≈ 294 mJ</div>
+<p>294 mJ 低於單次上限 E<sub>AS</sub> 600 mJ，但超過重複上限 E<sub>AR</sub> 130 mJ（19 A）。也就是說，1 mH、19 A 的電磁閥偶爾關一次沒事，每次都這樣關就會累積損傷；反推重複關斷的電感上限約 0.44 mH。超過的話要外加續流二極體或 TVS，但續流二極體會讓電流衰減變慢（電磁閥釋放變慢），這是系統設計的取捨。箝位電壓會隨溫度與電流上升，這是刻意設計來提高能量耐受。</p>
+
+<h3 id="calc-ind">計算器：關斷感性負載的能量</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>V<sub>S</sub> 13.5 V · V<sub>DS(CL)</sub> 35 V</small></h3>
+    <div class="ctl"><label for="hs-l">負載電感 L <output id="hs-l-o"></output></label><input id="hs-l" type="range" min="0" max="100" step="1" value="50"></div>
+    <div class="ctl"><label for="hs-ii">關斷時的電流 <output id="hs-ii-o"></output></label><input id="hs-ii" type="range" min="1" max="40" step="1" value="10"></div>
+    <p class="note">模型：資料手冊公式 5.2（R<sub>L</sub> = 0）。重複上限用 E<sub>AR</sub> 的兩個點（130 mJ @ 19 A、80 mJ @ 40 A）在對數座標連線，19 A 以下保守地用 130 mJ。實際上限請看資料手冊 Figure 1。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-ind-m"></div>
+    <div class="panel"><h3>吸收能量對電流 <small>目前的 L</small></h3><svg class="viz" id="hs-ind-p" role="img" aria-label="感性負載關斷能量對電流，與重複和單次脈衝上限比較"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>E（目前的 L）</span><span><i style="background:var(--bad)"></i>E<sub>AR</sub> 重複上限（近似）</span><span><i style="background:var(--warn)"></i>E<sub>AS</sub> 單次上限</span></div>
+      <p class="note" id="hs-ind-n"></p></div>
+  </div>
+</div>
+
+<h2 id="loads">電容負載、燈泡與加熱器</h2>
+<ul>
+  <li><b>電容負載</b>：下游 ECU 的輸入電容在開啟時要充電，電流約 C × dV/dt。若加上負載電流超過 I<sub>CL(0)</sub>，一開就跳脫。粗估：最壞情況（1 V/µs、65 A）只能帶約 65 µF；典型（0.25 V/µs、82 A）約 330 µF。資料手冊的斜率是在電阻負載下量的，電容負載要實測。</li>
+  <li><b>低電池電壓 + 大電容</b>：冷車時電池線電阻讓 V<sub>S</sub> 掉到 4 V 附近，充電時間拉長、V<sub>DS</sub> 又大，可能觸發 PSD。</li>
+  <li><b>燈泡與 PTC 加熱器</b>：冷態電阻低，啟動電流是穩態的數倍（鎢絲燈約 10 倍）。要確認湧浪電流峰值低於 I<sub>CL(0)</sub> 最小值，並把啟動時的發熱算進熱設計。</li>
+  <li><b>預熱塞（glow plug）、風扇、幫浦</b>：資料手冊列出的典型應用；馬達啟動與堵轉電流同樣要對照 I<sub>CL(0)</sub> 與熱關機。</li>
+</ul>
+
+<h2 id="pwm">PWM 與損耗</h2>
+<p>切換斜率刻意做得很慢（典型 0.25 V/µs、上升時間約 50 µs），是為了壓低 EMI（見<a href="application.html#emi">應用章 EMI</a>）。代價是每次切換的能量很大：13.5 V、0.68 Ω 負載時 E<sub>ON</sub> 約 5.5 mJ、E<sub>OFF</sub> 約 4 mJ。資料手冊的總損耗公式：</p>
+<div class="eq">P = (E<sub>ON</sub> + E<sub>OFF</sub> + I<sub>L</sub><sup>2</sup> R<sub>DS(ON)</sub> t<sub>DC</sub>) / T　例：100 Hz、50%、20 A → 0.95 W 切換 + 約 0.8 W 導通</div>
+<p>所以這顆的 PWM 上限是 200 Hz，用來調加熱器、風扇這種慢負載。需要 kHz 等級 PWM（例如 LED 調光、馬達驅動）要選其他元件。</p>
+
+<h2 id="thermal">熱設計與佈局</h2>
+<p>直流 24 A、150 °C 時典型 4.4 mΩ：P ≈ 24² × 4.4 m ≈ 2.5 W，2s2p 板上 R<sub>thJA</sub> 22 K/W 溫升約 56 K，環境 85 °C 時 T<sub>J</sub> ≈ 141 °C；用最大 5 mΩ 則約 148 °C，已經碰到熱關機最小門檻 150 °C。這就是 I<sub>L(NOM)</sub> 定在 24 A 的由來。單層板（35 K/W）同樣的電流就會過熱。</p>
+<ul>
+  <li>散熱片是 V<sub>S</sub>：大面積銅箔加散熱過孔到內層，是主要散熱路徑（熱阻計算方法見<a href="application.html#thermal">應用章熱設計</a>）。</li>
+  <li>兩支 OUT 要接在一起、走線對稱，走線要能承受最大電流與短路電流。</li>
+  <li>V<sub>S</sub> 附近放 100 nF 電容（改善 EMC），IS 加 10 nF 濾波電容。</li>
+  <li>切換時的動態溫升 ΔT<sub>J</sub> 不能超過 60 K；PWM 時每個脈衝的溫度擺動也要算。</li>
+</ul>
+<p>佈局的一般原則（大電流迴路、Kelvin 連接）可參考<a href="application.html#layout">應用章佈局</a>。</p>
+
+<h3 id="calc-pwm">計算器：PWM 損耗與接面溫度</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>V<sub>S</sub> 13.5 V</small></h3>
+    <div class="ctl"><label for="hs-pi">負載電流 <output id="hs-pi-o"></output></label><input id="hs-pi" type="range" min="0" max="40" step="1" value="20"></div>
+    <div class="ctl"><label for="hs-pd">工作週期 <output id="hs-pd-o"></output></label><input id="hs-pd" type="range" min="0" max="100" step="5" value="50"></div>
+    <div class="ctl"><label for="hs-pf">PWM 頻率 <output id="hs-pf-o"></output></label><input id="hs-pf" type="range" min="10" max="400" step="10" value="100"></div>
+    <div class="ctl"><label for="hs-pta">環境溫度 T<sub>A</sub> <output id="hs-pta-o"></output></label><input id="hs-pta" type="range" min="-40" max="105" step="5" value="85"></div>
+    <div class="ctl"><label>PCB</label>
+      <div class="btnrow" id="hs-pcb"><button class="btn" data-v="2s2p" aria-pressed="true">2s2p 22 K/W</button><button class="btn" data-v="1s0p" aria-pressed="false">1s0p 35 K/W</button></div></div>
+    <p class="note">模型：R<sub>DS(ON)</sub> 在 25 °C 2.7 mΩ 與 150 °C 4.4 mΩ（典型）之間線性內插，與 T<sub>J</sub> 迭代求解；切換能量取 19.9 A 時的典型值，與電流成正比；0% 與 100% 不算切換損耗。只算平均溫度，不含每個脈衝的溫度擺動。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-pwm-m"></div>
+    <div class="panel"><h3>T<sub>J</sub> 對負載電流 <small>目前的工作週期與頻率</small></h3><svg class="viz" id="hs-pwm-p" role="img" aria-label="接面溫度對負載電流，比較兩種 PCB"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>2s2p</span><span><i style="background:var(--s3)"></i>1s0p 600 mm²</span><span><i style="background:var(--bad)"></i>熱關機最小門檻</span></div>
+      <p class="note" id="hs-pwm-n"></p></div>
+  </div>
+</div>
+
+<h2 id="automotive">車用電氣環境</h2>
+<div class="tblwrap"><table>
+  <tr><th>情境</th><th>這顆怎麼應付</th></tr>
+  <tr><td>冷車啟動（LV 124 E11 severe cold start）</td><td>V<sub>S</sub> 可低到 3.1 V 仍維持導通（延伸範圍），但 R<sub>DS(ON)</sub> 變大、感測精度不保證</td></tr>
+  <tr><td>拋負載</td><td>抑制後 45 V（ISO 16750-2 測試條件）；箝位電壓 V<sub>DS(CL)</sub> 30 V 起，所以關閉狀態下電壓太高時元件可能會箝位導通</td></tr>
+  <tr><td>跨接啟動</td><td>延伸範圍到 27 V</td></tr>
+  <tr><td>電池反接</td><td>ReverSave，−16 V</td></tr>
+  <tr><td>接地脫落</td><td>靠外部 R<sub>IN</sub>、R<sub>IS_PROT</sub> 保護 µC</td></tr>
+  <tr><td>ESD</td><td>HBM ±2 kV（OUT 對 V<sub>S</sub> ±4 kV）、CDM ±500 V</td></tr>
+</table></div>
+<p>車用電源環境的電壓量級與相關標準見<a href="application.html#automotive">應用章車用電源</a>。</p>
+
+<h2 id="test">生產測試與驗證</h2>
+<p>這類元件的測試和本站<a href="test.html">測試章</a>講的 LDO 很像，但電流大了兩個數量級：</p>
+<ul>
+  <li><b>R<sub>DS(ON)</sub></b>：在 20 A 下量 2–5 mΩ，代表壓降只有 50–100 mV。必須用 <a href="test.html#kelvin">Kelvin 四線量測</a>，而且探針、插座的接觸電阻和元件同一個量級；電流用短脈衝以免自熱改變讀值。</li>
+  <li><b>感測比修調</b>：dk<sub>ILIS</sub> 要在測試時用兩個電流點量測，必要時修調（和 <a href="production.html#cp-trim">CP 修調</a>同樣的概念）；資料手冊的 dk<sub>ILIS</sub> 就是用 0.2 A 與 60 A 兩點定義的。</li>
+  <li><b>過流跳脫</b>：65–100 A 的跳脫值要在 ATE 上用大電流脈衝驗證，對測試機的電流源與接觸都是挑戰。</li>
+  <li><b>箝位電壓</b>：在 10 mA 下量 V<sub>DS(CL)</sub>；能量耐受（E<sub>AS</sub>、E<sub>AR</sub>）屬於驗證項目，不是每顆都測。</li>
+  <li><b>「由設計保證」的參數</b>：資料手冊註記 “Not subject to production test, specified by design” 的項目（例如 T<sub>J(TRIP)</sub> 的典型 / 最大值、熱阻、部分時間參數）不在量產中逐顆量測，而是靠特性化與設計裕度。</li>
+  <li><b>驗證</b>：AEC-Q100，加上短路耐受（AEC-Q100-012：在規定條件下反覆短路，依存活次數分級）、重複感性關斷搭配溫度循環。見<a href="test.html#qual">測試章驗證</a>。</li>
+</ul>
+
+<h2 id="issues">常見問題與客訴情境</h2>
+<div class="tblwrap"><table>
+  <tr><th>現象</th><th>常見原因</th><th>檢查與對策</th></tr>
+  <tr><td>一開啟就跳脫、IS 顯示故障</td><td>下游電容太大或燈泡冷態湧浪超過 I<sub>CL(0)</sub>；低電壓下觸發 PSD</td><td>量開啟瞬間的電流波形；減少電容、加預充或分段開啟</td></tr>
+  <tr><td>軟體重置不了故障</td><td>IN 釋放的時間比 t<sub>IN(RESETDELAY)</sub> 最大值 5 ms 短</td><td>重置時 IN 至少關閉 5 ms 以上</td></tr>
+  <tr><td>輕載讀值亂跳或讀成 0</td><td>感測偏移量約 ±0.13 A，負載太小</td><td>輕載用兩點校正，或不要用 IS 判斷小電流</td></tr>
+  <tr><td>ADC 腳位損壞</td><td>故障時 V<sub>IS</sub> 可達 5–18 V（依 R<sub>IS</sub>），沒有 R<sub>IS_PROT</sub></td><td>依參考電路串聯限流電阻，必要時加箝位</td></tr>
+  <tr><td>關斷電磁閥後元件 D-S 短路</td><td>感性能量超過 E<sub>AR</sub>（電感或電流比當初估的大，或高溫）</td><td>用實際 L、I、T<sub>J</sub> 重算；外加續流二極體或 TVS</td></tr>
+  <tr><td>PWM 時輸出漏脈衝</td><td>PWM 頻率超過 200 Hz，PSD 鎖住</td><td>降低頻率</td></tr>
+  <tr><td>反接測試後元件燒毀</td><td>驅動電晶體旁沒有並聯二極體 D，ReverSave 沒動作，電流走體二極體</td><td>依參考電路加二極體</td></tr>
+  <tr><td>熱關機、讀值偏差大</td><td>兩支 OUT 沒接在一起或走線不對稱，電流集中在一邊</td><td>修改佈局</td></tr>
+  <tr><td>反覆短路後 R<sub>DS(ON)</sub> 變大或失效</td><td>軟體無限重試，或重試頻率超過 f<sub>fault</sub></td><td>限制重試次數與頻率</td></tr>
+</table></div>
+
+<div class="case" id="c-hss-cap"><div class="case-h"><span class="tag use">應用</span><b>換了下游模組，開關每次開機都跳脫</b><small>車用 · 12 V 配電</small></div><dl>
+<div><dt>現象</dt><dd>某車型的區域控制器改版後，冷車時有 2% 的機率開機就報短路故障；常溫重測都正常，退回的開關測試全部通過（NTF）。</dd></div>
+<div><dt>分析</dt><dd>在車上量開啟瞬間的電流：新的下游模組輸入電容從 47 µF 加到 220 µF，充電峰值約 60 A。低溫時開關的斜率較快、元件的跳脫值又分布在 65 A 附近的那一批，加上負載電流就超過了。</dd></div>
+<div><dt>根因</dt><dd>系統變更沒有重新評估湧浪電流；設計餘量是用典型值 82 A 算的。</dd></div>
+<div><dt>對策</dt><dd>下游模組加預充電路；配電規範把「最大容性負載」用 I<sub>CL(0)</sub> 最小值與最快斜率重新定義；軟體在第一次跳脫後延遲重試一次。</dd></div>
+<div class="ls"><dt>教訓</dt><dd>保護門檻要用最小值設計；「退回品全部通過」通常代表問題在系統，不在晶片（見<a href="complaints.html">客訴處理</a>）。</dd></div></dl></div>
+
+<h2 id="family">相關料號與資源</h2>
+<ul>
+  <li><b>BTS50025-1TAD</b>：同系列、PG-TO-263-7 封裝的版本。</li>
+  <li><b>SHIELD_BTS50025-1TEA</b>：Infineon 的評估板（Arduino shield 形式），可以直接接開發板試保護與感測功能。</li>
+  <li>Infineon 的 PROFET 家族另有多通道、較小電流、自動重啟版本，以及 24 V / 48 V 系統的產品；其他廠商也有類似的智慧高邊開關與 eFuse。選型時看的是 R<sub>DS(ON)</sub>、跳脫值、鎖存或自動重啟、感測精度、封裝熱阻，而不是品牌。</li>
+</ul>
+
+<h2 id="sources">資料來源</h2>
+<ul>
+  <li><a href="https://www.infineon.com/part/BTS50025-1TEA">Infineon 產品頁：BTS50025-1TEA</a></li>
+  <li><a href="https://www.infineon.com/assets/row/public/documents/10/49/infineon-bts50025-1tea-datasheet-en.pdf">BTS50025-1TEA 資料手冊 Rev.1.1（2019-09-30）</a></li>
+  <li><a href="https://infineon.com/cms/en/product/evaluation-boards/shield_bts50025-1tea">Infineon 評估板：SHIELD_BTS50025-1TEA</a></li>
+</ul>
+
+<h2 id="glossary">名詞解釋</h2>
+<dl class="terms">
+  <div><dt>智慧高邊開關（Smart high-side switch）</dt><dd>放在電池與負載之間、整合驅動、保護與診斷的功率開關。</dd></div>
+  <div><dt>Latch</dt><dd>鎖存，保護動作後保持關閉，直到外部重置。</dd></div>
+  <div><dt>Freewheeling diode</dt><dd>續流二極體，給電感電流在開關關閉後一條循環路徑。</dd></div>
+  <div><dt>Loss of ground</dt><dd>接地脫落，模組的地線斷開時的故障狀態。</dd></div>
+  <div><dt>Inrush current</dt><dd>湧浪電流，負載剛開啟時遠大於穩態的電流。</dd></div>
+  <div><dt>Glow plug</dt><dd>預熱塞，柴油引擎冷車時加熱燃燒室的元件。</dd></div>
+  <div><dt>Zonal architecture</dt><dd>區域控制架構，把車上的配電與控制按位置分區。</dd></div>
+</dl>
+</article>
+</main>
+<script src="assets/search-index.js"></script>
+<script src="assets/site.js"></script>
+<script src="assets/plot.js"></script>
+<script src="assets/hss.js"></script>
+</body>
+</html>

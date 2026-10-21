@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Automotive Smart High-Side Switches · PMIC Notes</title>
+<meta name="description" content="Automotive topic: what a smart high-side switch is and why it replaces relays and fuses, using the Infineon PROFET BTS50025-1TEA as the example — block diagram, pins, current sense, latched protection, ReverSave reverse-battery protection, SMART CLAMPING for inductive loads, capacitive loads, PWM, thermal design, test and common problems, with three interactive calculators.">
+<link rel="alternate" hreflang="zh-Hant" href="../smartswitch.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="hss" data-ch="use">
+<main class="doc">
+<nav class="toc" aria-label="On this page"></nav>
+<article>
+<div class="eyebrow">Topic · Automotive power switch</div>
+<h1>Automotive smart high-side switches: the BTS50025-1TEA</h1>
+<p class="lead">The BTS50025-1TEA is often called "an Infineon power MOSFET", but it is really a <b>smart high-side switch</b> (Infineon's product name is Power PROFET™ + 12 V). Inside is a 2.5 mΩ-class N-channel power MOSFET plus a charge pump, gate driver, current sense, overcurrent / overtemperature / over-power protection, reverse-battery protection and an inductive-load clamp, all in one TO-252 package. Its job is to replace relays and fuses in the car and drive loads of tens of amps directly: heaters, glow plugs, fans and pumps. This page explains how such parts work, how to use them, how they are tested, and where they tend to cause trouble.</p>
+<div class="callout"><b>About the product information</b>　Values on this page come from Infineon's public BTS50025-1TEA datasheet Rev.1.1 (2019-09-30) and product page (see <a href="#sources">Sources</a>), compiled in October 2026. Most figures are typical values or values under specific conditions; design with the full conditions and curves in the latest datasheet. This page does not represent Infineon.</div>
+
+<h2 id="what">It is not just a MOSFET</h2>
+<p>A discrete power MOSFET has only gate, drain and source; drive, protection and diagnostics all live outside. A smart switch integrates them with the power device, usually in one smart-power process, or with a control die and a power die stacked in one package.</p>
+<div class="tblwrap"><table>
+  <tr><th></th><th>Discrete N-MOSFET</th><th>Smart high-side switch (BTS50025-1TEA)</th></tr>
+  <tr><td>Gate drive as a high-side switch</td><td>The gate must go above the battery: external charge pump or bootstrap</td><td>Built-in charge pump; a logic-level IN pin switches it</td></tr>
+  <tr><td>Short circuit / overcurrent</td><td>External shunt + comparator + fuse</td><td>Built in: above I<sub>CL(0)</sub> (65 A min.) it turns off in about 7 µs and latches</td></tr>
+  <tr><td>Overtemperature</td><td>External NTC, or nothing</td><td>Temperature sensor on the power device, T<sub>J(TRIP)</sub> 150 °C min.</td></tr>
+  <tr><td>Load-current measurement</td><td>Shunt + amplifier</td><td>The IS pin sources I<sub>L</sub> / 18 000</td></tr>
+  <tr><td>Switching off inductive loads</td><td>Freewheeling diode or TVS</td><td>SMART CLAMPING: V<sub>DS</sub> is clamped at about 35 V and the device absorbs the energy</td></tr>
+  <tr><td>Reverse battery</td><td>Series diode or back-to-back MOSFETs</td><td>ReverSave: the MOSFET turns itself on so the body diode does not overheat</td></tr>
+  <tr><td>EMC</td><td>Gate resistor sets the edge speed</td><td>Built-in slope control (0.25 V/µs typ.)</td></tr>
+</table></div>
+<p>Ideas from the rest of this site apply directly: the power device is a <a href="process.html#ldmos">DMOS</a>; a high-side NMOS needs a gate above the supply, the same problem as an <a href="architecture.html#pass-device">NMOS LDO</a>, solved the same way with a <a href="architecture.html#charge-pump">charge pump</a>; overcurrent and overtemperature protection share their roots with <a href="design.html#protection">LDO protection</a>, except that here the device <b>latches</b> instead of restarting by itself.</p>
+
+<h2 id="why-hss">Why high side, and why replace relays</h2>
+<p>In a car one end of the load usually goes straight to the body (ground), so the switch sits between the battery and the load: the <b>high side</b>. The load is then unpowered when off, and a harness short to the body cannot switch the load on; the price is that an N-channel MOSFET needs a gate above the battery voltage.</p>
+<div class="tblwrap"><table>
+  <tr><th>Item</th><th>Relay + fuse</th><th>Smart switch</th></tr>
+  <tr><td>Life and reliability</td><td>Mechanical contacts wear, arc and oxidize</td><td>No moving parts; life depends on temperature cycling and the number of shorts</td></tr>
+  <tr><td>Protection</td><td>A blown fuse must be replaced by hand; slow (ms to s)</td><td>Turns off in µs; software can switch it on again, no part to replace</td></tr>
+  <tr><td>Diagnostics</td><td>On or off only</td><td>Load-current reading, plus short-circuit and overtemperature flags</td></tr>
+  <tr><td>PWM power control</td><td>No</td><td>Yes (low frequency; 200 Hz max. for this part)</td></tr>
+  <tr><td>Standby current</td><td>The coil draws current</td><td>1 µA typ. when off (4 µA max. at 25 °C)</td></tr>
+  <tr><td>Size, noise</td><td>Large, audible click</td><td>TO-252 surface mount, silent</td></tr>
+  <tr><td>Cost</td><td>Low unit price</td><td>Higher unit price, but saves fuse boxes, harness and service</td></tr>
+</table></div>
+<p>As carmakers move to a zonal architecture, power distribution moves from a central fuse box into zone controllers, and smart switches and eFuses become the main distribution parts.</p>
+
+<h2 id="block">Block diagram and pins</h2>
+<figure>
+<svg class="chain" viewBox="0 0 660 340" role="img" aria-label="BTS50025-1TEA block diagram: charge pump, gate driver, input and latch logic, N-DMOS, sense mirror and protection, with the external microcontroller, drive transistor, sense resistor and load">
+  <rect x="170" y="40" width="340" height="240" rx="10" style="fill:none;stroke:var(--muted);stroke-dasharray:6 4"/>
+  <text x="180" y="272" class="ts t-mut">BTS50025-1TEA</text>
+  <path class="wm" d="M415 18V72M415 52H245V72M245 112V128M300 148H330V102H350M245 196V168M415 132V148M415 184V200M320 226H300M480 102H580V150M580 200V250M566 250h28M572 256h16M578 262h4M480 166H500V296M500 296V300M500 322V328M490 328h20M495 333h10M500 296H44V230M80 214H112M158 224H190M135 244V262M124 262h22M129 267h12M133 272h4"/>
+  <g class="ts">
+  <text x="425" y="24">V<tspan dy="3" font-size="8">S</tspan><tspan dy="-3"> = V</tspan><tspan dy="3" font-size="8">BAT</tspan><tspan dy="-3"> (pin 3 + tab)</tspan></text>
+  <rect class="c2" x="190" y="72" width="110" height="40" rx="6"/><text x="245" y="96" text-anchor="middle">Charge pump</text>
+  <rect class="c2" x="190" y="128" width="110" height="40" rx="6"/><text x="245" y="146" text-anchor="middle">Gate driver</text><text x="245" y="160" text-anchor="middle" class="t-mut">slope control</text>
+  <rect class="c5" x="190" y="196" width="110" height="56" rx="6"/><text x="245" y="218" text-anchor="middle">Input + latch</text><text x="245" y="234" text-anchor="middle" class="t-mut">referred to V_S</text>
+  <rect class="c1" x="350" y="72" width="130" height="60" rx="6"/><text x="415" y="98" text-anchor="middle">N-DMOS</text><text x="415" y="114" text-anchor="middle" class="t-mut">2.7 mΩ typ. 25 °C</text>
+  <rect class="c3" x="350" y="148" width="130" height="36" rx="6"/><text x="415" y="170" text-anchor="middle">Sense mirror 1 : 18 000</text>
+  <rect class="c4" x="320" y="200" width="170" height="52" rx="6"/><text x="405" y="221" text-anchor="middle">Protection: I_CL · T_J · PSD</text><text x="405" y="238" text-anchor="middle" class="t-mut">SMART CLAMPING · ReverSave</text>
+  <rect class="c5" x="545" y="150" width="70" height="50" rx="6"/><text x="580" y="179" text-anchor="middle">Load</text>
+  <text x="520" y="96">OUT (pins 1, 5)</text>
+  <text x="174" y="218" class="t-mut">IN</text>
+  <text x="508" y="292" class="t-mut">IS (pin 4)</text>
+  <rect x="494" y="300" width="12" height="22" rx="2" style="fill:var(--surface);stroke:var(--muted)"/><text x="514" y="316">R_IS 1 kΩ</text>
+  <text x="270" y="290" text-anchor="middle">R_IS_PROT 10 kΩ → ADC</text>
+  <rect class="c5" x="8" y="170" width="72" height="60" rx="6"/><text x="44" y="198" text-anchor="middle">µC</text><text x="44" y="214" text-anchor="middle" class="t-mut">GPIO / ADC</text>
+  <rect x="112" y="204" width="46" height="40" rx="4" style="fill:var(--surface);stroke:var(--muted)"/><text x="135" y="222" text-anchor="middle">T1</text><text x="135" y="237" text-anchor="middle" class="t-mut">∥ D</text>
+  <text x="96" y="206" text-anchor="middle" class="t-mut">R_IN</text>
+  </g>
+</svg>
+<figcaption>Functional sketch (not a transistor-level circuit). Note that it has <b>no GND pin</b>: the input circuit is referred to V<sub>S</sub>, and an external NPN (T1) turns the device on by pulling IN toward ground (active low; about 2 mA flows out of IN when on). The diode D across T1 is the path ReverSave needs during reverse battery. External values are from the datasheet's application-circuit BOM.</figcaption>
+</figure>
+<div class="tblwrap"><table>
+  <tr><th>Pin</th><th>Name</th><th>Function and notes</th></tr>
+  <tr><td>1, 5</td><td>OUT</td><td>Protected output. The two OUT pins are connected inside but <b>must also be tied together on the PCB</b> with matched trace resistance to the common point; otherwise on-resistance rises, sense and trip accuracy degrade, and short-circuit robustness at high current suffers.</td></tr>
+  <tr><td>2</td><td>IN</td><td>Input, referred to V<sub>S</sub>. On when V<sub>S</sub> − V<sub>IN</sub> &gt; about 4.8 V (V<sub>IN(H)</sub> 5.8 V max.), off below about 2.7 V (V<sub>IN(L)</sub> 2.3 V min.), about 2.1 V hysteresis; built-in input resistor of about 200 Ω.</td></tr>
+  <tr><td>3, tab</td><td>VS</td><td>Battery voltage. The tab is V<sub>S</sub>; both the high current and the heat go through it, so give it plenty of copper.</td></tr>
+  <tr><td>4</td><td>IS</td><td>Sense output: a current proportional to the load current in normal operation, a fixed fault current after a fault. Leave open if unused.</td></tr>
+</table></div>
+
+<h2 id="specs">Key specifications</h2>
+<div class="tblwrap"><table>
+  <tr><th>Parameter</th><th>Value</th><th>Conditions / notes</th></tr>
+  <tr><td>Operating voltage V<sub>S(OP)</sub></td><td>5.8–18 V</td><td>Range where every spec is guaranteed</td></tr>
+  <tr><td>Extended voltage V<sub>S(EXT)</sub></td><td>3.1–27 V</td><td>Cold cranking and jump start; R<sub>DS(ON)</sub> rises at low voltage (20 mΩ max. at 3.1 V, 150 °C)</td></tr>
+  <tr><td>R<sub>DS(ON)</sub></td><td>2.7 mΩ typ. (25 °C) / 4.4 mΩ typ., 5 mΩ max. (150 °C)</td><td>I<sub>L</sub> = 20 A. The "2.5 mΩ" in the product name is a class name</td></tr>
+  <tr><td>Nominal load current I<sub>L(NOM)</sub></td><td>24 A min. (26 A typ.)</td><td>T<sub>A</sub> = 85 °C, 2s2p board, derived from a 65 K rise</td></tr>
+  <tr><td>Overcurrent trip I<sub>CL(0)</sub></td><td>65 / 82 / 100 A (min. / typ. / max.)</td><td>5.8–27 V; turns off about 7 µs after tripping</td></tr>
+  <tr><td>Thermal shutdown T<sub>J(TRIP)</sub></td><td>150 °C min. (175 °C typ.)</td><td>Typical and maximum specified by design</td></tr>
+  <tr><td>Sense ratio dk<sub>ILIS</sub></td><td>15 500 / 18 000 / 20 500</td><td>Differential ratio between I<sub>L</sub> 0.2 A and 60 A</td></tr>
+  <tr><td>Fault sense current I<sub>IS(FAULT)</sub></td><td>5 / 12 / 18 mA</td><td>Sourced after a short circuit or overtemperature</td></tr>
+  <tr><td>Clamp voltage V<sub>DS(CL)</sub></td><td>30 / 35 / 45 V (25 °C)</td><td>35 / 39 / 50 V at 150 °C; rises with temperature and current</td></tr>
+  <tr><td>Inductive switch-off energy</td><td>E<sub>AS</sub> 600 mJ (single); E<sub>AR</sub> 130 mJ at 19 A, 80 mJ at 40 A (repetitive)</td><td>V<sub>S</sub> = 13.5 V; repetitive pulses with T<sub>J(0)</sub> ≤ 105 °C</td></tr>
+  <tr><td>Reverse battery</td><td>−V<sub>S(REV)</sub> 16 V max. (operating); 18 V for &lt; 5 min (absolute max.)</td><td>R<sub>DS(REV)</sub> 4 mΩ typ. in reverse</td></tr>
+  <tr><td>Load dump</td><td>45 V</td><td>Suppressed load dump (ISO 16750-2)</td></tr>
+  <tr><td>Switching slope</td><td>0.05 / 0.25 / 1 V/µs</td><td>R<sub>L</sub> = 0.68 Ω, 13.5 V</td></tr>
+  <tr><td>Max. input frequency F<sub>in</sub></td><td>200 Hz</td><td>Fault retries must not exceed 200 Hz either</td></tr>
+  <tr><td>Standby current</td><td>1 µA typ., 4 µA max. (≤ 85 °C)</td><td>100 µA max. at 150 °C</td></tr>
+  <tr><td>Thermal resistance</td><td>R<sub>thJC</sub> 0.8 K/W; R<sub>thJA</sub> 22 K/W (2s2p), 35 K/W (1s0p, 600 mm²)</td><td>JEDEC JESD51 simulation conditions</td></tr>
+  <tr><td>Package / qualification</td><td>PG-TO-252-5-11, marking S50025A</td><td>AEC-Q100; cranking-compatible with LV 124 E11 (severe cold start)</td></tr>
+</table></div>
+
+<h2 id="sense">Current sense: using the IS pin</h2>
+<p>Next to the power MOSFET sits a tiny "sense mirror" MOSFET sharing its drain and gate, with an area ratio of about 1 : 18 000, so about 1/18 000 of the load current flows through it. That current comes out of the IS pin and through a resistor R<sub>IS</sub> to ground, becoming a voltage for the ADC:</p>
+<div class="eq">I<sub>IS</sub> = I<sub>L</sub> / dk<sub>ILIS</sub> + I<sub>IS0</sub>　　V<sub>IS</sub> = I<sub>IS</sub> × R<sub>IS</sub>　　e.g. 20 A → 20 / 18 000 ≈ 1.1 mA → about 1.1 V on 1 kΩ</div>
+<ul>
+  <li><b>Accuracy</b>: dk<sub>ILIS</sub> spans 15 500–20 500, about ±14%; the offset is equivalent to about ±0.13 A of load current (25 °C). At high current the error is a percentage; at light load the offset dominates, and loads below 0.2 A are barely readable.</li>
+  <li><b>Two-point calibration</b>: measure I<sub>IS</sub> at two known currents on the line or at start-up to get each part's own slope and offset; what remains is drift with temperature and ageing (about −3.5% to +2% from −40 °C to 150 °C relative to 25 °C).</li>
+  <li><b>Fault signal</b>: after a short circuit or overtemperature latch, IS sources a fixed I<sub>IS(FAULT)</sub> (5–18 mA), far above the normal maximum. With 1 kΩ that is at least 5 V, so a full-scale ADC reading means a fault. This voltage exceeds a 3.3 V or 5 V ADC supply, so add a series R<sub>IS_PROT</sub> (e.g. 10 kΩ) to limit the current.</li>
+  <li><b>Headroom</b>: the sense is linear only while V<sub>IS</sub> ≤ V<sub>OUT</sub> − 3.5 V. A larger R<sub>IS</sub> gives a bigger signal but saturates sooner at low battery voltage.</li>
+  <li><b>Timing</b>: up to 1.5 ms to settle after turn-on (within ±10% in 700 µs max.), about 5 µs after a load change. Software should not sample right after turn-on, and in PWM should sample late in the on-time.</li>
+  <li><b>Open load</b>: only detectable <b>while on</b>, as a current near zero; with the switch off IS gives no signal, and this part has no off-state open-load detection.</li>
+</ul>
+
+<h3 id="calc-sense">Calculator: sense resistor and ADC range</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>V<sub>S</sub> 13.5 V · 25 °C</small></h3>
+    <div class="ctl"><label for="hs-il">Load current I<sub>L</sub> <output id="hs-il-o"></output></label><input id="hs-il" type="range" min="0" max="100" step="0.5" value="20"></div>
+    <div class="ctl"><label for="hs-ris">Sense resistor R<sub>IS</sub> <output id="hs-ris-o"></output></label><input id="hs-ris" type="range" min="0" max="5" step="1" value="1"></div>
+    <div class="ctl"><label>ADC full scale</label>
+      <div class="btnrow" id="hs-adc"><button class="btn" data-v="3.3" aria-pressed="true">3.3 V</button><button class="btn" data-v="5" aria-pressed="false">5 V</button></div></div>
+    <p class="note">Model: I<sub>IS</sub> min. / max. use dk<sub>ILIS</sub> 20 500 / 15 500 and the 25 °C I<sub>IS0</sub> (−5.95 / +8.25 µA). "I<sub>L</sub> inferred" is the range the real current may fall in when the controller knows only the typical ratio.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-sense-m"></div>
+    <div class="panel"><h3>V<sub>IS</sub> vs load current <small>typ. and min. / max.</small></h3><svg class="viz" id="hs-sense-p" role="img" aria-label="Sense voltage against load current, with the error band, ADC full scale and fault current"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Typical</span><span><i style="background:var(--s3)"></i>Min. / max.</span><span><i style="background:var(--warn)"></i>ADC full scale</span><span><i style="background:var(--bad)"></i>Fault minimum, overcurrent trip zone</span></div>
+      <p class="note" id="hs-sense-n"></p></div>
+  </div>
+</div>
+
+<h2 id="protection">Protection: why it latches</h2>
+<p>Every protective turn-off on this part <b>latches</b>: the output stays off and IS sources the fault current until the controller releases IN (turns it off) for longer than t<sub>IN(RESETDELAY)</sub> (6 µs to 5 ms). Unlike the <a href="lab.html#thermal">auto-restart thermal shutdown (hiccup)</a> common in LDOs, this hands the decision of whether and how often to retry to software, so the device does not keep reheating itself into a short.</p>
+<div class="tblwrap"><table>
+  <tr><th>Protection</th><th>Trigger</th><th>Action</th></tr>
+  <tr><td>Short circuit type 1 (switching into a short)</td><td>The load is already shorted at turn-on; current rises to I<sub>CL(0)</sub></td><td>Turns off after about 7 µs (t<sub>OFF(TRIP)</sub>) and latches</td></tr>
+  <tr><td>Short circuit type 2 (short while on)</td><td>The output shorts to ground while on; current exceeds I<sub>CL(0)</sub></td><td>Turns off and latches</td></tr>
+  <tr><td>Over-power shutdown (PSD)</td><td>The battery is pulled down (V<sub>S</sub> − V<sub>IN</sub> &lt; about 4.3 V) and V<sub>DS</sub> &gt; about 0.9 V: e.g. a "soft short" through a long or inductive battery line where the current never reaches I<sub>CL(0)</sub></td><td>Turns off after t<sub>PSD(UV)</sub> (10–300 µs) and latches; also acts when PWM exceeds F<sub>in</sub></td></tr>
+  <tr><td>Overtemperature</td><td>The sensor on the power device reaches T<sub>J(TRIP)</sub></td><td>Turns off and latches; the fault signal appears within about 100 µs</td></tr>
+  <tr><td>Fast switch-off</td><td>V<sub>DS</sub> above about 28 V while switching off, or a short / overtemperature detected</td><td>Switches off faster, reducing stress from inductive and shorted loads</td></tr>
+</table></div>
+<figure>
+<svg class="chain" viewBox="0 0 640 230" role="img" aria-label="Short-circuit protection timing: IN on, load current rises to the trip level and the switch turns off, IS sources the fault current, and only releasing IN for longer than the reset delay allows a restart">
+  <g class="ts t-mut"><text x="8" y="50">IN (ON)</text><text x="8" y="112">I_L</text><text x="8" y="188">I_IS</text></g>
+  <path d="M80 62H120V32H330V62H400V32H630" style="fill:none;stroke:var(--s2);stroke-width:2"/>
+  <path d="M80 135H120L130 118H200L212 84L220 135H400L410 118H630" style="fill:none;stroke:var(--s1);stroke-width:2"/>
+  <path d="M80 205H125L135 190H212L216 160H330L334 205H405L415 190H630" style="fill:none;stroke:var(--s3);stroke-width:2"/>
+  <path d="M80 86H630" style="stroke:var(--bad);stroke-dasharray:5 4;stroke-width:1"/>
+  <path d="M216 20V215M330 20V215M400 20V215" style="stroke:var(--muted);stroke-dasharray:3 4;stroke-width:1"/>
+  <g class="ts">
+  <text x="624" y="80" text-anchor="end" style="fill:var(--bad)">I_CL(0)</text>
+  <text x="160" y="112" text-anchor="middle">normal load</text>
+  <text x="206" y="74" text-anchor="end">short</text>
+  <text x="222" y="104">off in ≈ 7 µs, latched</text>
+  <text x="140" y="183">I_L / dkILIS</text>
+  <text x="222" y="154">I_IS(FAULT) ≈ 12 mA</text>
+  <text x="365" y="56" text-anchor="middle">release IN</text>
+  <text x="406" y="74" class="t-mut">&gt; t_IN(RESETDELAY)</text>
+  <text x="515" y="112" text-anchor="middle">on again (short removed)</text>
+  </g>
+</svg>
+<figcaption>Protection timing for a type-2 short (not to scale). If IN is released for less than t<sub>IN(RESETDELAY)</sub>, the latch is not reset and IS keeps sourcing the fault current.</figcaption>
+</figure>
+<div class="callout"><b>Retry strategy</b>　Protection is for abnormal conditions; the datasheet states it is designed for neither continuous nor repetitive operation. Software retries must not exceed f<sub>fault</sub> = 200 Hz, and short-circuit endurance is limited to a number of events (qualified to AEC-Q100-012). In practice, limit the number of retries (stop and report a diagnostic code after a few) and lengthen the interval each time.</div>
+
+<h2 id="reverse">ReverSave: reverse battery</h2>
+<p>With the battery reversed, V<sub>S</sub> goes negative and current flows from ground through the load and the MOSFET's <b>body diode</b> back to the battery. At 20 A the body diode drops about 0.7 V, about 14 W, which a TO-252 cannot take for long.</p>
+<p>ReverSave turns the MOSFET on during reverse battery so the current flows through the channel instead: R<sub>DS(REV)</sub> is 4 mΩ typ. (10 mΩ max. at 150 °C), about 1.6 W at 20 A. This requires a diode D across the external drive transistor so IN has a path during reverse battery. Note that:</p>
+<ul>
+  <li>ReverSave protects the <b>switch itself</b>; the load still sees the reverse voltage. Motors run backwards, and electronic loads need their own reverse protection.</li>
+  <li>The reverse current is set by the load; the datasheet tests with R<sub>L</sub> ≥ 0.68 Ω for up to 5 minutes.</li>
+  <li>On the µC side, R<sub>IN</sub> (e.g. 4.7 kΩ) and R<sub>IS_PROT</sub> limit the current so reverse battery and loss of ground do not push large currents into µC pins.</li>
+</ul>
+
+<h2 id="inductive">Inductive loads and SMART CLAMPING</h2>
+<p>When an inductive load (solenoid valve, relay coil, motor) is switched off, the inductance keeps the current flowing and drags OUT below ground. With nothing to catch it, the voltage keeps falling until the device breaks down. SMART CLAMPING holds V<sub>DS</sub> at V<sub>DS(CL)</sub> (35 V typ. at 25 °C), so OUT stops at V<sub>S</sub> − V<sub>DS(CL)</sub> ≈ 13.5 − 35 = −21.5 V and the MOSFET absorbs the inductor's energy in its active region. Ignoring load resistance (R<sub>L</sub> = 0, the conservative case):</p>
+<div class="eq">E = ½ L I<sub>L</sub><sup>2</sup> × V<sub>DS(CL)</sub> / (V<sub>DS(CL)</sub> − V<sub>S</sub>)　e.g. 1 mH, 19 A → ½ × 1 m × 361 × 35 / 21.5 ≈ 294 mJ</div>
+<p>294 mJ is below the single-pulse limit E<sub>AS</sub> of 600 mJ but above the repetitive limit E<sub>AR</sub> of 130 mJ (19 A). So a 1 mH, 19 A solenoid can be switched off like this once in a while, but doing it every time accumulates damage; working backwards, the repetitive limit is about 0.44 mH. Beyond that, add a freewheeling diode or TVS, though a freewheeling diode makes the current decay slower (the solenoid releases later), which is a system trade-off. The clamp voltage rises with temperature and current by design, to increase energy capability.</p>
+
+<h3 id="calc-ind">Calculator: inductive switch-off energy</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>V<sub>S</sub> 13.5 V · V<sub>DS(CL)</sub> 35 V</small></h3>
+    <div class="ctl"><label for="hs-l">Load inductance L <output id="hs-l-o"></output></label><input id="hs-l" type="range" min="0" max="100" step="1" value="50"></div>
+    <div class="ctl"><label for="hs-ii">Current at switch-off <output id="hs-ii-o"></output></label><input id="hs-ii" type="range" min="1" max="40" step="1" value="10"></div>
+    <p class="note">Model: datasheet equation 5.2 (R<sub>L</sub> = 0). The repetitive limit is a log-log line through the two E<sub>AR</sub> points (130 mJ at 19 A, 80 mJ at 40 A), held conservatively at 130 mJ below 19 A. Figure 1 of the datasheet gives the real limit.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-ind-m"></div>
+    <div class="panel"><h3>Absorbed energy vs current <small>at the current L</small></h3><svg class="viz" id="hs-ind-p" role="img" aria-label="Inductive switch-off energy against current, compared with the repetitive and single-pulse limits"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>E (current L)</span><span><i style="background:var(--bad)"></i>E<sub>AR</sub> repetitive limit (approx.)</span><span><i style="background:var(--warn)"></i>E<sub>AS</sub> single-pulse limit</span></div>
+      <p class="note" id="hs-ind-n"></p></div>
+  </div>
+</div>
+
+<h2 id="loads">Capacitive loads, lamps and heaters</h2>
+<ul>
+  <li><b>Capacitive loads</b>: the input capacitance of a downstream ECU charges at turn-on with a current of about C × dV/dt. If that plus the load current exceeds I<sub>CL(0)</sub>, the switch trips as soon as it turns on. Rough estimate: worst case (1 V/µs, 65 A) only about 65 µF; typical (0.25 V/µs, 82 A) about 330 µF. The datasheet slopes are measured with a resistive load; measure capacitive loads.</li>
+  <li><b>Low battery + large capacitance</b>: during cranking the battery-line resistance pulls V<sub>S</sub> down toward 4 V, charging takes longer and V<sub>DS</sub> is large, which can trigger PSD.</li>
+  <li><b>Lamps and PTC heaters</b>: low cold resistance means a start-up current several times the steady state (about 10× for a tungsten lamp). Make sure the inrush peak stays below the minimum I<sub>CL(0)</sub>, and include start-up heating in the thermal design.</li>
+  <li><b>Glow plugs, fans, pumps</b>: typical applications listed in the datasheet; motor start and stall currents must also be checked against I<sub>CL(0)</sub> and thermal shutdown.</li>
+</ul>
+
+<h2 id="pwm">PWM and losses</h2>
+<p>The switching slope is deliberately slow (0.25 V/µs typ., rise time about 50 µs) to keep EMI low (see <a href="application.html#emi">Applications · EMI</a>). The price is a lot of energy per switching event: at 13.5 V with a 0.68 Ω load, E<sub>ON</sub> is about 5.5 mJ and E<sub>OFF</sub> about 4 mJ. The datasheet's total-loss equation:</p>
+<div class="eq">P = (E<sub>ON</sub> + E<sub>OFF</sub> + I<sub>L</sub><sup>2</sup> R<sub>DS(ON)</sub> t<sub>DC</sub>) / T　e.g. 100 Hz, 50%, 20 A → 0.95 W switching + about 0.8 W conduction</div>
+<p>Hence the 200 Hz PWM limit: this part is for slow loads such as heaters and fans. kHz-class PWM (LED dimming, motor drives) needs a different part.</p>
+
+<h2 id="thermal">Thermal design and layout</h2>
+<p>At 24 A DC and 150 °C, R<sub>DS(ON)</sub> is 4.4 mΩ typ.: P ≈ 24² × 4.4 m ≈ 2.5 W, and with R<sub>thJA</sub> = 22 K/W on a 2s2p board the rise is about 56 K, so at 85 °C ambient T<sub>J</sub> ≈ 141 °C; with the 5 mΩ maximum it is about 148 °C, right at the 150 °C minimum thermal-shutdown threshold. That is where I<sub>L(NOM)</sub> = 24 A comes from. On a single-layer board (35 K/W) the same current overheats.</p>
+<ul>
+  <li>The tab is V<sub>S</sub>: a large copper area with thermal vias to inner layers is the main heat path (see <a href="application.html#thermal">Applications · thermal</a> for the method).</li>
+  <li>Tie both OUT pins together with symmetrical traces, sized for the maximum and short-circuit currents.</li>
+  <li>Place 100 nF close to V<sub>S</sub> (better EMC) and 10 nF on IS for filtering.</li>
+  <li>The dynamic rise ΔT<sub>J</sub> during switching must stay below 60 K; in PWM, account for the temperature swing of each pulse.</li>
+</ul>
+<p>General layout rules (high-current loops, Kelvin connections) are in <a href="application.html#layout">Applications · layout</a>.</p>
+
+<h3 id="calc-pwm">Calculator: PWM loss and junction temperature</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>V<sub>S</sub> 13.5 V</small></h3>
+    <div class="ctl"><label for="hs-pi">Load current <output id="hs-pi-o"></output></label><input id="hs-pi" type="range" min="0" max="40" step="1" value="20"></div>
+    <div class="ctl"><label for="hs-pd">Duty cycle <output id="hs-pd-o"></output></label><input id="hs-pd" type="range" min="0" max="100" step="5" value="50"></div>
+    <div class="ctl"><label for="hs-pf">PWM frequency <output id="hs-pf-o"></output></label><input id="hs-pf" type="range" min="10" max="400" step="10" value="100"></div>
+    <div class="ctl"><label for="hs-pta">Ambient T<sub>A</sub> <output id="hs-pta-o"></output></label><input id="hs-pta" type="range" min="-40" max="105" step="5" value="85"></div>
+    <div class="ctl"><label>PCB</label>
+      <div class="btnrow" id="hs-pcb"><button class="btn" data-v="2s2p" aria-pressed="true">2s2p 22 K/W</button><button class="btn" data-v="1s0p" aria-pressed="false">1s0p 35 K/W</button></div></div>
+    <p class="note">Model: R<sub>DS(ON)</sub> interpolated linearly between 2.7 mΩ at 25 °C and 4.4 mΩ at 150 °C (typical) and solved iteratively with T<sub>J</sub>; switching energies are the typical values at 19.9 A, scaled with current; no switching loss at 0% or 100%. Average temperature only, without the per-pulse swing.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="hs-pwm-m"></div>
+    <div class="panel"><h3>T<sub>J</sub> vs load current <small>at the current duty and frequency</small></h3><svg class="viz" id="hs-pwm-p" role="img" aria-label="Junction temperature against load current for two PCBs"></svg>
+      <div class="legend"><span><i style="background:var(--s1)"></i>2s2p</span><span><i style="background:var(--s3)"></i>1s0p 600 mm²</span><span><i style="background:var(--bad)"></i>Minimum thermal-shutdown threshold</span></div>
+      <p class="note" id="hs-pwm-n"></p></div>
+  </div>
+</div>
+
+<h2 id="automotive">Automotive electrical environment</h2>
+<div class="tblwrap"><table>
+  <tr><th>Situation</th><th>How this part copes</th></tr>
+  <tr><td>Cold cranking (LV 124 E11 severe cold start)</td><td>Stays on down to V<sub>S</sub> = 3.1 V (extended range), but R<sub>DS(ON)</sub> rises and sense accuracy is not guaranteed</td></tr>
+  <tr><td>Load dump</td><td>45 V suppressed (ISO 16750-2 test conditions); V<sub>DS(CL)</sub> starts at 30 V, so with the switch off an over-high battery voltage can make the clamp conduct</td></tr>
+  <tr><td>Jump start</td><td>Extended range up to 27 V</td></tr>
+  <tr><td>Reverse battery</td><td>ReverSave, −16 V</td></tr>
+  <tr><td>Loss of ground</td><td>External R<sub>IN</sub> and R<sub>IS_PROT</sub> protect the µC</td></tr>
+  <tr><td>ESD</td><td>HBM ±2 kV (OUT to V<sub>S</sub> ±4 kV), CDM ±500 V</td></tr>
+</table></div>
+<p>Voltage levels and standards for the automotive supply are in <a href="application.html#automotive">Applications · automotive</a>.</p>
+
+<h2 id="test">Production test and qualification</h2>
+<p>Testing these parts resembles the LDO testing in the <a href="test.html">Test chapter</a>, but with currents two orders of magnitude higher:</p>
+<ul>
+  <li><b>R<sub>DS(ON)</sub></b>: 2–5 mΩ at 20 A is only a 50–100 mV drop. It needs <a href="test.html#kelvin">Kelvin four-wire measurement</a>, and probe and socket contact resistance are in the same range as the device; short current pulses avoid self-heating shifting the reading.</li>
+  <li><b>Sense-ratio trim</b>: dk<sub>ILIS</sub> is measured at two current points during test and trimmed if needed (the same idea as <a href="production.html#cp-trim">CP trim</a>); the datasheet defines dk<sub>ILIS</sub> by two points, 0.2 A and 60 A.</li>
+  <li><b>Overcurrent trip</b>: the 65–100 A trip level has to be verified on the ATE with high-current pulses, a challenge for both the tester's current source and the contacts.</li>
+  <li><b>Clamp voltage</b>: V<sub>DS(CL)</sub> is measured at 10 mA; energy capability (E<sub>AS</sub>, E<sub>AR</sub>) is a qualification item, not tested on every part.</li>
+  <li><b>"Specified by design"</b>: parameters marked "Not subject to production test, specified by design" (e.g. typical / maximum T<sub>J(TRIP)</sub>, thermal resistance, some timings) are not measured on every unit; they rely on characterization and design margin.</li>
+  <li><b>Qualification</b>: AEC-Q100, plus short-circuit endurance (AEC-Q100-012: repeated shorts under defined conditions, graded by cycles survived) and repetitive inductive switch-off combined with temperature cycling. See <a href="test.html#qual">Test · qualification</a>.</li>
+</ul>
+
+<h2 id="issues">Common problems and complaint scenarios</h2>
+<div class="tblwrap"><table>
+  <tr><th>Symptom</th><th>Usual cause</th><th>Check and fix</th></tr>
+  <tr><td>Trips at turn-on, IS shows a fault</td><td>Downstream capacitance too large or cold-lamp inrush above I<sub>CL(0)</sub>; PSD at low voltage</td><td>Capture the turn-on current; reduce capacitance, add pre-charge or stagger turn-on</td></tr>
+  <tr><td>Software cannot clear the fault</td><td>IN is released for less than the 5 ms maximum t<sub>IN(RESETDELAY)</sub></td><td>Hold IN off for at least 5 ms to reset</td></tr>
+  <tr><td>Light-load reading jumps or reads 0</td><td>Sense offset of about ±0.13 A; load too small</td><td>Use two-point calibration, or do not judge small currents from IS</td></tr>
+  <tr><td>ADC pin damaged</td><td>V<sub>IS</sub> can reach 5–18 V in a fault (depending on R<sub>IS</sub>) with no R<sub>IS_PROT</sub></td><td>Add the series resistor from the reference circuit, plus a clamp if needed</td></tr>
+  <tr><td>Drain-source short after switching off a solenoid</td><td>Inductive energy above E<sub>AR</sub> (more L or current than estimated, or hot)</td><td>Recalculate with real L, I and T<sub>J</sub>; add a freewheeling diode or TVS</td></tr>
+  <tr><td>Missing output pulses in PWM</td><td>PWM above 200 Hz; PSD latches</td><td>Lower the frequency</td></tr>
+  <tr><td>Device burnt after a reverse-battery test</td><td>No diode D across the drive transistor, so ReverSave never acts and current flows through the body diode</td><td>Add the diode per the reference circuit</td></tr>
+  <tr><td>Thermal shutdown, large reading error</td><td>The two OUT pins not tied together or asymmetric traces, so current crowds to one side</td><td>Fix the layout</td></tr>
+  <tr><td>R<sub>DS(ON)</sub> rises or the part fails after repeated shorts</td><td>Software retries forever, or faster than f<sub>fault</sub></td><td>Limit retry count and rate</td></tr>
+</table></div>
+
+<div class="case" id="c-hss-cap"><div class="case-h"><span class="tag use">Apps</span><b>A new downstream module, and the switch trips at every start</b><small>Automotive · 12 V distribution</small></div><dl>
+<div><dt>Symptom</dt><dd>After a zone-controller revision on one model, 2% of cold starts report a short-circuit fault at turn-on; retests at room temperature are fine, and every returned switch passes test (NTF).</dd></div>
+<div><dt>Analysis</dt><dd>Measuring the turn-on current in the car: the new downstream module's input capacitance grew from 47 µF to 220 µF, with a charging peak of about 60 A. At low temperature the switch's slope is faster, the lot's trip levels sit near 65 A, and with the load current added the threshold is crossed.</dd></div>
+<div><dt>Root cause</dt><dd>The system change did not re-evaluate inrush current; margin had been calculated with the 82 A typical value.</dd></div>
+<div><dt>Action</dt><dd>Pre-charge in the downstream module; the distribution spec redefines "maximum capacitive load" using the minimum I<sub>CL(0)</sub> and the fastest slope; software retries once after a delay on the first trip.</dd></div>
+<div class="ls"><dt>Lesson</dt><dd>Design protection thresholds with the minimum value; "every return passes" usually means the problem is in the system, not the chip (see <a href="complaints.html">Complaints</a>).</dd></div></dl></div>
+
+<h2 id="family">Related parts and resources</h2>
+<ul>
+  <li><b>BTS50025-1TAD</b>: the same device in a PG-TO-263-7 package.</li>
+  <li><b>SHIELD_BTS50025-1TEA</b>: Infineon's evaluation board (an Arduino shield), for trying the protection and sense functions on a development board.</li>
+  <li>Infineon's PROFET family also includes multi-channel, lower-current and auto-restart versions, and parts for 24 V / 48 V systems; other vendors make similar smart high-side switches and eFuses. Choose by R<sub>DS(ON)</sub>, trip level, latch or auto-restart, sense accuracy and package thermal resistance, not by brand.</li>
+</ul>
+
+<h2 id="sources">Sources</h2>
+<ul>
+  <li><a href="https://www.infineon.com/part/BTS50025-1TEA">Infineon product page: BTS50025-1TEA</a></li>
+  <li><a href="https://www.infineon.com/assets/row/public/documents/10/49/infineon-bts50025-1tea-datasheet-en.pdf">BTS50025-1TEA datasheet Rev.1.1 (2019-09-30)</a></li>
+  <li><a href="https://infineon.com/cms/en/product/evaluation-boards/shield_bts50025-1tea">Infineon evaluation board: SHIELD_BTS50025-1TEA</a></li>
+</ul>
+
+<h2 id="glossary">Terms</h2>
+<dl class="terms">
+  <div><dt>Smart high-side switch</dt><dd>A power switch between the battery and the load, integrating drive, protection and diagnostics.</dd></div>
+  <div><dt>Latch</dt><dd>After a protective turn-off the output stays off until reset from outside.</dd></div>
+  <div><dt>Freewheeling diode</dt><dd>A diode giving inductor current a loop to circulate after the switch turns off.</dd></div>
+  <div><dt>Loss of ground</dt><dd>The fault state when a module's ground wire comes loose.</dd></div>
+  <div><dt>Inrush current</dt><dd>The current, far above steady state, when a load is first switched on.</dd></div>
+  <div><dt>Glow plug</dt><dd>A heater that warms a diesel engine's combustion chamber for cold starts.</dd></div>
+  <div><dt>Zonal architecture</dt><dd>Organizing a car's power distribution and control by physical zone.</dd></div>
+</dl>
+</article>
+</main>
+<script src="../assets/search-index-en.js"></script>
+<script src="../assets/site.js"></script>
+<script src="../assets/plot.js"></script>
+<script src="../assets/hss.js"></script>
+</body>
+</html>
