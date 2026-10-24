@@ -211,6 +211,51 @@
 <div class="eq">P = (E<sub>ON</sub> + E<sub>OFF</sub> + I<sub>L</sub><sup>2</sup> R<sub>DS(ON)</sub> t<sub>DC</sub>) / T　e.g. 100 Hz, 50%, 20 A → 0.95 W switching + about 0.8 W conduction</div>
 <p>Hence the 200 Hz PWM limit: this part is for slow loads such as heaters and fans. kHz-class PWM (LED dimming, motor drives) needs a different part.</p>
 
+<h3 id="pwm-mindset">PWM design mindset: work back from the load</h3>
+<p>PWM is more than "pick a frequency, set a duty". A better order is: <b>what the load needs → how low the frequency can go → what the switch can take → how software measures and handles faults</b>. The ten points below follow that order, with numbers from the BTS50025-1TEA datasheet.</p>
+<figure>
+<svg class="chain" viewBox="0 0 640 230" role="img" aria-label="Timing of one PWM pulse: the IN command, OUT delays and ramps, and the sense-current settling time and sampling window">
+  <rect x="335" y="160" width="100" height="46" rx="4" style="fill:var(--accent);opacity:.13"/>
+  <path d="M80 70H140V40H380V70H630" style="fill:none;stroke:var(--s2);stroke-width:2"/>
+  <path d="M80 135H170L215 95H440L485 135H630" style="fill:none;stroke:var(--s1);stroke-width:2"/>
+  <path d="M80 200H170Q230 168 330 172H440L485 200H630" style="fill:none;stroke:var(--s3);stroke-width:2"/>
+  <path d="M140 30V206M170 30V206M215 30V206M380 30V206M440 30V206M485 30V206" style="stroke:var(--muted);stroke-dasharray:3 4;stroke-width:1"/>
+  <g class="ts">
+  <text x="8" y="58" class="t-mut">IN (ON)</text><text x="8" y="118" class="t-mut">V_OUT</text><text x="8" y="190" class="t-mut">I_IS</text>
+  <text x="260" y="32" text-anchor="middle">commanded on-time D·T</text>
+  <text x="328" y="88" text-anchor="middle">load actually on</text>
+  <text x="155" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_d,on</text><text x="192" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_r</text>
+  <text x="410" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_d,off</text><text x="462" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_f</text>
+  <text x="385" y="187" text-anchor="middle">sample here</text>
+  <text x="250" y="222" text-anchor="middle" class="t-mut">sense settling t_sIS(ON) ≤ 1.5 ms</text>
+  <text x="560" y="88" text-anchor="middle" class="t-mut">off</text>
+  </g>
+</svg>
+<figcaption>Timing of one PWM pulse (not to scale). t<sub>d,on</sub> = t<sub>ON(DELAY)</sub> (10–250 µs), t<sub>r</sub> 10–150 µs, t<sub>d,off</sub> = t<sub>OFF(DELAY)</sub> (50–450 µs), t<sub>f</sub> 10–150 µs. The load's on-time differs from the command, and the sense current must settle before it is sampled.</figcaption>
+</figure>
+<ol>
+  <li><b>Start from the load's time constant</b>: as long as the PWM is much faster than the load responds, the load sees only the average. Heaters and glow plugs have thermal time constants of seconds, so 1–20 Hz is smooth; lamps need about 100 Hz or more to avoid visible flicker; fans and pumps have mechanical time constants around 0.1 s, but 100–200 Hz PWM can make an audible hum. The rule: <b>use the lowest frequency at which the load is smooth</b>, because switching loss, EMI and timing error all scale with frequency.</li>
+  <li><b>Work out how much duty the edges eat</b>: this part's edges are slow, so the duty the µC sets is not the duty the load sees.
+    <div class="eq">D<sub>load</sub> ≈ D<sub>command</sub> + (t<sub>OFF(DELAY)</sub> − t<sub>ON(DELAY)</sub>) / T　　shortest usable pulse ≈ t<sub>ON(DELAY)</sub> + t<sub>r</sub></div>
+    At 100 Hz (T = 10 ms), the typical (150 − 50) µs adds about 1% duty and the worst case (450 − 10) µs adds 4.4%; the worst-case shortest pulse of 400 µs is 4%. At 200 Hz all of these double. Low duty is non-linear; where power must be accurate, close the loop (on current or temperature) instead of assuming duty equals power share.</li>
+  <li><b>Compensate for battery voltage</b>: a resistive load's power goes as V². From 9 V to 16 V battery, the same duty gives about (16 / 9)² ≈ 3.2 times the power. For constant power, measure V<sub>S</sub> and set D = P<sub>target</sub> × R / V<sub>S</sub><sup>2</sup>, or close the loop on the IS current.</li>
+  <li><b>Thermal: the average and every pulse</b>: the average temperature comes from R<sub>thJA</sub> (the <a href="#calc-pwm">calculator</a> below). At low frequency the die heats up with each on-pulse, so the peak must be computed with Z<sub>th</sub>(t) for that pulse width, and the dynamic rise ΔT<sub>J</sub> must stay below 60 K. Too low a frequency means large swings, i.e. constant temperature cycling; too high means large switching loss. Pick the middle.</li>
+  <li><b>Inductive loads need a freewheeling path</b>: without a freewheeling diode every switch-off goes through SMART CLAMPING, and the average clamp power is energy per event × frequency. For example 0.44 mH at 19 A is about 130 mJ per event, 13 W at 100 Hz, which the chip cannot take. PWM on a solenoid or motor needs an external freewheeling diode so the current circulates during the off-time, leaving only conduction and switching loss in the device; the price is slower current decay and slower solenoid release.</li>
+  <li><b>Do not PWM capacitive loads</b>: every turn-on recharges the downstream capacitance, so inrush and loss come every cycle and can trip the overcurrent. Switch these loads as DC and leave regulation to the downstream module.</li>
+  <li><b>Soft-start lamps</b>: a cold filament has the largest inrush; while PWM runs the filament stays hot and inrush is much smaller. Ramp up from a low duty so the filament warms first, avoiding an overcurrent trip on the first pulse.</li>
+  <li><b>Synchronize current sensing with the PWM</b>: the sense settles up to 1.5 ms after turn-on (within ±10% in 700 µs max.). At 100 Hz and 5% duty the on-time is only 500 µs, so you might never get a valid reading. Let the PWM trigger the ADC and sample late in the on-time; skip pulses that are too short, or insert a long enough measurement pulse now and then. Open-load detection also works only during the on-time.</li>
+  <li><b>On a fault, stop the PWM instead of letting it retry</b>: once the device latches, all following pulses are lost (missing output pulses). Software has to notice it from the IS fault current; if the PWM keeps sending pulses that reset the latch each time, it retries into a short at the PWM frequency, up to the f<sub>fault</sub> limit of 200 Hz, using up short-circuit endurance every time. On a fault, stop the PWM and hand over to the <a href="#protection">retry strategy</a>.</li>
+  <li><b>Phase-shift multiple channels</b>: when several switches turn on together, the battery-line current steps up all at once, increasing voltage drop and conducted EMI. Staggering the channels' turn-on times (interleaving) reduces battery current ripple and spreads the inrush.</li>
+</ol>
+<div class="tblwrap"><table>
+  <tr><th>Load</th><th>Suggested frequency (order of magnitude)</th><th>What matters most</th></tr>
+  <tr><td>Heaters, seat heaters, glow plugs</td><td>1–20 Hz</td><td>Battery-voltage compensation, PTC cold inrush</td></tr>
+  <tr><td>Lamps</td><td>About 100–200 Hz</td><td>No flicker, soft start to avoid cold-filament inrush</td></tr>
+  <tr><td>Fans, pumps (brushed motors)</td><td>Low frequency, set by noise</td><td>Freewheeling diode, start and stall current, audible noise</td></tr>
+  <tr><td>Solenoid valves</td><td>Usually on / off or a hold-current scheme</td><td>Freewheeling path versus release speed</td></tr>
+  <tr><td>Downstream ECUs (capacitive)</td><td>Do not PWM</td><td>Charging inrush at every turn-on</td></tr>
+</table></div>
+
 <h2 id="thermal">Thermal design and layout</h2>
 <p>At 24 A DC and 150 °C, R<sub>DS(ON)</sub> is 4.4 mΩ typ.: P ≈ 24² × 4.4 m ≈ 2.5 W, and with R<sub>thJA</sub> = 22 K/W on a 2s2p board the rise is about 56 K, so at 85 °C ambient T<sub>J</sub> ≈ 141 °C; with the 5 mΩ maximum it is about 148 °C, right at the 150 °C minimum thermal-shutdown threshold. That is where I<sub>L(NOM)</sub> = 24 A comes from. On a single-layer board (35 K/W) the same current overheats.</p>
 <ul>

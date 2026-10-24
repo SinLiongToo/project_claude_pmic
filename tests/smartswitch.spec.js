@@ -15,7 +15,7 @@ for(const lang of LANGS){
     await page.goto(lang + 'smartswitch.html');
     await expect(page.locator('#hs-sense-m .metric')).toHaveCount(5);
     await expect(page.locator('#hs-ind-m .metric')).toHaveCount(4);
-    await expect(page.locator('#hs-pwm-m .metric')).toHaveCount(4);
+    await expect(page.locator('#hs-pwm-m .metric')).toHaveCount(6);
     await expect(page.locator('#hs-os-m .metric')).toHaveCount(4);
     expect(await scan(page)).toBe('');
     const ranges = await page.locator('.bench input[type=range]').evaluateAll(rs => rs.map(r => ({id:r.id, min:+r.min, max:+r.max, v:r.value})));
@@ -63,6 +63,13 @@ test('smartswitch calculators agree with hand calculations', async ({page}) => {
   await setRange(page, 'hs-pd', 50);
   await setRange(page, 'hs-pf', 300);
   await expect(page.locator('#hs-pwm-m .metric').nth(3)).toHaveClass(/bad/);
+  // edge timing at 100 Hz (T = 10 ms): shortest pulse 100 µs typ. = 1%, 400 µs worst = 4%; duty shift +1% typ., +4.4% worst
+  await setRange(page, 'hs-pf', 100);
+  s = await page.evaluate(() => window.PMICHss.pwm.edge);
+  expect(s.minTyp).toBeCloseTo(1, 6);
+  expect(s.minMax).toBeCloseTo(4, 6);
+  expect(s.dTyp).toBeCloseTo(1, 6);
+  expect(s.dMax).toBeCloseTo(4.4, 6);
   // op-amp offset 350 µV over 2.7 mΩ ≈ 0.13 A, the datasheet I_L0 limit at 25 °C; 500 µV is over it
   await setRange(page, 'hs-vos', 350);
   s = await page.evaluate(() => window.PMICHss.os);

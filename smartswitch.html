@@ -211,6 +211,51 @@
 <div class="eq">P = (E<sub>ON</sub> + E<sub>OFF</sub> + I<sub>L</sub><sup>2</sup> R<sub>DS(ON)</sub> t<sub>DC</sub>) / T　例：100 Hz、50%、20 A → 0.95 W 切換 + 約 0.8 W 導通</div>
 <p>所以這顆的 PWM 上限是 200 Hz，用來調加熱器、風扇這種慢負載。需要 kHz 等級 PWM（例如 LED 調光、馬達驅動）要選其他元件。</p>
 
+<h3 id="pwm-mindset">PWM 設計思路：從負載往回推</h3>
+<p>PWM 不只是「選一個頻率、給一個 duty」。比較好的順序是：<b>負載需要什麼 → 頻率最低可以多低 → 開關承受得了多少 → 軟體怎麼量、怎麼處理故障</b>。下面十點依這個順序排列，數值都以 BTS50025-1TEA 的資料手冊為例。</p>
+<figure>
+<svg class="chain" viewBox="0 0 640 230" role="img" aria-label="一個 PWM 脈衝的時序：IN 指令、OUT 的延遲與斜坡、感測電流的穩定時間與取樣窗">
+  <rect x="335" y="160" width="100" height="46" rx="4" style="fill:var(--accent);opacity:.13"/>
+  <path d="M80 70H140V40H380V70H630" style="fill:none;stroke:var(--s2);stroke-width:2"/>
+  <path d="M80 135H170L215 95H440L485 135H630" style="fill:none;stroke:var(--s1);stroke-width:2"/>
+  <path d="M80 200H170Q230 168 330 172H440L485 200H630" style="fill:none;stroke:var(--s3);stroke-width:2"/>
+  <path d="M140 30V206M170 30V206M215 30V206M380 30V206M440 30V206M485 30V206" style="stroke:var(--muted);stroke-dasharray:3 4;stroke-width:1"/>
+  <g class="ts">
+  <text x="8" y="58" class="t-mut">IN（ON）</text><text x="8" y="118" class="t-mut">V_OUT</text><text x="8" y="190" class="t-mut">I_IS</text>
+  <text x="260" y="32" text-anchor="middle">指令導通 D·T</text>
+  <text x="328" y="88" text-anchor="middle">負載實際導通</text>
+  <text x="155" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_d,on</text><text x="192" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_r</text>
+  <text x="410" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_d,off</text><text x="462" y="150" text-anchor="middle" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">t_f</text>
+  <text x="385" y="187" text-anchor="middle">取樣窗</text>
+  <text x="250" y="222" text-anchor="middle" class="t-mut">感測穩定 t_sIS(ON) ≤ 1.5 ms</text>
+  <text x="560" y="88" text-anchor="middle" class="t-mut">關閉</text>
+  </g>
+</svg>
+<figcaption>一個 PWM 脈衝的時序示意（時間不按比例）。t<sub>d,on</sub> = t<sub>ON(DELAY)</sub>（10–250 µs）、t<sub>r</sub> 10–150 µs、t<sub>d,off</sub> = t<sub>OFF(DELAY)</sub>（50–450 µs）、t<sub>f</sub> 10–150 µs。負載的導通時間不等於指令，感測電流也要等穩定後才能取樣。</figcaption>
+</figure>
+<ol>
+  <li><b>先看負載的時間常數</b>：PWM 頻率只要比負載的反應快得多，負載就只看到平均值。加熱器、預熱塞的熱時間常數是秒級，1–20 Hz 就很平順；燈泡要約 100 Hz 以上才不容易看到閃爍；風扇與幫浦的機械時間常數約 0.1 s，但 100–200 Hz 的 PWM 可能產生聽得到的嗡聲。原則是：<b>在負載平順的前提下用最低的頻率</b>，因為切換損耗、EMI 與時間誤差都和頻率成正比。</li>
+  <li><b>算邊緣吃掉多少 duty</b>：這顆的邊緣很慢，µC 給的 duty 不等於負載看到的 duty。
+    <div class="eq">D<sub>負載</sub> ≈ D<sub>指令</sub> + (t<sub>OFF(DELAY)</sub> − t<sub>ON(DELAY)</sub>) / T　　最短可控導通 ≈ t<sub>ON(DELAY)</sub> + t<sub>r</sub></div>
+    100 Hz（T = 10 ms）時，典型 (150 − 50) µs 讓 duty 多約 1%，最壞 (450 − 10) µs 多 4.4%；最壞的最短導通 400 µs 就是 4%。200 Hz 時全部加倍。低 duty 區不線性，需要準確功率時要閉迴路（量電流或溫度），不要假設 duty 等於功率比例。</li>
+  <li><b>補償電池電壓</b>：電阻性負載的功率 ∝ V²。電池從 9 V 到 16 V，同樣 duty 的功率差約 (16 / 9)² ≈ 3.2 倍。要固定功率就量 V<sub>S</sub> 調整 duty：D = P<sub>目標</sub> × R / V<sub>S</sub><sup>2</sup>，或用 IS 量電流做閉迴路。</li>
+  <li><b>熱要看平均，也要看每個脈衝</b>：平均溫度用 R<sub>thJA</sub> 算（下方<a href="#calc-pwm">計算器</a>）。頻率低時每個導通脈衝晶片都會跟著升溫，峰值要用該脈衝寬度下的 Z<sub>th</sub>(t) 算，而且動態溫升 ΔT<sub>J</sub> 不能超過 60 K。頻率太低，溫度擺動大，等於一直在做溫度循環；頻率太高，切換損耗大。要取中間。</li>
+  <li><b>感性負載一定要有續流路徑</b>：沒有續流二極體時，每次關斷都走 SMART CLAMPING，箝位的平均功率 = 每次能量 × 頻率。例：0.44 mH、19 A 每次約 130 mJ，100 Hz 就是 13 W，晶片撐不住。PWM 電磁閥或馬達要外加續流二極體，讓電流在關閉期間循環，元件只剩導通與切換損耗；代價是電流衰減變慢，電磁閥釋放也變慢。</li>
+  <li><b>電容負載不要 PWM</b>：每次開啟都要重新充下游電容，湧浪電流與損耗每個週期來一次，也可能觸發過流。這類負載用直流開關，調節交給下游自己做。</li>
+  <li><b>燈泡要軟啟動</b>：冷燈絲的湧浪最大，PWM 運轉時燈絲一直是熱的，湧浪小很多。從低 duty 慢慢升高，讓燈絲先預熱，可以避開第一個脈衝的過流跳脫。</li>
+  <li><b>電流感測要和 PWM 同步</b>：感測在開啟後最多 1.5 ms 才穩定（±10% 以內最多 700 µs）。100 Hz、5% duty 只有 500 µs 導通，可能永遠讀不到有效值。作法是讓 PWM 觸發 ADC、在導通後段取樣；導通太短時跳過這次，或定期插入一個夠長的量測脈衝。開路偵測也只能在導通期間做。</li>
+  <li><b>故障時停 PWM，不要讓它自己重試</b>：元件鎖住後，後面的脈衝全部無效（輸出漏脈衝）。軟體要從 IS 的故障電流發現它；如果 PWM 繼續送脈衝而每次都重置鎖存，就等於以 PWM 頻率對短路反覆重試，上限是 f<sub>fault</sub> 200 Hz，而且每次都消耗短路耐受次數。偵測到故障就停止 PWM，交給<a href="#protection">重試策略</a>處理。</li>
+  <li><b>多通道錯相</b>：多顆開關同時開啟時，電池線上的電流是階梯式疊加，壓降與傳導 EMI 都變大。把各通道的開啟時間錯開（interleaving），電池電流漣波變小，湧浪也分散開。</li>
+</ol>
+<div class="tblwrap"><table>
+  <tr><th>負載</th><th>建議頻率（量級）</th><th>最要注意的事</th></tr>
+  <tr><td>加熱器、座椅加熱、預熱塞</td><td>1–20 Hz</td><td>電池電壓補償、PTC 冷態湧浪</td></tr>
+  <tr><td>燈泡</td><td>約 100–200 Hz</td><td>不閃爍、軟啟動避開冷燈絲湧浪</td></tr>
+  <tr><td>風扇、幫浦（有刷馬達）</td><td>低頻，視噪音而定</td><td>續流二極體、啟動與堵轉電流、可聽噪音</td></tr>
+  <tr><td>電磁閥</td><td>通常用開 / 關或保持電流控制</td><td>續流路徑、釋放速度的取捨</td></tr>
+  <tr><td>下游 ECU（電容負載）</td><td>不要 PWM</td><td>每次開啟的充電湧浪</td></tr>
+</table></div>
+
 <h2 id="thermal">熱設計與佈局</h2>
 <p>直流 24 A、150 °C 時典型 4.4 mΩ：P ≈ 24² × 4.4 m ≈ 2.5 W，2s2p 板上 R<sub>thJA</sub> 22 K/W 溫升約 56 K，環境 85 °C 時 T<sub>J</sub> ≈ 141 °C；用最大 5 mΩ 則約 148 °C，已經碰到熱關機最小門檻 150 °C。這就是 I<sub>L(NOM)</sub> 定在 24 A 的由來。單層板（35 K/W）同樣的電流就會過熱。</p>
 <ul>

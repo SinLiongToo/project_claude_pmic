@@ -21,6 +21,8 @@
     r25:2.7e-3, r150:4.4e-3, r150max:5e-3,        // R_DS(ON) at 20 A, P_6.1.3 / 6.1.4
     eon:5.5e-3, eoff:4e-3, eI:13.5 / 0.68,        // switching energies at R_L = 0.68 Ω, 13.5 V (≈ 19.9 A)
     fin:200, tjTrip:150,                          // max input frequency; T_J(TRIP) min
+    tdOn:[10e-6, 50e-6, 250e-6], tr:[10e-6, 50e-6, 150e-6],      // turn-on delay and rise time, min / typ / max
+    tdOff:[50e-6, 150e-6, 450e-6],                               // turn-off delay, min / typ / max
     rth:{'2s2p':22, '1s0p':35}                    // R_thJA, K/W
   };
   const VS = 13.5;
@@ -167,14 +169,24 @@
       const r = solveTj(I, D, f, rth, ta);
       HSS.pwm = {I, D, f, ta, rth, ...r};
       const over = f > DS.fin;
+      // edge timing (P_6.1.16–6.1.19): the load's on-time is the command shifted by the delays, and the shortest
+      // useful pulse is turn-on delay + rise time
+      const T = 1 / f, pct = s => s / T * 100;
+      const minTyp = pct(DS.tdOn[1] + DS.tr[1]), minMax = pct(DS.tdOn[2] + DS.tr[2]);
+      const dTyp = pct(DS.tdOff[1] - DS.tdOn[1]), dMax = pct(DS.tdOff[2] - DS.tdOn[0]);
+      HSS.pwm.edge = {minTyp, minMax, dTyp, dMax};
+      const short = D > 0 && D * 100 < minMax;
       metrics($('hs-pwm-m'), [
         {l:t('導通損耗', 'Conduction loss'), v:fmtSI(r.pc, 'W'), s:'I² R<sub>DS(ON)</sub>(T<sub>J</sub>) × D'},
         {l:t('切換損耗', 'Switching loss'), v:fmtSI(r.ps, 'W'), s:'f × (E<sub>ON</sub> + E<sub>OFF</sub>)'},
         {l:t('接面溫度 T<sub>J</sub>', 'Junction temperature T<sub>J</sub>'), v:r.tj > 300 ? '> 300' : r.tj.toFixed(0), u:'°C', s:'R<sub>thJA</sub> ' + rth + ' K/W',
           cls:r.tj >= DS.tjTrip ? 'bad' : r.tj > 125 ? 'warn' : 'ok'},
-        {l:t('PWM 頻率', 'PWM frequency'), v:f, u:'Hz', s:t('上限 200 Hz', 'max. 200 Hz'), cls:over ? 'bad' : 'ok'}
+        {l:t('PWM 頻率', 'PWM frequency'), v:f, u:'Hz', s:t('上限 200 Hz', 'max. 200 Hz'), cls:over ? 'bad' : 'ok'},
+        {l:t('最短可控導通', 'Shortest usable pulse'), v:minTyp.toFixed(1), u:'%', s:t('最壞 ', 'worst ') + minMax.toFixed(1) + '%', cls:short ? 'warn' : ''},
+        {l:t('負載 duty 比指令多', 'Load duty above command'), v:'+' + dTyp.toFixed(1), u:'%', s:t('最壞 +', 'worst +') + dMax.toFixed(1) + '%'}
       ]);
       const notes = [];
+      if(short) notes.push(t('指令 duty 小於最壞情況的最短導通：有些元件的輸出根本來不及升起來，低 duty 區不線性。', 'The commanded duty is below the worst-case shortest pulse: on some parts the output never fully rises, so low duty is non-linear.'));
       if(over) notes.push(t('超過 F<sub>in</sub> 200 Hz：過功率保護會把元件鎖住，輸出出現漏脈衝。', 'Above F<sub>in</sub> 200 Hz: the over-power protection latches the device and output pulses go missing.'));
       if(r.tj >= DS.tjTrip) notes.push(t('T<sub>J</sub> 到達熱關機的最小門檻 150 °C：元件會關斷並鎖住，要等 IN 拉高重置。', 'T<sub>J</sub> reaches the minimum thermal-shutdown threshold of 150 °C: the device turns off and latches until IN is released.'));
       if(!notes.length) notes.push(t('切換損耗與頻率成正比；斜率刻意做慢（約 0.25 V/µs）來壓低 EMI，所以這顆不適合高頻 PWM。', 'Switching loss scales with frequency; the slopes are deliberately slow (about 0.25 V/µs) for low EMI, so this part is not for fast PWM.'));
