@@ -18,7 +18,7 @@
 <h1>術語表：全站縮寫與名詞</h1>
 <p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 281 個。</p>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 284 個。</p>
 <h2 id="cat-basic">元件與基礎</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
@@ -106,6 +106,7 @@
   <div><dt id="g-pfm">PFM</dt><dd>Pulse Frequency Modulation，輕載時降低切換頻率以提高效率。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-pg">PG <small>電源良好（Power Good）</small></dt><dd>輸出電壓進入正常範圍時才放開的狀態訊號，通常是開汲極，可接下一路的 EN 做時序。 <span class="gl-other">Power good</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
   <div><dt id="g-phase-margin-pm">Phase margin (PM) <small>相位裕度 PM</small></dt><dd>增益降到 0 dB 時，相位距離 −180° 還有多少度。 <span class="gl-also">也寫作：PM、Phase margin、相位裕度</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-pi-controller">PI controller <small>比例-積分控制器</small></dt><dd>依誤差的大小（比例）與累積（積分）調整輸出的閉迴路控制，例如依溫度誤差調整 PWM duty。 <span class="gl-other">Proportional-integral controller</span> <span class="gl-also">也寫作：PI 控制器</span> <a class="gl-more" href="smartswitch.html#pwm-who">詳細說明 →</a></dd></div>
   <div><dt id="g-pll">PLL <small>鎖相迴路 / 壓控振盪器</small></dt><dd>產生高頻時脈的電路；VCO 的頻率受電壓控制，電源雜訊會變成相位雜訊。 <span class="gl-other">Phase-locked loop / voltage-controlled oscillator</span> <span class="gl-also">也寫作：VCO</span> <a class="gl-more" href="design.html#noise">詳細說明 →</a></dd></div>
   <div><dt id="g-pmbus">PMBus <small>電源管理匯流排</small></dt><dd>以 SMBus / I²C 為基礎、專為電源設計的命令集，伺服器電源常用。 <span class="gl-other">Power Management Bus</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
   <div><dt id="g-post-regulation">Post-regulation</dt><dd>DC-DC 之後再接 LDO，用 LDO 的 PSRR 濾掉切換漣波。  <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
@@ -305,6 +306,7 @@
 <h2 id="cat-hss">車用智慧開關</h2>
 <dl class="terms gl-list">
   <div><dt id="g-active-clamp">Active clamp <small>主動箝位（Active clamp）</small></dt><dd>用齊納串從汲極回授到閘極，讓 MOSFET 在過壓時於線性區導通、把 V<sub>DS</sub> 限制住的電路。 <span class="gl-also">也寫作：主動箝位</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-can">CAN <small>車用通訊匯流排</small></dt><dd>CAN 是 ECU 之間的主要通訊網路；LIN 是較慢、較便宜的單線匯流排，用於車窗、座椅等次要節點。 <span class="gl-other">Automotive buses</span> <span class="gl-also">也寫作：LIN</span> <a class="gl-more" href="smartswitch.html#pwm-who">詳細說明 →</a></dd></div>
   <div><dt id="g-chip-on-chip">Chip-on-chip</dt><dd>把控制晶片疊在功率晶片上封裝在一起的作法；並排放置則稱 chip-by-chip。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-chopper-amplifier">Chopper amplifier <small>截波放大器（Chopper amplifier）</small></dt><dd>週期性交換輸入、把偏移調變掉的放大器，可把偏移壓到微伏等級。 <span class="gl-also">也寫作：截波放大器</span> <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-efuse">eFuse <small>電子保險絲</small></dt><dd>用半導體開關加電流感測取代熔絲，過流時快速切斷、可重設；在車用區域控制架構中取代傳統保險絲盒。 <span class="gl-other">Electronic fuse</span> <span class="gl-also">也寫作：eFuses</span> <a class="gl-more" href="smartswitch.html#why-hss">詳細說明 →</a></dd></div>
@@ -313,6 +315,7 @@
   <div><dt id="g-gpio">GPIO <small>通用輸入輸出腳</small></dt><dd>微控制器可由軟體設定為輸入或輸出的數位腳位。 <span class="gl-other">General-purpose input/output</span>  <a class="gl-more" href="smartswitch.html#block">詳細說明 →</a></dd></div>
   <div><dt id="g-inrush-current">Inrush current</dt><dd>湧浪電流，負載剛開啟時遠大於穩態的電流。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-latch">Latch</dt><dd>鎖存，保護動作後保持關閉，直到外部重置。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-load-shedding">Load shedding <small>負載卸除</small></dt><dd>整車用電超過發電與電池能提供的量時，依優先順序暫時降低或關閉非必要負載。 <span class="gl-other">Load shedding</span> <span class="gl-also">也寫作：load shedding</span> <a class="gl-more" href="smartswitch.html#pwm-who">詳細說明 →</a></dd></div>
   <div><dt id="g-loss-of-ground">Loss of ground</dt><dd>接地脫落，模組的地線斷開時的故障狀態。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-lv-124">LV 124 <small>德國車廠的電氣測試規範</small></dt><dd>德國車廠共同制定的 12 V 車用電子元件電氣測試規範，例如 E11 冷車啟動電壓曲線。 <span class="gl-other">German OEM electrical test specification</span> <span class="gl-also">也寫作：LV124</span> <a class="gl-more" href="smartswitch.html#automotive">詳細說明 →</a></dd></div>
   <div><dt id="g-multisite">Multisite</dt><dd>ATE 同時測試多顆元件，以縮短平均測試時間。  <a class="gl-more" href="smartswitch.html#glossary">詳細說明 →</a></dd></div>

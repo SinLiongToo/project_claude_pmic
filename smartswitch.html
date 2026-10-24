@@ -256,6 +256,32 @@
   <tr><td>下游 ECU（電容負載）</td><td>不要 PWM</td><td>每次開啟的充電湧浪</td></tr>
 </table></div>
 
+<h3 id="pwm-who">頻率和 duty 由誰決定？</h3>
+<p>智慧開關自己不決定任何事，它只照 IN 腳的訊號開或關。<b>頻率和 duty 都是 ECU 裡的微控制器（µC）軟體產生的。</b>一句話：頻率是硬體與系統設計時的選擇，duty 是軟體在執行時的決定。</p>
+<div class="tblwrap"><table>
+  <tr><th>頻率：設計階段決定</th><th>根據什麼</th></tr>
+  <tr><td>系統 / 硬體工程師</td><td>負載的時間常數（加熱器 1–20 Hz、燈約 100 Hz 以上、馬達還要看可聽噪音），見上面的<a href="#pwm-mindset">設計思路</a></td></tr>
+  <tr><td>元件限制</td><td>這顆最高 200 Hz；頻率越高，切換損耗與最短可控 duty 越大</td></tr>
+  <tr><td>EMC 與車廠規範</td><td>傳導發射、電池線的電流漣波；車廠可能直接規定頻率範圍</td></tr>
+</table></div>
+<p>頻率一般寫成軟體的固定參數或校正值，正常運轉時不會變。duty 則是執行時一直在算：</p>
+<div class="tblwrap"><table>
+  <tr><th>情況</th><th>duty 怎麼決定</th><th>例子</th></tr>
+  <tr><td>使用者選檔位</td><td>開迴路：檔位對應到目標功率，再換算成 duty</td><td>座椅加熱 1 / 2 / 3 檔</td></tr>
+  <tr><td>電池電壓變化</td><td>軟體量 V<sub>S</sub> 補償：D = P<sub>目標</sub> × R / V<sub>S</sub><sup>2</sup></td><td>9 V 和 16 V 時給不同 duty，功率才一樣</td></tr>
+  <tr><td>要控制溫度或轉速</td><td>閉迴路（例如 PI 控制器）依感測器回授調整</td><td>方向盤加熱看 NTC 溫度、風扇看轉速</td></tr>
+  <tr><td>別的 ECU 下指令</td><td>經 CAN / LIN 收到要求，本地 ECU 換算成 duty</td><td>空調控制器要求鼓風機 60%</td></tr>
+  <tr><td>保護與降額</td><td>軟體主動降 duty 或停止</td><td>過溫、電池電壓太低、整車用電太大時的負載卸除（load shedding）、偵測到故障</td></tr>
+  <tr><td>軟啟動</td><td>先給低 duty 再慢慢升高</td><td>燈泡冷態湧浪、馬達啟動</td></tr>
+</table></div>
+<p>這和本站其他章節的 DC-DC 不一樣。Buck 的頻率由設計者選定（例如用頻率設定電阻或料號版本，考慮效率、電感大小與 EMI 頻段），duty 則<b>沒有人去設定</b>：IC 內部的回授迴路自動調整，大約等於 V<sub>OUT</sub> / V<sub>IN</sub>，負載或輸入電壓一變就自己修正（見<a href="design.html#dcdc-control">設計章 DC-DC 控制</a>）。</p>
+<div class="tblwrap"><table>
+  <tr><th></th><th>智慧開關的 PWM</th><th>DC-DC 的 PWM</th></tr>
+  <tr><td>頻率</td><td>Hz 到數百 Hz，µC 軟體設定</td><td>數百 kHz 到數 MHz，由 IC 設定</td></tr>
+  <tr><td>duty</td><td>µC 軟體依需求決定</td><td>IC 內部迴路自動決定</td></tr>
+  <tr><td>目的</td><td>控制負載的平均功率</td><td>穩定輸出電壓</td></tr>
+</table></div>
+
 <h2 id="thermal">熱設計與佈局</h2>
 <p>直流 24 A、150 °C 時典型 4.4 mΩ：P ≈ 24² × 4.4 m ≈ 2.5 W，2s2p 板上 R<sub>thJA</sub> 22 K/W 溫升約 56 K，環境 85 °C 時 T<sub>J</sub> ≈ 141 °C；用最大 5 mΩ 則約 148 °C，已經碰到熱關機最小門檻 150 °C。這就是 I<sub>L(NOM)</sub> 定在 24 A 的由來。單層板（35 K/W）同樣的電流就會過熱。</p>
 <ul>

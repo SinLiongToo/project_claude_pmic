@@ -256,6 +256,32 @@
   <tr><td>Downstream ECUs (capacitive)</td><td>Do not PWM</td><td>Charging inrush at every turn-on</td></tr>
 </table></div>
 
+<h3 id="pwm-who">Who decides the frequency and the duty?</h3>
+<p>The smart switch decides nothing itself; it simply turns on and off as the IN pin tells it. <b>Both frequency and duty come from the software in the ECU's microcontroller (µC).</b> In one line: the frequency is a hardware and system design choice, and the duty is a decision software makes at run time.</p>
+<div class="tblwrap"><table>
+  <tr><th>Frequency: chosen at design time</th><th>Based on</th></tr>
+  <tr><td>System / hardware engineer</td><td>The load's time constant (heaters 1–20 Hz, lamps about 100 Hz or more, motors also audible noise); see the <a href="#pwm-mindset">design mindset</a> above</td></tr>
+  <tr><td>Device limits</td><td>200 Hz max. for this part; higher frequency means more switching loss and a larger shortest usable duty</td></tr>
+  <tr><td>EMC and carmaker specs</td><td>Conducted emissions, battery-line current ripple; the carmaker may prescribe the frequency range</td></tr>
+</table></div>
+<p>The frequency is usually a fixed software parameter or calibration value that does not change in normal operation. The duty, on the other hand, is computed continuously at run time:</p>
+<div class="tblwrap"><table>
+  <tr><th>Situation</th><th>How the duty is decided</th><th>Example</th></tr>
+  <tr><td>The user picks a level</td><td>Open loop: the level maps to a target power, converted to a duty</td><td>Seat heater levels 1 / 2 / 3</td></tr>
+  <tr><td>Battery voltage changes</td><td>Software measures V<sub>S</sub> and compensates: D = P<sub>target</sub> × R / V<sub>S</sub><sup>2</sup></td><td>Different duty at 9 V and 16 V for the same power</td></tr>
+  <tr><td>Temperature or speed must be controlled</td><td>Closed loop (e.g. a PI controller) adjusting on sensor feedback</td><td>Steering-wheel heater on an NTC, fan on its speed</td></tr>
+  <tr><td>Another ECU sends a request</td><td>Received over CAN / LIN; the local ECU converts it to a duty</td><td>The climate controller asks for 60% blower</td></tr>
+  <tr><td>Protection and derating</td><td>Software lowers the duty or stops</td><td>Overtemperature, low battery, load shedding when the vehicle draws too much, a detected fault</td></tr>
+  <tr><td>Soft start</td><td>Start at a low duty and ramp up</td><td>Cold-lamp inrush, motor start</td></tr>
+</table></div>
+<p>This differs from the DC-DC converters elsewhere on this site. A buck's frequency is chosen by the designer (e.g. with a frequency-setting resistor or a part variant, weighing efficiency, inductor size and EMI bands), but <b>nobody sets</b> its duty: the IC's internal feedback loop adjusts it automatically to about V<sub>OUT</sub> / V<sub>IN</sub>, correcting itself whenever the load or input voltage changes (see <a href="design.html#dcdc-control">Design · DC-DC control</a>).</p>
+<div class="tblwrap"><table>
+  <tr><th></th><th>Smart-switch PWM</th><th>DC-DC PWM</th></tr>
+  <tr><td>Frequency</td><td>Hz to hundreds of Hz, set by µC software</td><td>Hundreds of kHz to several MHz, set by the IC</td></tr>
+  <tr><td>Duty</td><td>Decided by µC software according to demand</td><td>Set automatically by the IC's internal loop</td></tr>
+  <tr><td>Purpose</td><td>Control the load's average power</td><td>Regulate the output voltage</td></tr>
+</table></div>
+
 <h2 id="thermal">Thermal design and layout</h2>
 <p>At 24 A DC and 150 °C, R<sub>DS(ON)</sub> is 4.4 mΩ typ.: P ≈ 24² × 4.4 m ≈ 2.5 W, and with R<sub>thJA</sub> = 22 K/W on a 2s2p board the rise is about 56 K, so at 85 °C ambient T<sub>J</sub> ≈ 141 °C; with the 5 mΩ maximum it is about 148 °C, right at the 150 °C minimum thermal-shutdown threshold. That is where I<sub>L(NOM)</sub> = 24 A comes from. On a single-layer board (35 K/W) the same current overheats.</p>
 <ul>
