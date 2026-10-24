@@ -156,6 +156,51 @@
   <li>48 V systems: in servers and mild hybrids, needing 80–100 V-rated devices.</li>
 </ul>
 
+<h2 id="voltage-classes">System voltage classes: reading the application from the IC rating</h2>
+<p>Datasheet numbers such as "V<sub>IN</sub> max 42 V" or "max 100 V" are not arbitrary: each class matches a system voltage plus the transients that system produces. Turned around, an IC's voltage rating tells you roughly which applications it is meant for. The figures below are orders of magnitude; real ranges depend on the standard's version and the customer's specification.</p>
+<figure>
+<svg class="chain" viewBox="0 0 640 285" role="img" aria-label="Normal operating range, transient range and common IC voltage ratings for each system voltage: lithium battery and USB, 12 V automotive, 24 V industrial, 24 V commercial vehicles, 48 V data center, 48 V telecom, 48 V mild hybrid">
+  <path d="M250 22V248M300 22V248M401 22V248M452 22V248" style="stroke:var(--line);stroke-dasharray:3 4"/>
+  <path class="wm" d="M200 250H620"/>
+  <g class="ts t-mut"><text x="200" y="266" text-anchor="middle">0</text><text x="250" y="266" text-anchor="middle">12</text><text x="300" y="266" text-anchor="middle">24</text><text x="401" y="266" text-anchor="middle">48</text><text x="452" y="266" text-anchor="middle">60</text><text x="536" y="266" text-anchor="middle">80</text><text x="620" y="266" text-anchor="middle">100 V</text></g>
+  <g style="fill:var(--warn);opacity:.3">
+    <rect x="213" y="35" width="12" height="10"/><rect x="213" y="67" width="134" height="10"/><rect x="276" y="99" width="75" height="10"/>
+    <rect x="276" y="131" width="168" height="10"/><rect x="368" y="195" width="84" height="10"/><rect x="301" y="227" width="151" height="10"/>
+  </g>
+  <rect class="c1" x="213" y="33" width="10" height="14" rx="2"/><rect class="c1" x="238" y="65" width="29" height="14" rx="2"/><rect class="c1" x="276" y="97" width="50" height="14" rx="2"/>
+  <rect class="c1" x="276" y="129" width="58" height="14" rx="2"/><rect class="c1" x="368" y="161" width="84" height="14" rx="2"/><rect class="c1" x="368" y="193" width="71" height="14" rx="2"/><rect class="c1" x="351" y="225" width="67" height="14" rx="2"/>
+  <path style="fill:var(--bad)" d="M225 31l6 9-6 9-6-9zM368 63l6 9-6 9-6-9zM351 95l6 9-6 9-6-9zM473 127l6 9-6 9-6-9zM536 159l6 9-6 9-6-9zM536 191l6 9-6 9-6-9zM494 223l6 9-6 9-6-9z"/>
+  <g class="ts">
+  <text x="8" y="44">Li-ion cell / USB 5 V</text><text x="8" y="76">12 V automotive</text><text x="8" y="108">24 V industrial</text><text x="8" y="140">24 V commercial vehicle</text>
+  <text x="8" y="172">48 V data center</text><text x="8" y="204">−48 V telecom (magnitude)</text><text x="8" y="236">48 V mild hybrid</text>
+  <g style="fill:var(--bad)"><text x="236" y="44">5.5–6 V</text><text x="379" y="76">40–42 V</text><text x="362" y="108">36–60 V</text><text x="484" y="140">65 V and up</text>
+  <text x="547" y="172">80–100 V</text><text x="547" y="204">80–100 V</text><text x="505" y="236">70–100 V</text></g>
+  <text x="620" y="14" text-anchor="end" class="t-mut">dark: normal operation　light: transients　<tspan style="fill:var(--bad)">◆</tspan>: common IC rating</text>
+  </g>
+</svg>
+<figcaption>System voltages, orders of magnitude. Dark bars are the normal operating range; light bars extend to cold cranking, jump start, suppressed load dump or the overvoltage a spec allows; red diamonds are the IC voltage ratings common for that application. Values vary with standard versions and carmaker or customer specs.</figcaption>
+</figure>
+<div class="tblwrap"><table>
+  <tr><th>System</th><th>Typical applications</th><th>Why this rating</th></tr>
+  <tr><td>Single Li-ion cell, USB 5 V</td><td>Phones, wearables, IoT</td><td>The cell tops out around 4.2–4.4 V and USB 5 V has tolerance and plug-in spikes, so a 5.5–6 V low-voltage process is enough: small and cheap</td></tr>
+  <tr><td>USB PD and other fast charging</td><td>Laptops, chargers</td><td>Negotiated voltages reach 20 V or more, so these ICs are often rated 24–30 V or higher</td></tr>
+  <tr><td>12 V automotive</td><td>Body control, infotainment, ADAS peripherals</td><td>Normally 9–16 V; cold cranking dips to about 3 V, jump start is 24–27 V, and centrally suppressed load dump is about 35–40 V. Hence <b>40–42 V</b> is the most common automotive rating (see <a href="#automotive">Automotive power</a>)</td></tr>
+  <tr><td>12 V server / industrial bus</td><td>Server boards, networking</td><td>No load dump, so a 16–20 V class has margin</td></tr>
+  <tr><td>24 V industrial</td><td>PLCs, sensors, motor drives</td><td>A wide range (about 18–30 V) plus surges and long-cable inductance; 36–60 V parts are common</td></tr>
+  <tr><td>24 V commercial vehicles</td><td>Trucks, buses</td><td>Even suppressed, load dump can reach the high fifties, so 65 V or more is needed</td></tr>
+  <tr><td>48 V data center</td><td>Rack busbar, 48 V-to-12 V intermediate converters, direct conversion stages toward the GPU</td><td>The bus is about 40–60 V, and parts are often rated 80–100 V (see <a href="sic.html#dc-chain">SiC and data centers</a>)</td></tr>
+  <tr><td>−48 V telecom</td><td>Base stations, switches</td><td>Traditionally negative (positive grounded), operating about 40–57 V in magnitude; also 80–100 V parts</td></tr>
+  <tr><td>48 V mild hybrid</td><td>48 V starter-generators, electric compressors, e-turbos</td><td>Per LV 148 and similar specs, about 36–52 V operating with overvoltage allowed to around 60 V; 70–100 V parts are common</td></tr>
+  <tr><td>400 / 800 V</td><td>EV traction, 800 V data-center distribution</td><td>The territory of 650 V and 1200 V SiC and IGBTs (see <a href="sic.html#hvdc">800 V HVDC</a>)</td></tr>
+</table></div>
+<ul>
+  <li><b>42 V does not go on 48 V</b>: an IC rated 42 V connected to a 48 V bus is over its rating the moment power comes up. For 48 V systems start from parts rated 60 V or more; in practice mostly 80–100 V.</li>
+  <li><b>"42 V PowerNet" is something else</b>: around 2000 the car industry proposed a dual 14 V / 42 V system (36 V battery, 42 V charging). It never reached volume production, and today's successor is the 48 V mild hybrid. A 42 V automotive system in older literature means this.</li>
+  <li><b>Absolute maximum versus recommended operating</b>: the datasheet's absolute maximum rating is only the limit of immediate damage; long-term operation must stay within the recommended operating range, and even the worst transient must not exceed the absolute maximum.</li>
+  <li><b>Keep margin</b>: a common practice is to keep the worst steady-state voltage below 70–80% of the rating and clamp transients below the rating with a TVS or clamp circuit (see <a href="#hot-plug">Hot plug and input protection</a>).</li>
+  <li><b>Higher rating costs more</b>: a higher rating makes the power devices' on-resistance and area larger (R<sub>sp</sub> ∝ BV<sup>2.5</sup> in <a href="process.html#ldmos">Process · LDMOS</a>), so do not over-specify; a 42 V part in a 5 V phone supply is just larger and more expensive.</li>
+</ul>
+
 <h2 id="segments">What each segment cares about</h2>
 <div class="tblwrap"><table>
   <tr><th>Segment</th><th>Focus</th></tr>
@@ -198,7 +243,7 @@
 <nav class="pager"></nav>
 </article>
 </main>
-<footer class="updated">Last updated: <time datetime="2026-10-20">2026-10-20</time></footer>
+<footer class="updated">Last updated: <time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
 <script src="../assets/figs.js"></script>

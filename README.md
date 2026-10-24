@@ -12,14 +12,14 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `design.html` | 3. 設計：LDO 迴路、ESR 窗口、無電容 LDO、PSRR、雜訊、暫態、帶隙、保護、DC-DC 控制與補償、PMIC 數位、驗證 |
 | `production.html` | 4. 生產：流程、WAT、CP 修調、封裝、FT、良率、Cpk / SPC、PAT、追溯、PCN、產能 |
 | `test.html` | 5. 測試：參數量測、ATE、大量 ATE 測試（測試單元、UPH 與平行效率、測試成本、縮短測試時間、重測與分 bin，附 UPH / 成本計算器 `assets/ate.js`）、DFT、Kelvin、相關性 / GR&R、特性化、AEC-Q100、ESD / latch-up、功能安全 |
-| `application.html` | 6. 應用：電源樹、時序、MLCC DC bias、電感、熱、佈局、EMI、熱插拔、車用、選型檢查表 |
+| `application.html` | 6. 應用：電源樹、時序、MLCC DC bias、電感、熱、佈局、EMI、熱插拔、車用、系統電壓等級（從 IC 耐壓看應用：5 V、12 V 車用 42 V、24 V、48 V 資料中心 / 電信 / 輕混、800 V）、選型檢查表 |
 | `issues.html` | 常見問題：症狀索引，振盪 / 啟動 / 過衝 / 熱 / 雜訊 / 效率 / 反灌 / EMI，設計、製程、測試類問題，除錯技巧 |
 | `complaints.html` | 客訴處理：流程、資訊收集、FA 流程、失效分類、8D、根因工具、10 個典型案例、溝通、指標 |
 | `lab.html` | 互動實驗室：LDO 穩定度、PSRR、負載暫態、壓差與熱、Buck 漣波、MLCC DC bias、修調與良率；每個實驗都有自動掃描（參數來回跑、殘影比較）與電路圖（`assets/lab-circuit.js`，參數對應元件會亮起、點元件跳到滑桿；負載暫態與 Buck 可播放電流，電路上顯示即時電流流向，波形上有時間游標） |
 | `sic.html` | 專題：SiC 與資料中心電源（Si / SiC / GaN 分工、PSU、800 V HVDC、Infineon 例、SiC 設計與可靠度）|
 | `smartswitch.html` | 專題：車用智慧高邊開關，以 Infineon PROFET BTS50025-1TEA 為例（方塊圖、電流感測、鎖存保護、ReverSave、SMART CLAMPING、電容負載、PWM、熱、內部電路、各區塊測法與量測接法、客訴情境），附四個計算器（PWM 計算器有波形圖與自動掃描：選一個參數來回跑，看接面溫度、損耗、負載功率或實際 duty 怎麼跟著變）（`assets/hss.js`）|
 | `roles.html` | 職務地圖：類比設計、佈局、數位、AE/FAE、PE、TE、製程、QRA、FA |
-| `quiz.html` | 測驗：67 題，九個主題 |
+| `quiz.html` | 測驗：68 題，九個主題 |
 | `glossary.html` | 術語表：全站約 260 個術語，依主題分類；各章內文的術語有虛線底線，滑鼠移上去（手機點一下）顯示解釋 |
 
 `assets/`：`style.css`（共用樣式，深淺色）、`site.js`（導覽、搜尋、目錄、語言切換、術語提示）、`plot.js`（SVG 繪圖）、`lab.js`、`lab-circuit.js`（實驗電路圖與電流播放）、`figs.js`（佈局好／壞對照圖）、`hss.js`（智慧開關計算器）、`quiz.js`、`glossary-data.js`、`search-index.js` / `search-index-en.js`（自動產生）。

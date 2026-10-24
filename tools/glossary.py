@@ -21,7 +21,7 @@ CATS = [
 
 GLOSS = [
     # ---------- devices and basics ----------
-    ("IC", [], "basic", "積體電路", "把電晶體、電阻、電容等做在同一塊矽晶片上的電路。", "Integrated circuit", "A circuit with transistors, resistors and capacitors built on one silicon die.", "architecture.html#why-regulate"),
+    ("IC", ["ICs"], "basic", "積體電路", "把電晶體、電阻、電容等做在同一塊矽晶片上的電路。", "Integrated circuit", "A circuit with transistors, resistors and capacitors built on one silicon die.", "architecture.html#why-regulate"),
     ("LDO", [], "basic", "低壓差線性穩壓器", "用傳輸元件當可變電阻來穩壓，只需要很小的輸入輸出壓差。", "Low-dropout regulator", "A linear regulator whose pass device acts as a variable resistor and needs only a small input-output difference.", "architecture.html#ldo-block"),
     ("PMIC", [], "basic", "電源管理 IC", "把多路 Buck、LDO、時序控制、監控與介面整合在一顆晶片。", "Power-management IC", "One chip integrating several bucks, LDOs, sequencing, monitoring and interfaces.", "architecture.html#pmic"),
     ("DC-DC", [], "basic", "直流-直流轉換器", "把一個直流電壓轉成另一個直流電壓的切換式轉換器，例如 Buck、Boost。", "DC-DC converter", "A switching converter from one DC voltage to another, e.g. buck or boost.", "architecture.html#linear-vs-switching"),
@@ -37,7 +37,7 @@ GLOSS = [
     ("NPN", ["PNP"], "basic", "NPN / PNP 電晶體", "BJT 的兩種極性；早期穩壓器用 NPN 達靈頓或 PNP 當傳輸元件。", "NPN / PNP transistors", "The two BJT polarities; early regulators used an NPN Darlington or a PNP as pass device.", "architecture.html#pass-device"),
     ("PN", [], "basic", "PN 接面", "P 型與 N 型半導體的交界，也就是二極體；反偏時可做隔離。", "PN junction", "The boundary between P- and N-type silicon, i.e. a diode; reverse-biased it isolates.", "process.html#isolation"),
     ("SCR", ["PNPN"], "basic", "閘流體（四層 PNPN 結構）", "被觸發後會一直導通到斷電；晶片中的寄生 PNPN 就是 latch-up 的來源。", "Silicon-controlled rectifier (PNPN)", "Once triggered it conducts until power is removed; parasitic PNPN structures cause latch-up.", "test.html#esd-lu"),
-    ("IGBT", [], "basic", "絕緣閘雙極電晶體", "用 MOS 閘極控制的雙極功率元件，用於高壓大電流，例如馬達驅動、逆變器。", "Insulated-gate bipolar transistor", "A MOS-gated bipolar power device for high voltage and current, e.g. motor drives and inverters.", "sic.html#why-wbg"),
+    ("IGBT", ["IGBTs"], "basic", "絕緣閘雙極電晶體", "用 MOS 閘極控制的雙極功率元件，用於高壓大電流，例如馬達驅動、逆變器。", "Insulated-gate bipolar transistor", "A MOS-gated bipolar power device for high voltage and current, e.g. motor drives and inverters.", "sic.html#why-wbg"),
     ("HEMT", [], "basic", "高電子遷移率電晶體", "GaN 功率元件的結構，利用異質介面的二維電子氣導電，速度快。", "High-electron-mobility transistor", "The GaN power-device structure, conducting through a 2D electron gas at a heterojunction; very fast.", "sic.html#sic-vs-gan"),
     ("HV", [], "basic", "高壓", "製程中能承受較高電壓的元件版本，例如 HV CMOS。", "High voltage", "Device variants rated for higher voltage, e.g. HV CMOS.", "process.html#device-menu"),
     ("BV", [], "basic", "崩潰電壓", "元件開始大量導通（崩潰）的電壓，決定耐壓等級。", "Breakdown voltage", "The voltage at which a device breaks down and conducts heavily; sets its rating.", "process.html#ldmos"),
@@ -218,4 +218,11 @@ GLOSS = [
     ("CAN", ["LIN"], "hss", "車用通訊匯流排", "CAN 是 ECU 之間的主要通訊網路；LIN 是較慢、較便宜的單線匯流排，用於車窗、座椅等次要節點。", "Automotive buses", "CAN is the main network between ECUs; LIN is a slower, cheaper single-wire bus for minor nodes such as windows and seats.", "smartswitch.html#pwm-who"),
     ("PI controller", ["PI 控制器"], "ckt", "比例-積分控制器", "依誤差的大小（比例）與累積（積分）調整輸出的閉迴路控制，例如依溫度誤差調整 PWM duty。", "Proportional-integral controller", "Closed-loop control acting on the size (proportional) and accumulation (integral) of the error, e.g. adjusting PWM duty from a temperature error.", "smartswitch.html#pwm-who"),
     ("Load shedding", ["load shedding"], "hss", "負載卸除", "整車用電超過發電與電池能提供的量時，依優先順序暫時降低或關閉非必要負載。", "Load shedding", "Temporarily reducing or switching off non-essential loads in priority order when the vehicle draws more than the alternator and battery can supply.", "smartswitch.html#pwm-who"),
+    # ---------- system voltage classes ----------
+    ("LV 148", ["LV148"], "std", "德國車廠 48 V 電氣規範", "德國車廠共同制定的 48 V 車用電氣規範，定義工作範圍（約 36–52 V）與允許的過壓。", "German OEM 48 V specification", "The joint German OEM specification for 48 V vehicle electrics, defining the operating range (about 36–52 V) and allowed overvoltage.", "application.html#voltage-classes"),
+    ("PowerNet", ["42 V PowerNet"], "sys", "42 V 車用電氣系統（未量產）", "2000 年前後提出的 14 V / 42 V 雙電壓車用系統，沒有量產，接班者是 48 V 輕混。", "42 V automotive system (never produced)", "A dual 14 V / 42 V vehicle system proposed around 2000; it never reached production, and the 48 V mild hybrid succeeded it.", "application.html#voltage-classes"),
+    ("Mild hybrid", ["mild hybrid", "輕混車"], "sys", "輕度混合動力車", "用 48 V 電池與啟動發電機輔助引擎、回收煞車能量的車，電動化程度比全混合動力低。", "Mild hybrid", "A vehicle that uses a 48 V battery and starter-generator to assist the engine and recover braking energy; less electrified than a full hybrid.", "application.html#voltage-classes"),
+    ("EV", [], "sys", "電動車", "以電池與馬達驅動的車輛；主驅系統多為 400 V 或 800 V。", "Electric vehicle", "A vehicle driven by a battery and motor; traction systems are mostly 400 V or 800 V.", "application.html#voltage-classes"),
+    ("PLC", ["PLCs"], "sys", "可程式邏輯控制器", "工業自動化的控制器，通常由 24 V 直流供電。", "Programmable logic controller", "The controller of industrial automation, usually powered from 24 V DC.", "application.html#voltage-classes"),
+    ("USB PD", [], "sys", "USB 供電協定", "USB 的快充協定，裝置與充電器協商後可提高電壓（例如 20 V），以傳送更大功率。", "USB Power Delivery", "The USB fast-charging protocol; device and charger negotiate a higher voltage (e.g. 20 V) to deliver more power.", "application.html#voltage-classes"),
 ]

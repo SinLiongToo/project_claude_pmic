@@ -18,7 +18,7 @@
 <h1>術語表：全站縮寫與名詞</h1>
 <p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 284 個。</p>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 290 個。</p>
 <h2 id="cat-basic">元件與基礎</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
@@ -40,8 +40,8 @@
   <div><dt id="g-guard-ring">Guard ring</dt><dd>保護環，包圍元件以收集注入載子、降低 latch-up 風險。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-hemt">HEMT <small>高電子遷移率電晶體</small></dt><dd>GaN 功率元件的結構，利用異質介面的二維電子氣導電，速度快。 <span class="gl-other">High-electron-mobility transistor</span>  <a class="gl-more" href="sic.html#sic-vs-gan">詳細說明 →</a></dd></div>
   <div><dt id="g-hv">HV <small>高壓</small></dt><dd>製程中能承受較高電壓的元件版本，例如 HV CMOS。 <span class="gl-other">High voltage</span>  <a class="gl-more" href="process.html#device-menu">詳細說明 →</a></dd></div>
-  <div><dt id="g-ic">IC <small>積體電路</small></dt><dd>把電晶體、電阻、電容等做在同一塊矽晶片上的電路。 <span class="gl-other">Integrated circuit</span>  <a class="gl-more" href="architecture.html#why-regulate">詳細說明 →</a></dd></div>
-  <div><dt id="g-igbt">IGBT <small>絕緣閘雙極電晶體</small></dt><dd>用 MOS 閘極控制的雙極功率元件，用於高壓大電流，例如馬達驅動、逆變器。 <span class="gl-other">Insulated-gate bipolar transistor</span>  <a class="gl-more" href="sic.html#why-wbg">詳細說明 →</a></dd></div>
+  <div><dt id="g-ic">IC <small>積體電路</small></dt><dd>把電晶體、電阻、電容等做在同一塊矽晶片上的電路。 <span class="gl-other">Integrated circuit</span> <span class="gl-also">也寫作：ICs</span> <a class="gl-more" href="architecture.html#why-regulate">詳細說明 →</a></dd></div>
+  <div><dt id="g-igbt">IGBT <small>絕緣閘雙極電晶體</small></dt><dd>用 MOS 閘極控制的雙極功率元件，用於高壓大電流，例如馬達驅動、逆變器。 <span class="gl-other">Insulated-gate bipolar transistor</span> <span class="gl-also">也寫作：IGBTs</span> <a class="gl-more" href="sic.html#why-wbg">詳細說明 →</a></dd></div>
   <div><dt id="g-ji">JI <small>接面隔離</small></dt><dd>用反偏 PN 接面把元件和基板隔開，成本低但有寄生元件。 <span class="gl-other">Junction isolation</span>  <a class="gl-more" href="process.html#isolation">詳細說明 →</a></dd></div>
   <div><dt id="g-ldmos">LDMOS</dt><dd>Laterally Diffused MOS，橫向擴散 MOS，電源 IC 的主力功率元件。  <a class="gl-more" href="process.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-ldo">LDO <small>低壓差線性穩壓器</small></dt><dd>用傳輸元件當可變電阻來穩壓，只需要很小的輸入輸出壓差。 <span class="gl-other">Low-dropout regulator</span>  <a class="gl-more" href="architecture.html#ldo-block">詳細說明 →</a></dd></div>
@@ -253,14 +253,18 @@
   <div><dt id="g-ddr">DDR <small>雙倍資料率記憶體</small></dt><dd>主流 DRAM 介面；DDR5 模組上有自己的 PMIC。 <span class="gl-other">Double data rate memory</span> <span class="gl-also">也寫作：DDR5</span> <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
   <div><dt id="g-ecu">ECU <small>電子控制單元</small></dt><dd>車上的控制模組，例如引擎、車身控制器。 <span class="gl-other">Electronic control unit</span>  <a class="gl-more" href="complaints.html#c-escape">詳細說明 →</a></dd></div>
   <div><dt id="g-eos">EOS</dt><dd>Electrical Overstress，電性過應力，超過絕對最大額定造成的損壞。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-ev">EV <small>電動車</small></dt><dd>以電池與馬達驅動的車輛；主驅系統多為 400 V 或 800 V。 <span class="gl-other">Electric vehicle</span>  <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-fpga">FPGA <small>可程式邏輯閘陣列</small></dt><dd>可重新配置的數位晶片，有多路電源與上電時序要求。 <span class="gl-other">Field-programmable gate array</span>  <a class="gl-more" href="application.html#sequencing">詳細說明 →</a></dd></div>
   <div><dt id="g-hot-loop">Hot loop</dt><dd>Buck 中電流脈衝流經的高頻迴路。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-iot">IoT <small>物聯網</small></dt><dd>大量小型聯網裝置，通常靠電池長時間待機，需要極低靜態電流。 <span class="gl-other">Internet of Things</span>  <a class="gl-more" href="application.html#segments">詳細說明 →</a></dd></div>
   <div><dt id="g-led">LED <small>發光二極體 / 有機發光二極體 / 液晶顯示器</small></dt><dd>照明與顯示元件；背光與 OLED 需要升壓或負壓電源。 <span class="gl-other">LED / OLED / LCD</span> <span class="gl-also">也寫作：OLED、LCD</span> <a class="gl-more" href="architecture.html#boost-bb">詳細說明 →</a></dd></div>
   <div><dt id="g-load-dump">Load dump</dt><dd>拋負載，車用發電機在負載突然斷開時產生的高壓瞬態。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-mild-hybrid">Mild hybrid <small>輕度混合動力車</small></dt><dd>用 48 V 電池與啟動發電機輔助引擎、回收煞車能量的車，電動化程度比全混合動力低。 <span class="gl-other">Mild hybrid</span> <span class="gl-also">也寫作：mild hybrid、輕混車</span> <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-mv">MV <small>中壓</small></dt><dd>電網的中壓等級（數 kV 到數十 kV），資料中心的進線電壓。 <span class="gl-other">Medium voltage</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
+  <div><dt id="g-plc">PLC <small>可程式邏輯控制器</small></dt><dd>工業自動化的控制器，通常由 24 V 直流供電。 <span class="gl-other">Programmable logic controller</span> <span class="gl-also">也寫作：PLCs</span> <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-poe">PoE <small>乙太網路供電</small></dt><dd>用網路線同時傳輸資料與電力（約 48 V）。 <span class="gl-other">Power over Ethernet</span>  <a class="gl-more" href="process.html#bcd">詳細說明 →</a></dd></div>
   <div><dt id="g-power-tree">Power tree</dt><dd>電源樹，系統中所有電源軌的轉換關係。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-powernet">PowerNet <small>42 V 車用電氣系統（未量產）</small></dt><dd>2000 年前後提出的 14 V / 42 V 雙電壓車用系統，沒有量產，接班者是 48 V 輕混。 <span class="gl-other">42 V automotive system (never produced)</span> <span class="gl-also">也寫作：42 V PowerNet</span> <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-pre-bias">Pre-bias</dt><dd>輸出已有電壓時的啟動情況。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-psu">PSU <small>電源供應器</small></dt><dd>把市電轉成設備要的直流電；伺服器 PSU 通常是 PFC + LLC 兩級。 <span class="gl-other">Power supply unit</span>  <a class="gl-more" href="sic.html#psu">詳細說明 →</a></dd></div>
   <div><dt id="g-rf">RF <small>射頻</small></dt><dd>無線通訊的高頻電路；對電源雜訊與切換頻率諧波很敏感。 <span class="gl-other">Radio frequency</span>  <a class="gl-more" href="application.html#segments">詳細說明 →</a></dd></div>
@@ -271,6 +275,7 @@
   <div><dt id="g-tvs">TVS</dt><dd>Transient Voltage Suppressor，瞬態電壓抑制二極體。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-ups">UPS <small>不斷電系統</small></dt><dd>停電時由電池繼續供電的設備，資料中心電源鏈的一級。 <span class="gl-other">Uninterruptible power supply</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
   <div><dt id="g-usb">USB <small>通用序列匯流排 / USB 供電</small></dt><dd>USB 介面與其供電；USB PD（Power Delivery）可協商 5–48 V 的供電電壓。 <span class="gl-other">Universal Serial Bus / USB Power Delivery</span> <span class="gl-also">也寫作：PD</span> <a class="gl-more" href="architecture.html#boost-bb">詳細說明 →</a></dd></div>
+  <div><dt id="g-usb-pd">USB PD <small>USB 供電協定</small></dt><dd>USB 的快充協定，裝置與充電器協商後可提高電壓（例如 20 V），以傳送更大功率。 <span class="gl-other">USB Power Delivery</span>  <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-jt">Ψ<sub>JT</sub></dt><dd>接面到封裝頂部的熱特性參數，用於由表面溫度推算接面溫度。  <a class="gl-more" href="application.html#glossary">詳細說明 →</a></dd></div>
 </dl>
 <h2 id="cat-std">標準與組織</h2>
@@ -283,6 +288,7 @@
   <div><dt id="g-j-std-020">J-STD-020 <small>濕敏等級分類標準</small></dt><dd>定義 MSL 等級與回焊條件的 IPC/JEDEC 標準。 <span class="gl-other">Moisture-sensitivity classification</span>  <a class="gl-more" href="production.html#assembly">詳細說明 →</a></dd></div>
   <div><dt id="g-jedec">JEDEC <small>固態技術協會</small></dt><dd>制定記憶體與半導體封裝、測試、可靠度標準的組織，例如 JESD47、JESD51。 <span class="gl-other">JEDEC Solid State Technology Association</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
   <div><dt id="g-jesd46">JESD46 <small>JEDEC 標準編號</small></dt><dd>JESD46 變更通知、JESD47 可靠度驗證、JESD48 停產通知、JESD51 熱量測、JESD78 latch-up。 <span class="gl-other">JEDEC standard numbers</span> <span class="gl-also">也寫作：JESD47、JESD48、JESD51、JESD78</span> <a class="gl-more" href="production.html#pcn">詳細說明 →</a></dd></div>
+  <div><dt id="g-lv-148">LV 148 <small>德國車廠 48 V 電氣規範</small></dt><dd>德國車廠共同制定的 48 V 車用電氣規範，定義工作範圍（約 36–52 V）與允許的過壓。 <span class="gl-other">German OEM 48 V specification</span> <span class="gl-also">也寫作：LV148</span> <a class="gl-more" href="application.html#voltage-classes">詳細說明 →</a></dd></div>
   <div><dt id="g-mipi">MIPI <small>行動產業處理器介面聯盟</small></dt><dd>制定 SPMI 等行動裝置介面的組織。 <span class="gl-other">MIPI Alliance</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
 </dl>
 <h2 id="cat-wbg">寬能隙與資料中心</h2>

@@ -18,7 +18,7 @@
 <h1>Glossary: every acronym and term on the site</h1>
 <p class="lead">Power-IC writing is full of acronyms. Every term used on this site is collected here by topic, each with a one-line definition and a link to the section that explains it. In the chapters, the first use of a term in each section is underlined with dots; hover it (or tap on a phone) to see the definition from this page.</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="Filter: type UVLO, capacitor, test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">Includes the terms from every chapter glossary and spec list: 284 in all.</p>
+<p class="note">Includes the terms from every chapter glossary and spec list: 290 in all.</p>
 <h2 id="cat-basic">Devices and basics</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>Alternating current</small></dt><dd>Electricity whose direction alternates periodically; mains is 50/60 Hz AC.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
@@ -40,8 +40,8 @@
   <div><dt id="g-guard-ring">Guard ring</dt><dd>A ring around a device that collects injected carriers and lowers latch-up risk.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
   <div><dt id="g-hemt">HEMT <small>High-electron-mobility transistor</small></dt><dd>The GaN power-device structure, conducting through a 2D electron gas at a heterojunction; very fast.  <a class="gl-more" href="sic.html#sic-vs-gan">Details →</a></dd></div>
   <div><dt id="g-hv">HV <small>High voltage</small></dt><dd>Device variants rated for higher voltage, e.g. HV CMOS.  <a class="gl-more" href="process.html#device-menu">Details →</a></dd></div>
-  <div><dt id="g-ic">IC <small>Integrated circuit</small></dt><dd>A circuit with transistors, resistors and capacitors built on one silicon die.  <a class="gl-more" href="architecture.html#why-regulate">Details →</a></dd></div>
-  <div><dt id="g-igbt">IGBT <small>Insulated-gate bipolar transistor</small></dt><dd>A MOS-gated bipolar power device for high voltage and current, e.g. motor drives and inverters.  <a class="gl-more" href="sic.html#why-wbg">Details →</a></dd></div>
+  <div><dt id="g-ic">IC <small>Integrated circuit</small></dt><dd>A circuit with transistors, resistors and capacitors built on one silicon die. <span class="gl-also">Also: ICs</span> <a class="gl-more" href="architecture.html#why-regulate">Details →</a></dd></div>
+  <div><dt id="g-igbt">IGBT <small>Insulated-gate bipolar transistor</small></dt><dd>A MOS-gated bipolar power device for high voltage and current, e.g. motor drives and inverters. <span class="gl-also">Also: IGBTs</span> <a class="gl-more" href="sic.html#why-wbg">Details →</a></dd></div>
   <div><dt id="g-ji">JI <small>Junction isolation</small></dt><dd>Isolating devices from the substrate with reverse-biased PN junctions; cheap but parasitic.  <a class="gl-more" href="process.html#isolation">Details →</a></dd></div>
   <div><dt id="g-ldmos">LDMOS</dt><dd>Laterally diffused MOS, the workhorse power device of power ICs.  <a class="gl-more" href="process.html#glossary">Details →</a></dd></div>
   <div><dt id="g-ldo">LDO <small>Low-dropout regulator</small></dt><dd>A linear regulator whose pass device acts as a variable resistor and needs only a small input-output difference.  <a class="gl-more" href="architecture.html#ldo-block">Details →</a></dd></div>
@@ -253,14 +253,18 @@
   <div><dt id="g-ddr">DDR <small>Double data rate memory</small></dt><dd>The mainstream DRAM interface; DDR5 modules carry their own PMIC. <span class="gl-also">Also: DDR5</span> <a class="gl-more" href="architecture.html#pmic">Details →</a></dd></div>
   <div><dt id="g-ecu">ECU <small>Electronic control unit</small></dt><dd>A vehicle control module, e.g. engine or body controller.  <a class="gl-more" href="complaints.html#c-escape">Details →</a></dd></div>
   <div><dt id="g-eos">EOS</dt><dd>Electrical overstress: damage from exceeding absolute maximum ratings.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-ev">EV <small>Electric vehicle</small></dt><dd>A vehicle driven by a battery and motor; traction systems are mostly 400 V or 800 V.  <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-fpga">FPGA <small>Field-programmable gate array</small></dt><dd>A reconfigurable digital chip with several rails and power-up rules.  <a class="gl-more" href="application.html#sequencing">Details →</a></dd></div>
   <div><dt id="g-hot-loop">Hot loop</dt><dd>The high-frequency loop in a buck through which pulsed current flows.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
   <div><dt id="g-iot">IoT <small>Internet of Things</small></dt><dd>Many small connected devices, often on batteries for years; need very low quiescent current.  <a class="gl-more" href="application.html#segments">Details →</a></dd></div>
   <div><dt id="g-led">LED <small>LED / OLED / LCD</small></dt><dd>Lighting and display devices; backlights and OLEDs need boost or negative supplies. <span class="gl-also">Also: OLED, LCD</span> <a class="gl-more" href="architecture.html#boost-bb">Details →</a></dd></div>
   <div><dt id="g-load-dump">Load dump</dt><dd>The high-voltage transient from an automotive alternator when its load is suddenly disconnected.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-mild-hybrid">Mild hybrid <small>Mild hybrid</small></dt><dd>A vehicle that uses a 48 V battery and starter-generator to assist the engine and recover braking energy; less electrified than a full hybrid. <span class="gl-also">Also: mild hybrid</span> <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-mv">MV <small>Medium voltage</small></dt><dd>Grid voltage of a few to tens of kV; the data center&#x27;s incoming supply.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
+  <div><dt id="g-plc">PLC <small>Programmable logic controller</small></dt><dd>The controller of industrial automation, usually powered from 24 V DC. <span class="gl-also">Also: PLCs</span> <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-poe">PoE <small>Power over Ethernet</small></dt><dd>Carrying data and power (about 48 V) over an Ethernet cable.  <a class="gl-more" href="process.html#bcd">Details →</a></dd></div>
   <div><dt id="g-power-tree">Power tree</dt><dd>The conversion relationships between all rails in a system.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-powernet">PowerNet <small>42 V automotive system (never produced)</small></dt><dd>A dual 14 V / 42 V vehicle system proposed around 2000; it never reached production, and the 48 V mild hybrid succeeded it. <span class="gl-also">Also: 42 V PowerNet</span> <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-pre-bias">Pre-bias</dt><dd>Starting up with voltage already on the output.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
   <div><dt id="g-psu">PSU <small>Power supply unit</small></dt><dd>Converts mains into the DC a device needs; server PSUs are usually PFC + LLC.  <a class="gl-more" href="sic.html#psu">Details →</a></dd></div>
   <div><dt id="g-rf">RF <small>Radio frequency</small></dt><dd>High-frequency wireless circuits; sensitive to supply noise and switching harmonics.  <a class="gl-more" href="application.html#segments">Details →</a></dd></div>
@@ -271,6 +275,7 @@
   <div><dt id="g-tvs">TVS</dt><dd>Transient voltage suppressor diode.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
   <div><dt id="g-ups">UPS <small>Uninterruptible power supply</small></dt><dd>Keeps power on from batteries during outages; one stage of the data-center power chain.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
   <div><dt id="g-usb">USB <small>Universal Serial Bus / USB Power Delivery</small></dt><dd>The USB interface and its power; USB PD negotiates supply voltages from 5 to 48 V. <span class="gl-also">Also: PD</span> <a class="gl-more" href="architecture.html#boost-bb">Details →</a></dd></div>
+  <div><dt id="g-usb-pd">USB PD <small>USB Power Delivery</small></dt><dd>The USB fast-charging protocol; device and charger negotiate a higher voltage (e.g. 20 V) to deliver more power.  <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-jt">Ψ<sub>JT</sub></dt><dd>Junction-to-top thermal characterisation parameter, used to infer junction temperature from case-top temperature.  <a class="gl-more" href="application.html#glossary">Details →</a></dd></div>
 </dl>
 <h2 id="cat-std">Standards and bodies</h2>
@@ -283,6 +288,7 @@
   <div><dt id="g-j-std-020">J-STD-020 <small>Moisture-sensitivity classification</small></dt><dd>The IPC/JEDEC standard defining MSL levels and reflow conditions.  <a class="gl-more" href="production.html#assembly">Details →</a></dd></div>
   <div><dt id="g-jedec">JEDEC <small>JEDEC Solid State Technology Association</small></dt><dd>The body setting memory and semiconductor package, test and reliability standards, e.g. JESD47, JESD51.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
   <div><dt id="g-jesd46">JESD46 <small>JEDEC standard numbers</small></dt><dd>JESD46 change notices, JESD47 qualification, JESD48 discontinuation, JESD51 thermal measurement, JESD78 latch-up. <span class="gl-also">Also: JESD47, JESD48, JESD51, JESD78</span> <a class="gl-more" href="production.html#pcn">Details →</a></dd></div>
+  <div><dt id="g-lv-148">LV 148 <small>German OEM 48 V specification</small></dt><dd>The joint German OEM specification for 48 V vehicle electrics, defining the operating range (about 36–52 V) and allowed overvoltage. <span class="gl-also">Also: LV148</span> <a class="gl-more" href="application.html#voltage-classes">Details →</a></dd></div>
   <div><dt id="g-mipi">MIPI <small>MIPI Alliance</small></dt><dd>The body defining mobile interfaces such as SPMI.  <a class="gl-more" href="design.html#pmic-digital">Details →</a></dd></div>
 </dl>
 <h2 id="cat-wbg">Wide bandgap and data centers</h2>

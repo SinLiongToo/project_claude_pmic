@@ -155,6 +155,51 @@
   <li>48 V 系統：伺服器與輕混車用，需要 80–100 V 耐壓的元件。</li>
 </ul>
 
+<h2 id="voltage-classes">系統電壓等級：從 IC 的耐壓看應用</h2>
+<p>資料手冊上「V<sub>IN</sub> 最大 42 V」「最大 100 V」這種數字不是隨便訂的，每一級都對應到某一種系統電壓，再加上那個系統裡會出現的瞬態。反過來說，看一顆 IC 的耐壓，大概就猜得到它是給哪一類應用用的。下圖的數字都是量級，實際範圍以各標準的版本與客戶規範為準。</p>
+<figure>
+<svg class="chain" viewBox="0 0 640 285" role="img" aria-label="各系統電壓的正常工作範圍、瞬態範圍與常見 IC 耐壓等級：鋰電與 USB、12 V 車用、24 V 工業、24 V 商用車、48 V 資料中心、48 V 電信、48 V 輕混">
+  <path d="M250 22V248M300 22V248M401 22V248M452 22V248" style="stroke:var(--line);stroke-dasharray:3 4"/>
+  <path class="wm" d="M200 250H620"/>
+  <g class="ts t-mut"><text x="200" y="266" text-anchor="middle">0</text><text x="250" y="266" text-anchor="middle">12</text><text x="300" y="266" text-anchor="middle">24</text><text x="401" y="266" text-anchor="middle">48</text><text x="452" y="266" text-anchor="middle">60</text><text x="536" y="266" text-anchor="middle">80</text><text x="620" y="266" text-anchor="middle">100 V</text></g>
+  <g style="fill:var(--warn);opacity:.3">
+    <rect x="213" y="35" width="12" height="10"/><rect x="213" y="67" width="134" height="10"/><rect x="276" y="99" width="75" height="10"/>
+    <rect x="276" y="131" width="168" height="10"/><rect x="368" y="195" width="84" height="10"/><rect x="301" y="227" width="151" height="10"/>
+  </g>
+  <rect class="c1" x="213" y="33" width="10" height="14" rx="2"/><rect class="c1" x="238" y="65" width="29" height="14" rx="2"/><rect class="c1" x="276" y="97" width="50" height="14" rx="2"/>
+  <rect class="c1" x="276" y="129" width="58" height="14" rx="2"/><rect class="c1" x="368" y="161" width="84" height="14" rx="2"/><rect class="c1" x="368" y="193" width="71" height="14" rx="2"/><rect class="c1" x="351" y="225" width="67" height="14" rx="2"/>
+  <path style="fill:var(--bad)" d="M225 31l6 9-6 9-6-9zM368 63l6 9-6 9-6-9zM351 95l6 9-6 9-6-9zM473 127l6 9-6 9-6-9zM536 159l6 9-6 9-6-9zM536 191l6 9-6 9-6-9zM494 223l6 9-6 9-6-9z"/>
+  <g class="ts">
+  <text x="8" y="44">鋰電池 / USB 5 V</text><text x="8" y="76">12 V 車用</text><text x="8" y="108">24 V 工業</text><text x="8" y="140">24 V 商用車</text>
+  <text x="8" y="172">48 V 資料中心</text><text x="8" y="204">−48 V 電信（取絕對值）</text><text x="8" y="236">48 V 輕混車</text>
+  <g style="fill:var(--bad)"><text x="236" y="44">5.5–6 V</text><text x="379" y="76">40–42 V</text><text x="362" y="108">36–60 V</text><text x="484" y="140">65 V 以上</text>
+  <text x="547" y="172">80–100 V</text><text x="547" y="204">80–100 V</text><text x="505" y="236">70–100 V</text></g>
+  <text x="620" y="14" text-anchor="end" class="t-mut">深色：正常工作　淺色：瞬態　<tspan style="fill:var(--bad)">◆</tspan>：常見 IC 耐壓</text>
+  </g>
+</svg>
+<figcaption>各系統電壓的量級。深色是正常工作範圍，淺色延伸到冷車啟動、跨接啟動、抑制後的拋負載或規範允許的過壓；紅色菱形是這類應用常見的 IC 耐壓等級。數值會隨標準版本、車廠與客戶規範而不同。</figcaption>
+</figure>
+<div class="tblwrap"><table>
+  <tr><th>系統</th><th>典型應用</th><th>為什麼是這個耐壓</th></tr>
+  <tr><td>單顆鋰電池、USB 5 V</td><td>手機、穿戴裝置、IoT</td><td>電池最高約 4.2–4.4 V，USB 5 V 有容差與插拔突波，所以 5.5–6 V 的低壓製程就夠，元件小、便宜</td></tr>
+  <tr><td>USB PD 等快充</td><td>筆電、充電器</td><td>協商後可到 20 V 甚至更高，相關 IC 常見 24–30 V 以上的耐壓</td></tr>
+  <tr><td>12 V 車用</td><td>車身控制、資訊娛樂、ADAS 周邊</td><td>正常 9–16 V；冷車啟動掉到約 3 V、跨接啟動 24–27 V、中央抑制後的拋負載約 35–40 V。所以 <b>40–42 V</b> 成為最常見的車用耐壓（見<a href="#automotive">車用電源</a>）</td></tr>
+  <tr><td>12 V 伺服器 / 工業匯流排</td><td>伺服器主機板、網通設備</td><td>沒有拋負載，16–20 V 等級就有餘裕</td></tr>
+  <tr><td>24 V 工業</td><td>PLC、感測器、馬達驅動</td><td>工作範圍寬（約 18–30 V），還有突波與長線電感，常用 36–60 V 的元件</td></tr>
+  <tr><td>24 V 商用車</td><td>卡車、巴士</td><td>拋負載抑制後仍可到五十多伏，需要 65 V 以上</td></tr>
+  <tr><td>48 V 資料中心</td><td>機櫃匯流排、48 V 到 12 V 中間轉換、直接降壓到 GPU 的轉換級</td><td>匯流排約 40–60 V，元件常用 80–100 V（見 <a href="sic.html#dc-chain">SiC 與資料中心</a>）</td></tr>
+  <tr><td>−48 V 電信</td><td>基地台、交換機</td><td>傳統用負電壓（正極接地），工作範圍約 40–57 V（絕對值），同樣用 80–100 V 元件</td></tr>
+  <tr><td>48 V 輕混車</td><td>48 V 啟動發電機、電動壓縮機、電動渦輪</td><td>依 LV 148 等規範，工作約 36–52 V、允許的過壓到 60 V 左右，常用 70–100 V 元件</td></tr>
+  <tr><td>400 / 800 V</td><td>電動車主驅、800 V 資料中心配電</td><td>進入 650 V、1200 V 的 SiC 與 IGBT 範圍（見 <a href="sic.html#hvdc">800 V HVDC</a>）</td></tr>
+</table></div>
+<ul>
+  <li><b>42 V 不能接 48 V</b>：一顆 42 V 耐壓的 IC 拿去接 48 V 匯流排，一上電就超過額定。48 V 系統要從 60 V 以上的元件開始挑，實務上多半用 80–100 V。</li>
+  <li><b>「42 V PowerNet」是另一回事</b>：2000 年前後汽車業提過 14 V / 42 V 雙電壓系統（36 V 電池、42 V 充電），後來沒有量產，現在的接班者是 48 V 輕混。看到舊文獻的 42 V 車用系統，指的就是它。</li>
+  <li><b>分清楚「絕對最大」和「建議工作」</b>：資料手冊的絕對最大額定只是不會立即損壞的極限，長時間工作要在建議工作範圍內，而且最壞的瞬態也不能超過絕對最大額定。</li>
+  <li><b>保留裕度</b>：常見做法是讓「最壞的穩態電壓」低於耐壓的 70–80%，瞬態再用 TVS 或箝位電路壓在耐壓以下（見<a href="#hot-plug">熱插拔與輸入保護</a>）。</li>
+  <li><b>耐壓越高越貴</b>：耐壓提高，功率元件的導通電阻與面積都變大（<a href="process.html#ldmos">製程章 LDMOS</a> 的 R<sub>sp</sub> ∝ BV<sup>2.5</sup>），所以不要無謂地選過高的耐壓；5 V 的手機電源用 42 V 元件，只會又大又貴。</li>
+</ul>
+
 <h2 id="segments">各領域的重點</h2>
 <div class="tblwrap"><table>
   <tr><th>領域</th><th>重點</th></tr>
@@ -197,7 +242,7 @@
 <nav class="pager"></nav>
 </article>
 </main>
-<footer class="updated">最後更新：<time datetime="2026-10-20">2026-10-20</time></footer>
+<footer class="updated">最後更新：<time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
 <script src="assets/figs.js"></script>
