@@ -5,7 +5,8 @@ const {LANGS, watchErrors, setRange} = require('./helpers');
 const CALCS = ['hs-sense', 'hs-ind', 'hs-pwm', 'hs-os'];
 const scan = page => page.evaluate(ids => ids.map(id => {
   const txt = document.getElementById(id + '-m').textContent + document.getElementById(id + '-n').textContent;
-  const svg = document.getElementById(id + '-p').innerHTML;
+  const svg = document.getElementById(id + '-p').innerHTML +
+    (id === 'hs-pwm' ? document.getElementById('hs-pwm-w').innerHTML + document.getElementById('hs-pwm-s').innerHTML : '');
   return /NaN|Infinity|undefined/.test(txt + svg) ? id : '';
 }).join(''), CALCS);
 
@@ -31,7 +32,33 @@ for(const lang of LANGS){
       await b.click();
       expect(await scan(page)).toBe('');
     }
+    // every sweep parameter × every output, with the swept slider at both ends
+    const params = await page.locator('#hs-sw-param option').evaluateAll(os => os.map(o => o.value));
+    const outs = await page.locator('#hs-sw-out option').evaluateAll(os => os.map(o => o.value));
+    expect(params.length).toBe(4);
+    expect(outs.length).toBe(4);
+    for(const p of params){
+      await page.locator('#hs-sw-param').selectOption(p);
+      for(const o of outs){
+        await page.locator('#hs-sw-out').selectOption(o);
+        expect(await scan(page), `${p} → ${o}`).toBe('');
+      }
+    }
     expect(errors).toEqual([]);
+  });
+
+  test(`${lang || 'zh/'}PWM auto sweep moves the chosen slider and stops when a control is touched`, async ({page}) => {
+    await page.goto(lang + 'smartswitch.html#calc-pwm');
+    await page.locator('#hs-sw-param').selectOption('hs-pf');
+    const v0 = await page.locator('#hs-pf').inputValue();
+    await page.locator('#hs-sw-play').click();
+    await expect(page.locator('#hs-sw-play')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.locator('#hs-pf').inputValue(), {timeout:8000}).not.toBe(v0);
+    // the sweep plot's dot follows the slider
+    await expect.poll(() => page.evaluate(() => window.PMICHss.pwm.sweep.cur[0] === +document.getElementById('hs-pf').value)).toBe(true);
+    expect(await scan(page)).toBe('');
+    await setRange(page, 'hs-pi', 10);
+    await expect(page.locator('#hs-sw-play')).toHaveAttribute('aria-pressed', 'false');
   });
 }
 
@@ -63,6 +90,12 @@ test('smartswitch calculators agree with hand calculations', async ({page}) => {
   await setRange(page, 'hs-pd', 50);
   await setRange(page, 'hs-pf', 300);
   await expect(page.locator('#hs-pwm-m .metric').nth(3)).toHaveClass(/bad/);
+  // waveform model at 100 Hz, 50%: output on from 50 µs to 5150 µs with symmetric 50 µs ramps → duty 51%;
+  // power fraction is a little lower because each ramp carries only 1/3 of full power: 0.51 − 2 × 50 µs × (1/2 − 1/3) / 10 ms
+  await setRange(page, 'hs-pf', 100);
+  s = await page.evaluate(() => window.PMICHss.pwm.wave);
+  expect(s.deff).toBeCloseTo(0.51, 3);
+  expect(s.pf).toBeCloseTo(0.51 - 2 * 50e-6 * (1 / 2 - 1 / 3) / 10e-3, 3);
   // edge timing at 100 Hz (T = 10 ms): shortest pulse 100 µs typ. = 1%, 400 µs worst = 4%; duty shift +1% typ., +4.4% worst
   await setRange(page, 'hs-pf', 100);
   s = await page.evaluate(() => window.PMICHss.pwm.edge);

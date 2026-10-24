@@ -276,10 +276,14 @@
     <div class="ctl"><label for="hs-pta">環境溫度 T<sub>A</sub> <output id="hs-pta-o"></output></label><input id="hs-pta" type="range" min="-40" max="105" step="5" value="85"></div>
     <div class="ctl"><label>PCB</label>
       <div class="btnrow" id="hs-pcb"><button class="btn" data-v="2s2p" aria-pressed="true">2s2p 22 K/W</button><button class="btn" data-v="1s0p" aria-pressed="false">1s0p 35 K/W</button></div></div>
-    <p class="note">模型：R<sub>DS(ON)</sub> 在 25 °C 2.7 mΩ 與 150 °C 4.4 mΩ（典型）之間線性內插，與 T<sub>J</sub> 迭代求解；切換能量取 19.9 A 時的典型值，與電流成正比；0% 與 100% 不算切換損耗。只算平均溫度，不含每個脈衝的溫度擺動。</p>
+    <p class="note">模型：R<sub>DS(ON)</sub> 在 25 °C 2.7 mΩ 與 150 °C 4.4 mΩ（典型）之間線性內插，與 T<sub>J</sub> 迭代求解；切換能量取 19.9 A 時的典型值，與電流成正比；0% 與 100% 不算切換損耗。只算平均溫度，不含每個脈衝的溫度擺動。波形用典型的延遲與上升 / 下降時間、電阻性負載，邊緣當作直線。</p>
   </div>
   <div class="stack">
     <div class="metrics" id="hs-pwm-m"></div>
+    <div class="panel"><h3>PWM 波形 <small>兩個週期，典型時序</small></h3><svg class="viz" id="hs-pwm-w" role="img" aria-label="兩個 PWM 週期的 IN 指令與輸出電壓"></svg>
+      <div class="legend"><span><i style="background:var(--s2)"></i>IN 指令（換算成 V<sub>S</sub>）</span><span><i style="background:var(--s1)"></i>V<sub>OUT</sub>：延遲 + 斜坡</span></div></div>
+    <div class="panel"><h3>輸出對掃描參數 <small>其他參數固定在目前的值</small></h3><svg class="viz" id="hs-pwm-s" role="img" aria-label="所選輸出對所選參數的變化，圓點是目前的設定"></svg>
+      <p class="note">在左邊的「自動掃描」選參數與輸出；按開始後圓點會沿著曲線移動，上面的數字與圖一起更新。</p></div>
     <div class="panel"><h3>T<sub>J</sub> 對負載電流 <small>目前的工作週期與頻率</small></h3><svg class="viz" id="hs-pwm-p" role="img" aria-label="接面溫度對負載電流，比較兩種 PCB"></svg>
       <div class="legend"><span><i style="background:var(--s1)"></i>2s2p</span><span><i style="background:var(--s3)"></i>1s0p 600 mm²</span><span><i style="background:var(--bad)"></i>熱關機最小門檻</span></div>
       <p class="note" id="hs-pwm-n"></p></div>
@@ -561,6 +565,7 @@
 </dl>
 </article>
 </main>
+<footer class="updated">最後更新：<time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
 <script src="assets/plot.js"></script>

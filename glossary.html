@@ -18,7 +18,7 @@
 <h1>術語表：全站縮寫與名詞</h1>
 <p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 271 個。</p>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 281 個。</p>
 <h2 id="cat-basic">元件與基礎</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
@@ -160,6 +160,7 @@
   <div><dt id="g-guard-band">Guard band</dt><dd>測試極限比規格界限內縮的裕度。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-idm">IDM <small>整合元件製造商</small></dt><dd>自己設計、自己有晶圓廠與封測的半導體公司；相對於 fabless。 <span class="gl-other">Integrated device manufacturer</span>  <a class="gl-more" href="roles.html#overview">詳細說明 →</a></dd></div>
   <div><dt id="g-ivr">IVR <small>整合式穩壓器</small></dt><dd>做在處理器封裝內、緊貼負載的穩壓器，降低供電網路阻抗。 <span class="gl-other">Integrated voltage regulator</span>  <a class="gl-more" href="process.html#trends">詳細說明 →</a></dd></div>
+  <div><dt id="g-mes">MES <small>製造執行系統</small></dt><dd>管理批號、程式版本、配方與生產紀錄的工廠系統，也負責防呆。 <span class="gl-other">Manufacturing execution system</span>  <a class="gl-more" href="test.html#test-cell">詳細說明 →</a></dd></div>
   <div><dt id="g-msl">MSL</dt><dd>Moisture Sensitivity Level，濕敏等級。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-ocap">OCAP</dt><dd>Out-of-Control Action Plan，製程失控時的處理計畫。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-pat">PAT</dt><dd>Part Average Testing，以同批分佈剔除離群值。  <a class="gl-more" href="production.html#glossary">詳細說明 →</a></dd></div>
@@ -179,6 +180,7 @@
 </dl>
 <h2 id="cat-test">測試、可靠度與 EMC</h2>
 <dl class="terms gl-list">
+  <div><dt id="g-adaptive-test">Adaptive test <small>適應性測試</small></dt><dd>依批次歷史或前面的量測結果動態增減測試項目，以縮短測試時間而不降低品質。 <span class="gl-other">Adaptive test</span> <span class="gl-also">也寫作：adaptive test</span> <a class="gl-more" href="test.html#reduce-tt">詳細說明 →</a></dd></div>
   <div><dt id="g-ams">AMS <small>類比混合訊號模擬</small></dt><dd>數位邏輯與類比電路一起模擬，用來驗證 PMIC 時序與故障處理。 <span class="gl-other">Analogue / mixed-signal simulation</span>  <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
   <div><dt id="g-asil">ASIL <small>車用安全完整性等級與指標</small></dt><dd>ISO 26262 的 ASIL A–D 等級；SPFM、LFM、PMHF 是硬體故障的涵蓋率與機率指標。 <span class="gl-other">Automotive safety integrity level and metrics</span> <span class="gl-also">也寫作：SPFM、LFM、PMHF</span> <a class="gl-more" href="design.html#verification">詳細說明 →</a></dd></div>
   <div><dt id="g-ate">ATE</dt><dd>Automatic Test Equipment，自動測試設備。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
@@ -193,6 +195,7 @@
   <div><dt id="g-fit">FIT <small>失效率單位</small></dt><dd>每 10⁹ 元件小時的失效次數。 <span class="gl-other">Failures in time</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
   <div><dt id="g-golden-unit">Golden unit</dt><dd>用於校驗量測系統的參考樣品。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-gr-r">GR&amp;R</dt><dd>Gage Repeatability &amp; Reproducibility，量測系統的重複性與再現性。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-handler">Handler <small>分選機</small></dt><dd>FT 時自動上料、控溫、把元件壓到 socket 並依測試結果分 bin 的設備。 <span class="gl-other">Test handler</span> <span class="gl-also">也寫作：handler、handlers</span> <a class="gl-more" href="test.html#test-cell">詳細說明 →</a></dd></div>
   <div><dt id="g-hast">HAST</dt><dd>Highly Accelerated Stress Test，高加速溫濕度應力測試。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-hbm-cdm">HBM / CDM</dt><dd>Human Body Model / Charged Device Model，兩種 ESD 模型。 <span class="gl-also">也寫作：CDM、HBM</span> <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-htgb">HTGB <small>高溫閘極偏壓</small></dt><dd>高溫下對閘極長時間加偏壓，檢驗閘極氧化層與 V_T 漂移。 <span class="gl-other">High-temperature gate bias</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
@@ -201,14 +204,21 @@
   <div><dt id="g-kelvin">Kelvin</dt><dd>四線量測，force 與 sense 分開。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-lisn">LISN <small>線路阻抗穩定網路</small></dt><dd>傳導 EMI 量測時串在電源線上的標準阻抗網路。 <span class="gl-other">Line impedance stabilisation network</span>  <a class="gl-more" href="test.html#bench">詳細說明 →</a></dd></div>
   <div><dt id="g-load-board">Load board</dt><dd>測試機與待測物之間的介面板。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-oee">OEE <small>設備綜合效率</small></dt><dd>設備真正在生產的時間比例，扣掉換批、保養、故障與等料。 <span class="gl-other">Overall equipment effectiveness</span>  <a class="gl-more" href="test.html#uph">詳細說明 →</a></dd></div>
   <div><dt id="g-pc">PC <small>預處理</small></dt><dd>可靠度測試前先吸濕並回焊三次，模擬客戶上件。 <span class="gl-other">Preconditioning</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-prober">Prober <small>探針台 / 探針卡</small></dt><dd>CP 時移動晶圓的設備，以及把測試機資源接到晶粒焊墊的探針卡。 <span class="gl-other">Prober / probe card</span> <span class="gl-also">也寫作：prober、Probe card、probe card</span> <a class="gl-more" href="test.html#test-cell">詳細說明 →</a></dd></div>
   <div><dt id="g-ptc">PTC <small>功率溫度循環 / 正溫度係數</small></dt><dd>在可靠度測試中指功率溫度循環：反覆通斷電讓晶片自熱、冷卻，檢驗金屬與打線疲勞；在負載語境（PTC 加熱器）指電阻隨溫度上升的材料，冷態電阻低、啟動電流大。 <span class="gl-other">Power temperature cycling / positive temperature coefficient</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-pte">PTE <small>平行測試效率</small></dt><dd>多站測試相對於單站的效率；100% 代表 N 站和 1 站一樣快，共用資源會讓它下降。 <span class="gl-other">Parallel test efficiency</span>  <a class="gl-more" href="test.html#uph">詳細說明 →</a></dd></div>
   <div><dt id="g-rh">RH <small>相對濕度</small></dt><dd>空氣中水氣佔飽和量的百分比。 <span class="gl-other">Relative humidity</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
   <div><dt id="g-sem">SEM <small>掃描式電子顯微鏡 / 能量色散 X 光</small></dt><dd>SEM 看微小結構；EDX 分析元素成分。失效分析常用。 <span class="gl-other">Scanning electron microscope / energy-dispersive X-ray</span> <span class="gl-also">也寫作：EDX</span> <a class="gl-more" href="complaints.html#fa">詳細說明 →</a></dd></div>
   <div><dt id="g-skew-lot">Skew lot</dt><dd>刻意把製程參數做到角落的驗證批。  <a class="gl-more" href="test.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-stdf">STDF <small>標準測試資料格式</small></dt><dd>Standard Test Data Format，ATE 記錄每顆每項量測值的業界通用檔案格式。 <span class="gl-other">Standard Test Data Format</span>  <a class="gl-more" href="test.html#retest-bin">詳細說明 →</a></dd></div>
+  <div><dt id="g-syl">SYL <small>統計良率 / bin 上限</small></dt><dd>批次良率或某個 bin 比例超出歷史範圍時暫停出貨、由工程判定的管制（AEC-Q002）。 <span class="gl-other">Statistical yield / bin limits</span> <span class="gl-also">也寫作：SBL</span> <a class="gl-more" href="test.html#retest-bin">詳細說明 →</a></dd></div>
   <div><dt id="g-tc">TC <small>溫度循環</small></dt><dd>在 −55/−65 °C 與 150 °C 之間反覆冷熱，檢驗打線、焊點與分層。 <span class="gl-other">Temperature cycling</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
   <div><dt id="g-thb">THB <small>溫濕度偏壓測試</small></dt><dd>85 °C / 85% RH 加偏壓 1000 小時，檢驗濕氣腐蝕。 <span class="gl-other">Temperature-humidity-bias test</span>  <a class="gl-more" href="test.html#qual">詳細說明 →</a></dd></div>
+  <div><dt id="g-touchdown">Touchdown <small>一次下壓</small></dt><dd>handler 或探針台把一組元件接觸到測試機並測完一輪。 <span class="gl-other">Touchdown</span> <span class="gl-also">也寫作：touchdown、touchdowns</span> <a class="gl-more" href="test.html#uph">詳細說明 →</a></dd></div>
   <div><dt id="g-uis">UIS <small>非箝位感性切換</small></dt><dd>關斷電感電流、讓元件進入雪崩，量測雪崩耐受能量。 <span class="gl-other">Unclamped inductive switching</span>  <a class="gl-more" href="sic.html#test-rel">詳細說明 →</a></dd></div>
+  <div><dt id="g-uph">UPH <small>每小時產出顆數</small></dt><dd>Units per hour，一個測試單元每小時能測的顆數，由測試時間、站數、平行效率、handler 換料時間與 OEE 決定。 <span class="gl-other">Units per hour</span>  <a class="gl-more" href="test.html#uph">詳細說明 →</a></dd></div>
 </dl>
 <h2 id="cat-qa">品質、客訴與職務</h2>
 <dl class="terms gl-list">
@@ -322,6 +332,7 @@
 </dl>
 </article>
 </main>
+<footer class="updated">最後更新：<time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
 <script>

@@ -107,6 +107,7 @@ figcaption{font-size:13px;color:var(--muted);margin-top:8px}
 .pager small{display:block;font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .pager a.next{text-align:right;grid-column:2}
 .foot{color:var(--muted);font-size:12.5px;margin-top:40px}
+footer.updated{max-width:1200px;margin:0 auto;padding:8px 16px 40px;font-size:12.5px;color:var(--muted);text-align:center}
 .tryit{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--sunk);border-radius:8px;padding:10px 14px;margin:16px 0;font-size:14px}
 .tryit a{font-weight:600}
 

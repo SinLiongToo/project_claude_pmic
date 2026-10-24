@@ -18,7 +18,7 @@
 <h1>Glossary: every acronym and term on the site</h1>
 <p class="lead">Power-IC writing is full of acronyms. Every term used on this site is collected here by topic, each with a one-line definition and a link to the section that explains it. In the chapters, the first use of a term in each section is underlined with dots; hover it (or tap on a phone) to see the definition from this page.</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="Filter: type UVLO, capacitor, test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">Includes the terms from every chapter glossary and spec list: 271 in all.</p>
+<p class="note">Includes the terms from every chapter glossary and spec list: 281 in all.</p>
 <h2 id="cat-basic">Devices and basics</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>Alternating current</small></dt><dd>Electricity whose direction alternates periodically; mains is 50/60 Hz AC.  <a class="gl-more" href="sic.html#dc-chain">Details →</a></dd></div>
@@ -160,6 +160,7 @@
   <div><dt id="g-guard-band">Guard band</dt><dd>The margin by which test limits sit inside spec limits.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
   <div><dt id="g-idm">IDM <small>Integrated device manufacturer</small></dt><dd>A company that designs and also owns fabs and assembly/test; contrast with fabless.  <a class="gl-more" href="roles.html#overview">Details →</a></dd></div>
   <div><dt id="g-ivr">IVR <small>Integrated voltage regulator</small></dt><dd>A regulator inside the processor package, right at the load, cutting power-delivery impedance.  <a class="gl-more" href="process.html#trends">Details →</a></dd></div>
+  <div><dt id="g-mes">MES <small>Manufacturing execution system</small></dt><dd>The factory system managing lots, program versions, recipes and production records, including mistake-proofing.  <a class="gl-more" href="test.html#test-cell">Details →</a></dd></div>
   <div><dt id="g-msl">MSL</dt><dd>Moisture sensitivity level.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
   <div><dt id="g-ocap">OCAP</dt><dd>Out-of-control action plan.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
   <div><dt id="g-pat">PAT</dt><dd>Part average testing: removing outliers based on the lot distribution.  <a class="gl-more" href="production.html#glossary">Details →</a></dd></div>
@@ -179,6 +180,7 @@
 </dl>
 <h2 id="cat-test">Test, reliability and EMC</h2>
 <dl class="terms gl-list">
+  <div><dt id="g-adaptive-test">Adaptive test <small>Adaptive test</small></dt><dd>Adding or dropping tests based on lot history or earlier results, to shorten test time without lowering quality. <span class="gl-also">Also: adaptive test</span> <a class="gl-more" href="test.html#reduce-tt">Details →</a></dd></div>
   <div><dt id="g-ams">AMS <small>Analogue / mixed-signal simulation</small></dt><dd>Simulating digital logic and analogue circuits together, e.g. PMIC sequencing and fault handling.  <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
   <div><dt id="g-asil">ASIL <small>Automotive safety integrity level and metrics</small></dt><dd>ISO 26262 levels ASIL A–D; SPFM, LFM and PMHF measure hardware-fault coverage and probability. <span class="gl-also">Also: SPFM, LFM, PMHF</span> <a class="gl-more" href="design.html#verification">Details →</a></dd></div>
   <div><dt id="g-ate">ATE</dt><dd>Automatic test equipment.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
@@ -193,6 +195,7 @@
   <div><dt id="g-fit">FIT <small>Failures in time</small></dt><dd>Failures per 10⁹ device-hours.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
   <div><dt id="g-golden-unit">Golden unit</dt><dd>A reference sample used to verify a measurement system.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
   <div><dt id="g-gr-r">GR&amp;R</dt><dd>Gage repeatability and reproducibility of a measurement system.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-handler">Handler <small>Test handler</small></dt><dd>The FT machine that loads parts, controls temperature, plunges them into sockets and sorts them by result. <span class="gl-also">Also: handler, handlers</span> <a class="gl-more" href="test.html#test-cell">Details →</a></dd></div>
   <div><dt id="g-hast">HAST</dt><dd>Highly accelerated stress test (temperature and humidity).  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
   <div><dt id="g-hbm-cdm">HBM / CDM</dt><dd>Human body model / charged device model, two ESD models. <span class="gl-also">Also: CDM, HBM</span> <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
   <div><dt id="g-htgb">HTGB <small>High-temperature gate bias</small></dt><dd>Long gate bias at high temperature, checking gate oxide and V_T drift.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
@@ -201,14 +204,21 @@
   <div><dt id="g-kelvin">Kelvin</dt><dd>Four-wire measurement with separate force and sense.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
   <div><dt id="g-lisn">LISN <small>Line impedance stabilisation network</small></dt><dd>The standard impedance network inserted in the supply line for conducted-EMI measurement.  <a class="gl-more" href="test.html#bench">Details →</a></dd></div>
   <div><dt id="g-load-board">Load board</dt><dd>The interface board between tester and device.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-oee">OEE <small>Overall equipment effectiveness</small></dt><dd>The share of time equipment is really producing, after lot changes, maintenance, breakdowns and waiting for material.  <a class="gl-more" href="test.html#uph">Details →</a></dd></div>
   <div><dt id="g-pc">PC <small>Preconditioning</small></dt><dd>Moisture soak plus three reflows before reliability tests, simulating customer assembly.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-prober">Prober <small>Prober / probe card</small></dt><dd>The machine that steps the wafer during CP, and the card whose needles connect tester resources to the die pads. <span class="gl-also">Also: prober, Probe card, probe card</span> <a class="gl-more" href="test.html#test-cell">Details →</a></dd></div>
   <div><dt id="g-ptc">PTC <small>Power temperature cycling / positive temperature coefficient</small></dt><dd>In reliability testing, power temperature cycling: switching power on and off so the die self-heats and cools, checking metal and wire fatigue; for loads (PTC heaters), a material whose resistance rises with temperature, so it draws a large cold inrush.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-pte">PTE <small>Parallel test efficiency</small></dt><dd>Multisite efficiency relative to single-site; 100% means N sites take as long as one, and shared resources lower it.  <a class="gl-more" href="test.html#uph">Details →</a></dd></div>
   <div><dt id="g-rh">RH <small>Relative humidity</small></dt><dd>Moisture in the air as a percentage of saturation.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
   <div><dt id="g-sem">SEM <small>Scanning electron microscope / energy-dispersive X-ray</small></dt><dd>SEM images fine structures; EDX identifies elements. Both are FA staples. <span class="gl-also">Also: EDX</span> <a class="gl-more" href="complaints.html#fa">Details →</a></dd></div>
   <div><dt id="g-skew-lot">Skew lot</dt><dd>A qualification lot with process parameters deliberately at the corners.  <a class="gl-more" href="test.html#glossary">Details →</a></dd></div>
+  <div><dt id="g-stdf">STDF <small>Standard Test Data Format</small></dt><dd>The industry file format in which ATEs record every measured value of every unit.  <a class="gl-more" href="test.html#retest-bin">Details →</a></dd></div>
+  <div><dt id="g-syl">SYL <small>Statistical yield / bin limits</small></dt><dd>Controls that hold a lot when its yield or a bin&#x27;s share leaves the historical range, pending engineering review (AEC-Q002). <span class="gl-also">Also: SBL</span> <a class="gl-more" href="test.html#retest-bin">Details →</a></dd></div>
   <div><dt id="g-tc">TC <small>Temperature cycling</small></dt><dd>Repeated cycling between −55/−65 °C and 150 °C, checking bonds, joints and delamination.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
   <div><dt id="g-thb">THB <small>Temperature-humidity-bias test</small></dt><dd>85 °C / 85% RH with bias for 1000 hours, checking moisture corrosion.  <a class="gl-more" href="test.html#qual">Details →</a></dd></div>
+  <div><dt id="g-touchdown">Touchdown <small>Touchdown</small></dt><dd>One contact of a group of parts with the tester, tested in one round, by handler or prober. <span class="gl-also">Also: touchdown, touchdowns</span> <a class="gl-more" href="test.html#uph">Details →</a></dd></div>
   <div><dt id="g-uis">UIS <small>Unclamped inductive switching</small></dt><dd>Switching off an inductive current to force avalanche and measure avalanche energy.  <a class="gl-more" href="sic.html#test-rel">Details →</a></dd></div>
+  <div><dt id="g-uph">UPH <small>Units per hour</small></dt><dd>How many units one test cell tests per hour, set by test time, sites, parallel efficiency, handler index time and OEE.  <a class="gl-more" href="test.html#uph">Details →</a></dd></div>
 </dl>
 <h2 id="cat-qa">Quality, complaints and roles</h2>
 <dl class="terms gl-list">
@@ -322,6 +332,7 @@
 </dl>
 </article>
 </main>
+<footer class="updated">Last updated: <time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
 <script>

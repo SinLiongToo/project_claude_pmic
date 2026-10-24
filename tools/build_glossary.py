@@ -19,6 +19,11 @@ STALE = []
 
 
 def emit(path, text):
+    # keep the page's "last updated" footer (written by tools/stamp_updated.py) across regeneration
+    if path.suffix == ".html" and path.exists():
+        m = re.search(r'<footer class="updated">.*?</footer>\n', path.read_text(encoding="utf-8"), re.S)
+        if m:
+            text = text.replace("</main>\n", "</main>\n" + m.group(0), 1)
     if CHECK:
         if not path.exists() or path.read_text(encoding="utf-8") != text:
             STALE.append(str(path.relative_to(ROOT)))

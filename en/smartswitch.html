@@ -276,10 +276,14 @@
     <div class="ctl"><label for="hs-pta">Ambient T<sub>A</sub> <output id="hs-pta-o"></output></label><input id="hs-pta" type="range" min="-40" max="105" step="5" value="85"></div>
     <div class="ctl"><label>PCB</label>
       <div class="btnrow" id="hs-pcb"><button class="btn" data-v="2s2p" aria-pressed="true">2s2p 22 K/W</button><button class="btn" data-v="1s0p" aria-pressed="false">1s0p 35 K/W</button></div></div>
-    <p class="note">Model: R<sub>DS(ON)</sub> interpolated linearly between 2.7 mΩ at 25 °C and 4.4 mΩ at 150 °C (typical) and solved iteratively with T<sub>J</sub>; switching energies are the typical values at 19.9 A, scaled with current; no switching loss at 0% or 100%. Average temperature only, without the per-pulse swing.</p>
+    <p class="note">Model: R<sub>DS(ON)</sub> interpolated linearly between 2.7 mΩ at 25 °C and 4.4 mΩ at 150 °C (typical) and solved iteratively with T<sub>J</sub>; switching energies are the typical values at 19.9 A, scaled with current; no switching loss at 0% or 100%. Average temperature only, without the per-pulse swing. The waveform uses typical delays and rise / fall times, a resistive load and straight-line edges.</p>
   </div>
   <div class="stack">
     <div class="metrics" id="hs-pwm-m"></div>
+    <div class="panel"><h3>PWM waveform <small>two periods, typical timing</small></h3><svg class="viz" id="hs-pwm-w" role="img" aria-label="IN command and output voltage over two PWM periods"></svg>
+      <div class="legend"><span><i style="background:var(--s2)"></i>IN command (scaled to V<sub>S</sub>)</span><span><i style="background:var(--s1)"></i>V<sub>OUT</sub>: delays + ramps</span></div></div>
+    <div class="panel"><h3>Output vs swept parameter <small>other parameters held at their current values</small></h3><svg class="viz" id="hs-pwm-s" role="img" aria-label="The chosen output against the chosen parameter; the dot is the current setting"></svg>
+      <p class="note">Pick the parameter and output under "Auto sweep" on the left; after Start, the dot moves along the curve while the numbers and plots above update with it.</p></div>
     <div class="panel"><h3>T<sub>J</sub> vs load current <small>at the current duty and frequency</small></h3><svg class="viz" id="hs-pwm-p" role="img" aria-label="Junction temperature against load current for two PCBs"></svg>
       <div class="legend"><span><i style="background:var(--s1)"></i>2s2p</span><span><i style="background:var(--s3)"></i>1s0p 600 mm²</span><span><i style="background:var(--bad)"></i>Minimum thermal-shutdown threshold</span></div>
       <p class="note" id="hs-pwm-n"></p></div>
@@ -561,6 +565,7 @@
 </dl>
 </article>
 </main>
+<footer class="updated">Last updated: <time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
 <script src="../assets/plot.js"></script>

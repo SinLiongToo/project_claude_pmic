@@ -22,7 +22,7 @@
     eon:5.5e-3, eoff:4e-3, eI:13.5 / 0.68,        // switching energies at R_L = 0.68 Ω, 13.5 V (≈ 19.9 A)
     fin:200, tjTrip:150,                          // max input frequency; T_J(TRIP) min
     tdOn:[10e-6, 50e-6, 250e-6], tr:[10e-6, 50e-6, 150e-6],      // turn-on delay and rise time, min / typ / max
-    tdOff:[50e-6, 150e-6, 450e-6],                               // turn-off delay, min / typ / max
+    tdOff:[50e-6, 150e-6, 450e-6], tf:[10e-6, 50e-6, 150e-6],    // turn-off delay and fall time, min / typ / max
     rth:{'2s2p':22, '1s0p':35}                    // R_thJA, K/W
   };
   const VS = 13.5;
@@ -202,7 +202,131 @@
         vlines:[{x:24, label:'I_L(NOM) 24 A', anchor:'end'}],
         extra:(X, Y) => dot(X, Y, I, Math.min(r.tj, 219), 'var(--ink)')
       });
+      drawWave(I, D, f);
+      drawSweepPlot({I, D, f, ta, rth});
     }
+
+    /* PWM waveform: typical delays and linear edges, resistive load. The output follows the delayed command:
+       it starts rising t_ON(DELAY) after IN turns on (taking t_r) and starts falling t_OFF(DELAY) after IN turns off. */
+    function wave(D, f, n){
+      const T = 1 / f, tdOn = DS.tdOn[1], tdOff = DS.tdOff[1], up = 1 / DS.tr[1], down = 1 / DS.tf[1];
+      const always = D >= 1 || (D > 0 && D * T + tdOff >= T + tdOn);
+      const ev = [];                                   // [time, target]
+      if(D > 0 && !always) for(let k = -2; k <= 2; k++) ev.push([k * T + tdOn, 1], [k * T + D * T + tdOff, 0]);
+      ev.sort((a, b) => a[0] - b[0]);
+      const steps = 3000, dt = 3 * T / steps;          // simulate from −T so the first shown period is settled
+      let x = always ? 1 : 0, e = 0, s1 = 0, s2 = 0, cnt = 0;
+      const pts = [], cmd = [], every = Math.max(1, Math.round(steps / 3 / (n || 200)));
+      for(let i = 0; i <= steps; i++){
+        const tt = -T + i * dt;
+        while(e < ev.length && ev[e][0] <= tt) e++;
+        const target = always ? 1 : e ? ev[e - 1][1] : 0;
+        x = target > x ? Math.min(target, x + up * dt) : Math.max(target, x - down * dt);
+        if(tt >= 0){
+          if(tt < T){ s1 += x; s2 += x * x; cnt++; }
+          if(i % every === 0){
+            pts.push([tt * 1e3, x * VS]);
+            const ph = ((tt % T) + T) % T;
+            cmd.push([tt * 1e3, ph < D * T ? VS : 0]);
+          }
+        }
+      }
+      return {pts, cmd, deff:s1 / cnt, pf:s2 / cnt, T};
+    }
+    function drawWave(I, D, f){
+      const w = wave(D, f, 300);
+      HSS.pwm.wave = {deff:w.deff, pf:w.pf, pload:VS * I * w.pf};
+      plot($('hs-pwm-w'), {
+        x:[0, 2 * w.T * 1e3], y:[0, 16], xlabel:t('時間 (ms)', 'Time (ms)'), ylabel:'V (V)', yticks:[0, 5, 10, 13.5],
+        series:[
+          {pts:w.cmd, color:'var(--s2)', w:1.4, dash:'5 4'},
+          {pts:w.pts, color:'var(--s1)', fill:true, op:.12}
+        ],
+        extra:(X, Y) => '<text class="ts" x="' + (X(2 * w.T * 1e3) - 6).toFixed(1) + '" y="' + (Y(16) + 14).toFixed(1) + '" text-anchor="end" style="fill:var(--ink)">' +
+          t('負載實際 duty ', 'load duty ') + (w.deff * 100).toFixed(1) + '%' + t('（指令 ', ' (command ') + (D * 100).toFixed(0) + '%' + t('）', ')') + '</text>'
+      });
+    }
+
+    /* outputs across the whole range of one parameter, holding the others; a dot marks the current setting */
+    const SWP = {
+      'hs-pd':{l:t('工作週期 (%)', 'Duty cycle (%)'), k:'D', s:0.01},
+      'hs-pf':{l:t('PWM 頻率 (Hz)', 'PWM frequency (Hz)'), k:'f', s:1},
+      'hs-pi':{l:t('負載電流 (A)', 'Load current (A)'), k:'I', s:1},
+      'hs-pta':{l:t('環境溫度 (°C)', 'Ambient (°C)'), k:'ta', s:1}
+    };
+    const OUTS = {
+      tj:{l:t('接面溫度 T_J (°C)', 'Junction temperature T_J (°C)'), f:p => Math.min(solveTj(p.I, p.D, p.f, p.rth, p.ta).tj, 260)},
+      loss:{l:t('開關總損耗 (W)', 'Total switch loss (W)'), f:p => { const r = solveTj(p.I, p.D, p.f, p.rth, p.ta); return r.pc + r.ps; }},
+      pload:{l:t('負載功率 (W)', 'Load power (W)'), f:p => VS * p.I * wave(p.D, p.f, 10).pf},
+      deff:{l:t('負載實際 duty (%)', 'Duty seen by the load (%)'), f:p => wave(p.D, p.f, 10).deff * 100}
+    };
+    function drawSweepPlot(p){
+      const pid = $('hs-sw-param').value, out = OUTS[$('hs-sw-out').value], sp = SWP[pid], el = $(pid);
+      const lo = +el.min, hi = +el.max, n = 41;
+      const pts = Array.from({length:n}, (_, i) => {
+        const v = lo + (hi - lo) * i / (n - 1);
+        return [v, out.f({...p, [sp.k]:v * sp.s})];
+      });
+      const cur = [+el.value, out.f(p)];
+      HSS.pwm.sweep = {param:pid, out:$('hs-sw-out').value, cur};
+      const ys = pts.map(q => q[1]).concat(cur[1]);
+      const yLo = Math.min(0, ...ys), yHi = Math.max(...ys) * 1.1 || 1;
+      const isTj = out === OUTS.tj, isDeff = out === OUTS.deff;
+      plot($('hs-pwm-s'), {
+        x:[lo, hi], y:[yLo, Math.max(yHi, isTj ? 160 : 0)], xlabel:sp.l, ylabel:out.l, m:{l:60},
+        series:[{pts, color:'var(--s1)'}].concat(isDeff && pid === 'hs-pd' ? [{pts:[[lo, lo], [hi, hi]], color:'var(--muted)', w:1.2, dash:'4 3'}] : []),
+        hlines:isTj ? [{y:DS.tjTrip, label:'T_J(TRIP) min 150 °C', color:'var(--bad)'}] : [],
+        vlines:pid === 'hs-pf' ? [{x:DS.fin, label:'F_in max 200 Hz', color:'var(--bad)', anchor:'end'}] : [],
+        extra:(X, Y) => dot(X, Y, cur[0], cur[1], 'var(--ink)')
+      });
+    }
+
+    /* auto sweep: run one slider back and forth; touching any control stops it */
+    const panel = $('hs-pi').closest('.panel');
+    const box = document.createElement('div');
+    box.className = 'sweep';
+    box.innerHTML = '<div class="sw-head">' + t('自動掃描', 'Auto sweep') + '<small>' + t('讓一個參數自己來回跑，看各個輸出怎麼跟著變', 'let one parameter run back and forth and watch how the outputs follow') + '</small></div>' +
+      '<div class="ctl"><label for="hs-sw-param">' + t('掃描參數', 'Parameter') + '</label><select id="hs-sw-param">' +
+      Object.entries(SWP).map(([id, s]) => '<option value="' + id + '"' + (id === 'hs-pd' ? ' selected' : '') + '>' + s.l + '</option>').join('') + '</select></div>' +
+      '<div class="ctl"><label for="hs-sw-out">' + t('觀察的輸出', 'Output to plot') + '</label><select id="hs-sw-out">' +
+      Object.entries(OUTS).map(([id, o]) => '<option value="' + id + '"' + (id === 'tj' ? ' selected' : '') + '>' + o.l + '</option>').join('') + '</select></div>' +
+      '<div class="sw-row"><button class="btn pri sw-play" id="hs-sw-play" type="button" aria-pressed="false">' + t('▶ 開始掃描', '▶ Start sweep') + '</button>' +
+      '<select id="hs-sw-speed" aria-label="' + t('速度', 'Speed') + '"><option value="260">' + t('慢', 'Slow') + '</option><option value="140" selected>' + t('中', 'Medium') + '</option><option value="70">' + t('快', 'Fast') + '</option></select></div>';
+    panel.querySelector('.ctl').before(box);
+    let sw = null;
+    function stopSweep(){
+      if(!sw) return;
+      clearTimeout(sw.timer);
+      sw.el.closest('.ctl').classList.remove('sw-on');
+      $('hs-sw-play').textContent = t('▶ 開始掃描', '▶ Start sweep');
+      $('hs-sw-play').setAttribute('aria-pressed', 'false');
+      sw = null;
+    }
+    function tick(){
+      const el = sw.el, lo = +el.min, hi = +el.max, st = +el.step || 1;
+      const step = Math.max(st, Math.round((hi - lo) / 50 / st) * st);
+      let v = +el.value + sw.dir * step;
+      if(v >= hi){ v = hi; sw.dir = -1; } else if(v <= lo){ v = lo; sw.dir = 1; }
+      sw.internal = true; el.value = v; el.dispatchEvent(new Event('input', {bubbles:true})); sw.internal = false;
+      sw.timer = setTimeout(tick, +$('hs-sw-speed').value);
+    }
+    function startSweep(){
+      stopSweep();
+      const el = $($('hs-sw-param').value);
+      sw = {el, dir:+el.value >= +el.max ? -1 : 1, timer:0, internal:false};
+      el.closest('.ctl').classList.add('sw-on');
+      $('hs-sw-play').textContent = t('■ 停止', '■ Stop');
+      $('hs-sw-play').setAttribute('aria-pressed', 'true');
+      tick();
+    }
+    $('hs-sw-play').addEventListener('click', () => sw ? stopSweep() : startSweep());
+    $('hs-sw-param').addEventListener('change', () => { if(sw) startSweep(); else draw(); });
+    $('hs-sw-out').addEventListener('change', draw);
+    panel.addEventListener('input', e => { if(sw && !sw.internal && !e.target.closest('.sweep')) stopSweep(); });
+    panel.addEventListener('click', e => { if(sw && e.target.closest('button[data-v]')) stopSweep(); });
+    // stop when the calculator scrolls out of view, so nothing keeps redrawing in the background
+    if('IntersectionObserver' in window)
+      new IntersectionObserver(es => es.forEach(x => { if(!x.isIntersecting) stopSweep(); })).observe(panel.closest('.bench'));
     draw();
   }
 

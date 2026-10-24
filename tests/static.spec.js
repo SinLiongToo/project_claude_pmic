@@ -55,8 +55,8 @@ test.describe('@static site files', () => {
     }
   });
 
-  test('search index and glossary are up to date', () => {
-    for(const tool of ['tools/build_glossary.py', 'tools/build_index.py']){
+  test('search index, glossary and update dates are up to date', () => {
+    for(const tool of ['tools/build_glossary.py', 'tools/build_index.py', 'tools/stamp_updated.py']){
       const out = execFileSync('python', ['-X', 'utf8', path.join(ROOT, tool), '--check'], {cwd:ROOT, encoding:'utf8'});
       expect(out, tool).toContain('up to date');
     }

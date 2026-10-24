@@ -53,6 +53,107 @@
   <li><b>Test-program version control</b>: every change to limits, items or algorithms is recorded and correlation-checked; automotive products also notify customers.</li>
 </ul>
 
+<h2 id="volume-ate">Volume ATE test: throughput and cost</h2>
+<p>The goal of production test is to guarantee that every shipped unit meets its specs with the least tester time. Three things set the cost: <b>how long each unit takes, how many units are tested at once, and how much of the time the equipment is actually testing</b>. This section covers what a test cell is made of, how UPH and test cost are calculated, ways to cut test time, and the rules for retest and binning. Numbers are orders of magnitude; real values depend on the product and the factory.</p>
+
+<h3 id="test-cell">What a test cell is made of</h3>
+<figure>
+<svg class="chain" viewBox="0 0 640 200" role="img" aria-label="Test cell: the MES host downloads the program and lot, the tester measures through the load board and sockets, the handler loads, controls temperature, plunges and bins, and measurement data goes to the data system as STDF">
+  <path class="wm" d="M120 45H150M230 130V140M310 162H340M230 20V10H570V20M480 150H506"/>
+  <g class="ts">
+  <rect class="c5" x="10" y="20" width="110" height="50" rx="6"/><text x="65" y="41" text-anchor="middle">MES / host</text><text x="65" y="57" text-anchor="middle" class="t-mut">lot, program, recipe</text>
+  <rect class="c2" x="150" y="20" width="160" height="110" rx="6"/><text x="230" y="46" text-anchor="middle">Tester (ATE)</text><text x="230" y="70" text-anchor="middle" class="t-mut">DPS · PMU · digital pins</text><text x="230" y="88" text-anchor="middle" class="t-mut">high current · digitizer</text><text x="230" y="106" text-anchor="middle" class="t-mut">test program</text>
+  <rect class="c3" x="150" y="140" width="160" height="44" rx="6"/><text x="230" y="159" text-anchor="middle">Load board + socket</text><text x="230" y="175" text-anchor="middle" class="t-mut">one set per site</text>
+  <rect class="c4" x="340" y="40" width="140" height="144" rx="6"/><text x="410" y="64" text-anchor="middle">Handler</text><text x="410" y="88" text-anchor="middle" class="t-mut">load parts</text><text x="410" y="106" text-anchor="middle" class="t-mut">cold / room / hot</text><text x="410" y="124" text-anchor="middle" class="t-mut">plunge N parts</text><text x="410" y="142" text-anchor="middle" class="t-mut">sort by bin</text>
+  <rect class="c1" x="510" y="20" width="120" height="60" rx="6"/><text x="570" y="44" text-anchor="middle">Data system</text><text x="570" y="62" text-anchor="middle" class="t-mut">STDF · yield · SPC</text>
+  <text x="512" y="146">Bin 1 / 2 / …</text>
+  <text x="400" y="8" text-anchor="middle" class="t-mut">every value of every unit</text>
+  </g>
+</svg>
+<figcaption>An FT test cell. Wafer probe (CP) has the same structure, with a prober instead of the handler and a probe card instead of the load board.</figcaption>
+</figure>
+<div class="tblwrap"><table>
+  <tr><th>Part</th><th>Role</th><th>Where it affects throughput and cost</th></tr>
+  <tr><td>Tester (ATE)</td><td>Supplies power, measurement and digital signals; runs the test program</td><td>Resource count decides how many sites and how efficient the parallel test is; tester depreciation is the largest share of test cost</td></tr>
+  <tr><td>Load board, sockets (probe card for CP)</td><td>Connect tester resources to each unit</td><td>Number of sites, Kelvin wiring, relays and capacitors; sockets are consumables, and worn contacts cause false failures and retests</td></tr>
+  <tr><td>Handler (prober for CP)</td><td>Loads parts, controls temperature, plunges N parts into the sockets, sorts by result</td><td>Time per part change (index time), how many parts it plunges at once, temperature range. Common types: gravity (leaded packages), pick-and-place (QFN and similar, common for multisite), turret (small packages, very fast index), strip test (whole strips before singulation, allowing many sites)</td></tr>
+  <tr><td>MES and data system</td><td>Load the right program and recipe; collect every unit's values (STDF format)</td><td>Mistake-proofing (part number, program version, temperature), live yield and site-to-site monitoring, traceability</td></tr>
+</table></div>
+<p>Automotive parts are often tested at several temperatures (e.g. cold, room and hot). Each extra temperature usually means another insertion and nearly doubles test cost, so deciding which tests must run at every temperature and which can run at one temperature with a guard band is a major cost decision, and it needs characterization data behind it.</p>
+
+<h3 id="uph">UPH and parallel test efficiency</h3>
+<p>UPH (units per hour) is how many units one test cell tests per hour. With multisite, N units are plunged and tested together, but the test takes a little longer than single-site because some resources are shared in turn. <b>Parallel test efficiency</b> (PTE) describes this:</p>
+<div class="eq">T<sub>N</sub> = T<sub>1</sub> × [1 + (N − 1)(1 − PTE)]　　UPH = 3600 × N / (T<sub>N</sub> + t<sub>index</sub>) × OEE / (1 + retest rate)</div>
+<p>PTE = 100% means N sites take as long as one; t<sub>index</sub> is the handler's time to change and plunge parts, during which the tester waits. OEE (overall equipment effectiveness) removes lot changes, maintenance, breakdowns and waiting for material. Example: T<sub>1</sub> = 0.6 s, 8 sites, PTE 95%, index 0.4 s → T<sub>8</sub> = 0.81 s, 1.21 s per touchdown, about 23 800 UPH in theory; about 19 600 after 85% OEE and 3% retest.</p>
+<figure>
+<svg class="chain" viewBox="0 0 640 175" role="img" aria-label="Timeline of one touchdown: handler index, four sites testing in parallel, waiting while a shared resource is used in turn, and the next index">
+  <g class="ts">
+  <text x="8" y="43" class="t-mut">Site 1</text><text x="8" y="68" class="t-mut">Site 2</text><text x="8" y="93" class="t-mut">Site 3</text><text x="8" y="118" class="t-mut">Site 4</text><text x="8" y="148" class="t-mut">Handler</text>
+  <rect class="c4" x="100" y="134" width="80" height="20" rx="3"/><text x="140" y="148" text-anchor="middle">index</text>
+  <rect class="c4" x="540" y="134" width="80" height="20" rx="3"/><text x="580" y="148" text-anchor="middle">index</text>
+  <rect class="c1" x="180" y="30" width="240" height="18" rx="3"/><rect class="c1" x="180" y="55" width="240" height="18" rx="3"/><rect class="c1" x="180" y="80" width="240" height="18" rx="3"/><rect class="c1" x="180" y="105" width="240" height="18" rx="3"/>
+  <text x="300" y="68" text-anchor="middle">parallel test</text>
+  <rect class="c3" x="420" y="30" width="30" height="18" rx="3"/><rect class="c3" x="450" y="55" width="30" height="18" rx="3"/><rect class="c3" x="480" y="80" width="30" height="18" rx="3"/><rect class="c3" x="510" y="105" width="30" height="18" rx="3"/>
+  <path d="M450 39H540M420 64H450M480 64H540M420 89H480M510 89H540M420 114H510" style="stroke:var(--muted);stroke-dasharray:2 3;stroke-width:1"/>
+  <text x="480" y="20" text-anchor="middle">shared resource in turn, others wait</text>
+  <path class="wm" d="M180 166H450M180 162V170M450 162V170"/><text x="315" y="164" text-anchor="middle" class="t-mut" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px">T_1</text>
+  </g>
+</svg>
+<figcaption>Timeline of one touchdown (sketch). Most tests run on all sites at once; tests needing a shared resource (e.g. one precision digitizer or one high-current source) run in turn, so T<sub>N</sub> is longer than T<sub>1</sub>. The tester is idle while the handler indexes.</figcaption>
+</figure>
+<p>Common reasons PTE is below 100%: shared precision or high-current resources, trim programming done site by site, and fixed program and communication overhead. One point is often missed: with multisite, "stop on first fail" helps little, because when one site stops the others are still testing and the touchdown takes just as long.</p>
+
+<h3 id="test-cost">How test cost is calculated</h3>
+<div class="eq">Test cost per unit = hourly rate / UPH × insertions　　Test cost per good unit = test cost per unit / yield</div>
+<p>The hourly rate is the full cost of a test cell per hour: tester and handler depreciation, floor space, power, labour, maintenance, and consumables such as sockets and probe cards. Rates vary widely by equipment class and region, so the calculator below uses an assumption you can change. For small power ICs that sell for very little, test cost can be a significant share of product cost, so every 0.1 s saved matters.</p>
+
+<h3 id="calc-uph">Calculator: UPH, test cost and equipment needed</h3>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>FT · multisite</small></h3>
+    <div class="ctl"><label for="at-t1">Single-site test time T<sub>1</sub> <output id="at-t1-o"></output></label><input id="at-t1" type="range" min="0.1" max="5" step="0.05" value="0.6"></div>
+    <div class="ctl"><label for="at-n">Sites N <output id="at-n-o"></output></label><input id="at-n" type="range" min="0" max="5" step="1" value="3"></div>
+    <div class="ctl"><label for="at-pte">Parallel efficiency PTE <output id="at-pte-o"></output></label><input id="at-pte" type="range" min="70" max="100" step="1" value="95"></div>
+    <div class="ctl"><label for="at-idx">Handler index time <output id="at-idx-o"></output></label><input id="at-idx" type="range" min="0.1" max="2" step="0.05" value="0.4"></div>
+    <div class="ctl"><label>Temperatures / insertions</label>
+      <div class="btnrow" id="at-ins"><button class="btn" data-v="1" aria-pressed="true">1 (room)</button><button class="btn" data-v="2" aria-pressed="false">2</button><button class="btn" data-v="3" aria-pressed="false">3 (automotive)</button></div></div>
+    <div class="ctl"><label for="at-oee">OEE <output id="at-oee-o"></output></label><input id="at-oee" type="range" min="50" max="100" step="1" value="85"></div>
+    <div class="ctl"><label for="at-rt">Retest rate <output id="at-rt-o"></output></label><input id="at-rt" type="range" min="0" max="20" step="0.5" value="3"></div>
+    <div class="ctl"><label for="at-rate">Hourly rate (assumed) <output id="at-rate-o"></output></label><input id="at-rate" type="range" min="20" max="300" step="5" value="80"></div>
+    <div class="ctl"><label for="at-y">FT yield <output id="at-y-o"></output></label><input id="at-y" type="range" min="80" max="100" step="0.5" value="98"></div>
+    <div class="ctl"><label for="at-vol">Monthly volume <output id="at-vol-o"></output></label><input id="at-vol" type="range" min="1" max="100" step="1" value="10"></div>
+    <p class="note">Model: T<sub>N</sub> = T<sub>1</sub>[1 + (N − 1)(1 − PTE)], one touchdown = T<sub>N</sub> + index; UPH after OEE and retest; 720 hours per month. The rate is an assumption; use your factory's figure.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="at-m"></div>
+    <div class="panel"><h3>UPH vs sites <small>dashed: PTE 100%</small></h3><svg class="viz" id="at-uph" role="img" aria-label="UPH against number of sites"></svg></div>
+    <div class="panel"><h3>Test cost per unit vs sites</h3><svg class="viz" id="at-cost" role="img" aria-label="Test cost per unit against number of sites"></svg></div>
+    <p class="note" id="at-n-note"></p>
+  </div>
+</div>
+
+<h3 id="reduce-tt">Ways to cut test time</h3>
+<ul>
+  <li><b>Wait less</b>: production load boards use smaller capacitors or relay switching, and <a href="#dft">test modes</a> skip soft-start and shorten protection delays. Most power-IC test time goes into waiting for things to settle, not into measuring.</li>
+  <li><b>Test blocks concurrently</b>: e.g. measure all of a PMIC's bucks at once; this needs DFT support and enough resources.</li>
+  <li><b>Per-site resources</b>: avoid sharing digitizers or high-current sources between sites so PTE stays high; a trade between tester cost and test time.</li>
+  <li><b>Remove redundant tests</b>: when characterization shows two parameters are tightly correlated, test only one; tests with high, stable Cpk can move to sampling. This needs statistical evidence and review, and for automotive the customer's agreement.</li>
+  <li><b>Adaptive test</b>: add or drop tests based on lot history or earlier results, e.g. full test at the start of a lot, reduced once stable, and tests added back automatically on anomalies.</li>
+  <li><b>Put each test in the right insertion</b>: low-current and trim tests at CP (cheaper, and trim is only possible before packaging); package- or high-current tests at FT (see <a href="production.html#flow">production flow</a>).</li>
+  <li><b>Trim algorithms</b>: binary search instead of linear sweeps; trial-trim through registers, then program once.</li>
+  <li><b>Insertions</b>: each temperature's insertion is the biggest cost item. Tests whose room-temperature result plus a guard band provably covers the other temperatures need not be repeated at each temperature.</li>
+</ul>
+
+<h3 id="retest-bin">Retest, binning and data</h3>
+<ul>
+  <li><b>Bins</b>: hard bins are sorting categories (good, failure classes); soft bins map to the specific failing tests. The binning rules are the shipping rules, so changes go through change control.</li>
+  <li><b>Retest</b>: only specific failure bins may be retested, once, typically open / short and contact failures, and the retest recovery rate is tracked. A high recovery rate means a contact or socket problem, not a device problem. Parametric or functional failures must not be "tested into" passing.</li>
+  <li><b>Site-to-site comparison</b>: all sites on one handler should have the same yield. A site with clearly lower yield almost always means that site's socket, contact or load board; stop and check.</li>
+  <li><b>Statistical yield and bin limits</b> (SYL / SBL): when a lot's yield or a bin's share leaves its historical range, shipment holds for an engineering decision. Automotive AEC-Q001 (PAT) and AEC-Q002 both call for this kind of statistical control; see <a href="production.html#pat">Production · PAT</a>.</li>
+  <li><b>Data</b>: every value of every unit is kept in STDF format for SPC, <a href="production.html#traceability">traceability</a>, and pulling up the original test data during a complaint analysis.</li>
+  <li><b>Golden units and correlation</b>: check each tester every shift with known units, and compare testers and sites regularly; see <a href="#correlation">Correlation and GR&amp;R</a>. Problems specific to high-current parts (contact resistance, self-heating, finding the trip point) are in <a href="smartswitch.html#test-ate">the smart switch's ATE difficulties</a>.</li>
+</ul>
+
 <h2 id="dft">Design for test (DFT)</h2>
 <ul>
   <li><b>Analogue test bus</b>: key internal nodes are muxed to a test pin or a functional pin.</li>
@@ -153,7 +254,10 @@
 <nav class="pager"></nav>
 </article>
 </main>
+<footer class="updated">Last updated: <time datetime="2026-10-24">2026-10-24</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
+<script src="../assets/plot.js"></script>
+<script src="../assets/ate.js"></script>
 </body>
 </html>

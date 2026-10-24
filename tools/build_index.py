@@ -122,7 +122,7 @@ class Collector(HTMLParser):
             self.mode = None
 
     def handle_data(self, data):
-        if self.skip or not self.cur:
+        if self.skip or not self.cur or not self.in_article:   # e.g. the "last updated" footer after </main>
             return
         if self.mode in ("head", "dt", "case"):
             self.cur["t"] += data
