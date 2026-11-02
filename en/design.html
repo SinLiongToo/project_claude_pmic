@@ -134,6 +134,57 @@
 </table></div>
 <div class="eq">Slope compensation (peak current mode): S<sub>e</sub> ≥ (S<sub>f</sub> − S<sub>n</sub>)/2, commonly S<sub>e</sub> ≈ S<sub>f</sub>/2 to S<sub>f</sub></div>
 
+<h3 id="pwm-gen">How PWM is generated: carrier and comparator</h3>
+<p>Nearly every PWM works the same way: a periodic <b>carrier</b> (sawtooth or triangle) and a <b>reference voltage</b> go into a comparator. While the reference is above the carrier the output is HIGH; below it, LOW. The carrier sets the <b>frequency</b> and the reference level sets the <b>duty</b>:</p>
+<div class="eq">Sawtooth rising from 0 to V<sub>ramp</sub>: D = V<sub>ref</sub> / V<sub>ramp</sub>　　Digital counter: D = compare value / 2<sup>N</sup>, f<sub>PWM</sub> = f<sub>clk</sub> / 2<sup>N</sup></div>
+<div class="bench">
+  <div class="panel">
+    <h3>Parameters <small>interactive sketch</small></h3>
+    <div class="ctl"><label>Carrier source</label>
+      <div class="btnrow" id="pg-mode"><button class="btn" data-v="analog" aria-pressed="true">Analog ramp (buck)</button><button class="btn" data-v="digital" aria-pressed="false">Digital counter (µC)</button></div></div>
+    <div class="ctl"><label>Carrier shape</label>
+      <div class="btnrow" id="pg-carrier"><button class="btn" data-v="saw" aria-pressed="true">Sawtooth</button><button class="btn" data-v="tri" aria-pressed="false">Triangle</button></div></div>
+    <div class="ctl"><label for="pg-ref">Reference V<sub>ref</sub> (share of V<sub>ramp</sub>) <output id="pg-ref-o"></output></label><input id="pg-ref" type="range" min="0" max="100" step="1" value="52"></div>
+    <div class="ctl"><label>Reference shape</label>
+      <div class="btnrow" id="pg-refmode"><button class="btn" data-v="const" aria-pressed="true">Constant</button><button class="btn" data-v="sine" aria-pressed="false">Slowly varying</button></div></div>
+    <div class="ctl"><label for="pg-bits">Counter bits N (digital mode) <output id="pg-bits-o"></output></label><input id="pg-bits" type="range" min="3" max="10" step="1" value="4"></div>
+    <div class="ctl"><label for="pg-cyc">Periods shown <output id="pg-cyc-o"></output></label><input id="pg-cyc" type="range" min="3" max="12" step="1" value="6"></div>
+    <div class="sw-row"><button class="btn pri" id="pg-play" type="button" aria-pressed="true">❚❚ Pause</button>
+      <select id="pg-speed" aria-label="Playback speed"><option value="0.5">Slow</option><option value="1" selected>Medium</option><option value="2">Fast</option></select>
+      <button class="btn" id="pg-sweep" type="button" aria-pressed="false">↕ Sweep V<sub>ref</sub></button></div>
+    <p class="note">The cursor moves one carrier period per second. In digital mode the counter can only count in whole steps and the compare value is a whole number of steps, so with few bits you can see the staircase and the duty jumping.</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="pg-m"></div>
+    <div class="panel"><h3>Carrier and reference <small>shaded: reference &gt; carrier</small></h3><svg class="viz" id="pg-wave" role="img" aria-label="Carrier and reference voltage, with the region where the reference is above the carrier shaded"></svg>
+      <div class="legend"><span><i style="background:var(--warn)"></i>Carrier</span><span><i style="background:var(--s3)"></i>Reference V<sub>ref</sub></span></div></div>
+    <div class="panel"><h3>Comparator <small>at the cursor</small></h3>
+      <svg class="chain cmp-big" viewBox="0 0 640 215" role="img" aria-label="Comparator: the reference goes to the positive input, the carrier to the negative input, and the output is the PWM">
+        <path class="wm" d="M120 70H250M120 130H250M310 70V24M310 130V176M296 176h28M302 182h16M308 188h4M370 100H463M477 100H521"/>
+        <path d="M130 56h70" style="stroke:var(--s3);stroke-width:2;stroke-dasharray:6 4"/>
+        <path id="pg-icon" d="M130 158l14-10v10l14-10v10l14-10v10l14-10v10" style="fill:none;stroke:var(--warn);stroke-width:2"/>
+        <path d="M250 40V160L370 100Z" style="fill:var(--surface);stroke:var(--s2);stroke-width:2"/>
+        <circle cx="120" cy="70" r="5" style="fill:var(--surface);stroke:var(--muted)"/><circle cx="120" cy="130" r="5" style="fill:var(--surface);stroke:var(--muted)"/>
+        <circle id="pg-node" cx="470" cy="100" r="7" style="stroke:var(--s1);stroke-width:2"/><circle cx="526" cy="100" r="5" style="fill:var(--surface);stroke:var(--muted)"/>
+        <g class="ts">
+          <text x="258" y="75">+</text><text x="258" y="135">−</text>
+          <text x="318" y="30" class="t-mut">+V_CC</text>
+          <text id="pg-vref" x="112" y="74" text-anchor="end">V_ref</text>
+          <text id="pg-vsaw" x="112" y="134" text-anchor="end">V_saw</text>
+          <text x="520" y="86">V_out</text><text id="pg-vout" x="540" y="104" style="font-weight:600">LOW</text>
+          <text id="pg-rule" x="320" y="208" text-anchor="middle" style="font-weight:600"></text>
+        </g>
+      </svg></div>
+    <div class="panel"><h3>PWM output <small>duty of each period</small></h3><svg class="viz" id="pg-out" role="img" aria-label="PWM waveform from the comparator, with each period's duty"></svg></div>
+  </div>
+</div>
+<ul>
+  <li><b>Buck voltage mode</b>: the reference is the error amplifier's output V<sub>C</sub>. Output too low → V<sub>C</sub> rises → duty grows and pulls the voltage back. This stage's gain is 1 / V<sub>ramp</sub>, so the ramp amplitude is part of the loop gain (see <a href="#compensation">Compensation</a> below). Some ICs make V<sub>ramp</sub> follow V<sub>IN</sub> (input-voltage feed-forward) so the loop gain does not change with the input.</li>
+  <li><b>Current mode</b>: the ramp is replaced by the inductor current (plus slope compensation). Same principle; the carrier just comes from the current.</li>
+  <li><b>Microcontrollers</b>: the carrier is a counter that counts in steps from 0 to 2<sup>N</sup> − 1 and wraps, a digital sawtooth; the reference is the compare register. More bits give finer duty but, for the same clock, a lower frequency: e.g. about 15.6 kHz at 16 MHz with 10 bits. This is where a smart switch's PWM comes from (see <a href="smartswitch.html#pwm-who">who decides frequency and duty</a>).</li>
+  <li><b>Sawtooth vs triangle</b>: with a sawtooth the rising edge is fixed at the start of each period and only the falling edge moves (trailing-edge modulation); with a triangle both edges move symmetrically and the pulse centre stays fixed (center-aligned PWM), with fewer harmonics, common in motor drives and multiphase supplies.</li>
+</ul>
+
 <h2 id="compensation">Compensation networks</h2>
 <ul>
   <li><b>Crossover frequency</b>: usually f<sub>c</sub> ≤ f<sub>SW</sub>/10 (up to f<sub>SW</sub>/5 for current mode); boost / buck-boost also below 1/3–1/5 of the RHPZ.</li>
@@ -190,13 +241,20 @@
   <div><dt>PTAT / CTAT</dt><dd>Voltage or current proportional / complementary to absolute temperature.</dd></div>
   <div><dt>SPMI</dt><dd>System Power Management Interface, the MIPI bus for mobile power management.</dd></div>
   <div><dt>FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis, a functional-safety method.</dd></div>
+  <div><dt>Carrier</dt><dd>The periodic input of a PWM comparator, such as a sawtooth or triangle; it sets the PWM frequency.</dd></div>
+  <div><dt>Comparator</dt><dd>A circuit comparing two input voltages, with an output that is only HIGH or LOW.</dd></div>
+  <div><dt>Compare register</dt><dd>The register in a microcontroller timer holding the compare value; the output is HIGH while the counter is below it, which sets the duty.</dd></div>
+  <div><dt>Center-aligned PWM</dt><dd>PWM made with a triangle carrier: the pulse centre stays fixed and both edges move symmetrically.</dd></div>
+  <div><dt>Feed-forward</dt><dd>Making the ramp amplitude follow V<sub>IN</sub> so the input voltage does not change the loop gain.</dd></div>
 </dl>
 
 <nav class="pager"></nav>
 </article>
 </main>
-<footer class="updated">Last updated: <time datetime="2026-10-19">2026-10-19</time></footer>
+<footer class="updated">Last updated: <time datetime="2026-11-03">2026-11-03</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
+<script src="../assets/plot.js"></script>
+<script src="../assets/pwmgen.js"></script>
 </body>
 </html>

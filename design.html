@@ -133,6 +133,57 @@
 </table></div>
 <div class="eq">斜率補償條件（峰值電流模式）：S<sub>e</sub> ≥ (S<sub>f</sub> − S<sub>n</sub>)/2，常取 S<sub>e</sub> ≈ S<sub>f</sub>/2 ~ S<sub>f</sub></div>
 
+<h3 id="pwm-gen">PWM 怎麼產生：載波與比較器</h3>
+<p>幾乎所有 PWM 都用同一個原理：一個週期性的<b>載波</b>（鋸齒波或三角波）和一個<b>參考電壓</b>送進比較器。參考比載波高時輸出 HIGH，比載波低時輸出 LOW。載波決定<b>頻率</b>，參考的高低決定 <b>duty</b>：</p>
+<div class="eq">鋸齒波從 0 升到 V<sub>ramp</sub>：D = V<sub>ref</sub> / V<sub>ramp</sub>　　數位計數器：D = 比較值 / 2<sup>N</sup>、f<sub>PWM</sub> = f<sub>clk</sub> / 2<sup>N</sup></div>
+<div class="bench">
+  <div class="panel">
+    <h3>參數 <small>互動示意</small></h3>
+    <div class="ctl"><label>載波的來源</label>
+      <div class="btnrow" id="pg-mode"><button class="btn" data-v="analog" aria-pressed="true">類比斜坡（Buck）</button><button class="btn" data-v="digital" aria-pressed="false">數位計數器（µC）</button></div></div>
+    <div class="ctl"><label>載波形狀</label>
+      <div class="btnrow" id="pg-carrier"><button class="btn" data-v="saw" aria-pressed="true">鋸齒波</button><button class="btn" data-v="tri" aria-pressed="false">三角波</button></div></div>
+    <div class="ctl"><label for="pg-ref">參考 V<sub>ref</sub>（佔 V<sub>ramp</sub>） <output id="pg-ref-o"></output></label><input id="pg-ref" type="range" min="0" max="100" step="1" value="52"></div>
+    <div class="ctl"><label>參考的形狀</label>
+      <div class="btnrow" id="pg-refmode"><button class="btn" data-v="const" aria-pressed="true">固定</button><button class="btn" data-v="sine" aria-pressed="false">緩慢變化</button></div></div>
+    <div class="ctl"><label for="pg-bits">計數器位數 N（數位模式） <output id="pg-bits-o"></output></label><input id="pg-bits" type="range" min="3" max="10" step="1" value="4"></div>
+    <div class="ctl"><label for="pg-cyc">顯示的週期數 <output id="pg-cyc-o"></output></label><input id="pg-cyc" type="range" min="3" max="12" step="1" value="6"></div>
+    <div class="sw-row"><button class="btn pri" id="pg-play" type="button" aria-pressed="true">❚❚ 暫停</button>
+      <select id="pg-speed" aria-label="播放速度"><option value="0.5">慢</option><option value="1" selected>中</option><option value="2">快</option></select>
+      <button class="btn" id="pg-sweep" type="button" aria-pressed="false">↕ 掃描 V<sub>ref</sub></button></div>
+    <p class="note">游標每秒走一個載波週期。數位模式下，計數器只能一階一階往上數，比較值也只能是整數階，所以低位數時看得到階梯與 duty 的跳動。</p>
+  </div>
+  <div class="stack">
+    <div class="metrics" id="pg-m"></div>
+    <div class="panel"><h3>載波與參考 <small>陰影：參考 &gt; 載波</small></h3><svg class="viz" id="pg-wave" role="img" aria-label="載波與參考電壓，參考高於載波的區域塗上陰影"></svg>
+      <div class="legend"><span><i style="background:var(--warn)"></i>載波</span><span><i style="background:var(--s3)"></i>參考 V<sub>ref</sub></span></div></div>
+    <div class="panel"><h3>比較器 <small>游標所在的瞬間</small></h3>
+      <svg class="chain cmp-big" viewBox="0 0 640 215" role="img" aria-label="比較器：正輸入接參考電壓，負輸入接載波，輸出 PWM">
+        <path class="wm" d="M120 70H250M120 130H250M310 70V24M310 130V176M296 176h28M302 182h16M308 188h4M370 100H463M477 100H521"/>
+        <path d="M130 56h70" style="stroke:var(--s3);stroke-width:2;stroke-dasharray:6 4"/>
+        <path id="pg-icon" d="M130 158l14-10v10l14-10v10l14-10v10l14-10v10" style="fill:none;stroke:var(--warn);stroke-width:2"/>
+        <path d="M250 40V160L370 100Z" style="fill:var(--surface);stroke:var(--s2);stroke-width:2"/>
+        <circle cx="120" cy="70" r="5" style="fill:var(--surface);stroke:var(--muted)"/><circle cx="120" cy="130" r="5" style="fill:var(--surface);stroke:var(--muted)"/>
+        <circle id="pg-node" cx="470" cy="100" r="7" style="stroke:var(--s1);stroke-width:2"/><circle cx="526" cy="100" r="5" style="fill:var(--surface);stroke:var(--muted)"/>
+        <g class="ts">
+          <text x="258" y="75">+</text><text x="258" y="135">−</text>
+          <text x="318" y="30" class="t-mut">+V_CC</text>
+          <text id="pg-vref" x="112" y="74" text-anchor="end">V_ref</text>
+          <text id="pg-vsaw" x="112" y="134" text-anchor="end">V_saw</text>
+          <text x="520" y="86">V_out</text><text id="pg-vout" x="540" y="104" style="font-weight:600">LOW</text>
+          <text id="pg-rule" x="320" y="208" text-anchor="middle" style="font-weight:600"></text>
+        </g>
+      </svg></div>
+    <div class="panel"><h3>PWM 輸出 <small>每個週期的 duty</small></h3><svg class="viz" id="pg-out" role="img" aria-label="比較器輸出的 PWM 波形與每個週期的 duty"></svg></div>
+  </div>
+</div>
+<ul>
+  <li><b>Buck 的電壓模式</b>：參考就是誤差放大器的輸出 V<sub>C</sub>。輸出電壓偏低 → V<sub>C</sub> 上升 → duty 變大，把電壓拉回來。這一級的增益是 1 / V<sub>ramp</sub>，所以斜坡振幅也是迴路增益的一部分（見下面的<a href="#compensation">補償網路</a>）。有些 IC 讓 V<sub>ramp</sub> 跟著 V<sub>IN</sub> 變（輸入電壓前饋），迴路增益就不會隨輸入改變。</li>
+  <li><b>電流模式</b>：把斜坡換成電感電流（加上斜率補償），原理相同，只是載波來自電流。</li>
+  <li><b>微控制器</b>：載波是計數器，從 0 一階一階數到 2<sup>N</sup> − 1 再歸零，就是數位的鋸齒波；參考是比較暫存器。位數越多 duty 越細，但同一個時脈下頻率越低：例如 16 MHz、10 bit 時約 15.6 kHz。智慧開關的 PWM 就是這樣來的（見<a href="smartswitch.html#pwm-who">頻率和 duty 由誰決定</a>）。</li>
+  <li><b>鋸齒波 vs 三角波</b>：鋸齒波的上升邊固定在每個週期開頭，只有下降邊會動（後緣調變）；三角波的兩個邊緣對稱地移動，脈衝中心固定（中心對齊 PWM），諧波較少，馬達驅動與多相電源常用。</li>
+</ul>
+
 <h2 id="compensation">補償網路</h2>
 <ul>
   <li><b>交越頻率</b>：一般取 f<sub>c</sub> ≤ f<sub>SW</sub>/10（電流模式可到 f<sub>SW</sub>/5），Boost / Buck-Boost 還要低於 RHPZ 頻率的 1/3–1/5。</li>
@@ -189,13 +240,20 @@
   <div><dt>PTAT / CTAT</dt><dd>與絕對溫度成正比 / 成反比的電壓或電流。</dd></div>
   <div><dt>SPMI</dt><dd>System Power Management Interface，MIPI 制定的行動裝置電源管理匯流排。</dd></div>
   <div><dt>FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis，功能安全分析方法。</dd></div>
+  <div><dt>載波（Carrier）</dt><dd>PWM 比較器的週期性輸入，例如鋸齒波或三角波，決定 PWM 頻率。</dd></div>
+  <div><dt>比較器（Comparator）</dt><dd>比較兩個輸入電壓，輸出只有 HIGH 或 LOW 的電路。</dd></div>
+  <div><dt>比較暫存器（Compare register）</dt><dd>微控制器計時器中存放比較值的暫存器，計數器小於它時輸出 HIGH，決定 duty。</dd></div>
+  <div><dt>中心對齊 PWM（Center-aligned PWM）</dt><dd>用三角波載波產生、脈衝中心固定、兩個邊緣對稱移動的 PWM。</dd></div>
+  <div><dt>前饋（Feed-forward）</dt><dd>讓斜坡振幅隨 V<sub>IN</sub> 變化，抵消輸入電壓對迴路增益的影響。</dd></div>
 </dl>
 
 <nav class="pager"></nav>
 </article>
 </main>
-<footer class="updated">最後更新：<time datetime="2026-10-19">2026-10-19</time></footer>
+<footer class="updated">最後更新：<time datetime="2026-11-03">2026-11-03</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
+<script src="assets/plot.js"></script>
+<script src="assets/pwmgen.js"></script>
 </body>
 </html>

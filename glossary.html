@@ -18,7 +18,7 @@
 <h1>術語表：全站縮寫與名詞</h1>
 <p class="lead">電源 IC 的文件充滿縮寫。這裡把全站用到的術語依主題整理，每個附一句話解釋，並連到詳細說明的章節。各章內文中，術語在每一節第一次出現時有虛線底線，滑鼠移上去（手機點一下）就會顯示這裡的解釋。</p>
 <div class="gl-filter"><input id="glf" type="search" placeholder="篩選：輸入 UVLO、電容、test…" autocomplete="off"><span id="glf-n"></span></div>
-<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 290 個。</p>
+<p class="note">包含各章「名詞解釋」與規格清單裡的術語，共 295 個。</p>
 <h2 id="cat-basic">元件與基礎</h2>
 <dl class="terms gl-list">
   <div><dt id="g-ac">AC <small>交流電</small></dt><dd>電壓與電流方向週期性變化的電，市電是 50/60 Hz 交流。 <span class="gl-other">Alternating current</span>  <a class="gl-more" href="sic.html#dc-chain">詳細說明 →</a></dd></div>
@@ -72,8 +72,12 @@
   <div><dt id="g-avs">AVS <small>自適應調壓</small></dt><dd>依晶片實際速度與溫度調整供電電壓，進一步省電。 <span class="gl-other">Adaptive voltage scaling</span>  <a class="gl-more" href="architecture.html#pmic">詳細說明 →</a></dd></div>
   <div><dt id="g-bist">BIST <small>內建自我測試</small></dt><dd>晶片自己檢查監控電路、參考等是否正常，功能安全常用。 <span class="gl-other">Built-in self-test</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
   <div><dt id="g-boot">BOOT <small>自舉腳</small></dt><dd>接自舉電容，讓 N 型高側開關的閘極能高於 SW；串電阻可放慢切換以降低 EMI。 <span class="gl-other">Bootstrap pin</span>  <a class="gl-more" href="design.html#gate-drive">詳細說明 →</a></dd></div>
+  <div><dt id="g-carrier">Carrier <small>載波（Carrier）</small></dt><dd>PWM 比較器的週期性輸入，例如鋸齒波或三角波，決定 PWM 頻率。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-ccm-dcm">CCM / DCM</dt><dd>Continuous / Discontinuous Conduction Mode，電感電流連續或不連續。 <span class="gl-also">也寫作：CCM、DCM</span> <a class="gl-more" href="architecture.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-center-aligned-pwm">Center-aligned PWM <small>中心對齊 PWM（Center-aligned PWM）</small></dt><dd>用三角波載波產生、脈衝中心固定、兩個邊緣對稱移動的 PWM。 <span class="gl-also">也寫作：中心對齊</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-cff">C<sub>FF</sub></dt><dd>Feedforward capacitor，跨在上分壓電阻的前饋電容。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-comparator">Comparator <small>比較器（Comparator）</small></dt><dd>比較兩個輸入電壓，輸出只有 HIGH 或 LOW 的電路。 <span class="gl-also">也寫作：比較器</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
+  <div><dt id="g-compare-register">Compare register <small>比較暫存器（Compare register）</small></dt><dd>微控制器計時器中存放比較值的暫存器，計數器小於它時輸出 HIGH，決定 duty。 <span class="gl-also">也寫作：比較暫存器</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-cot">COT</dt><dd>Constant On-Time，固定導通時間控制。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-crc">CRC <small>循環冗餘檢查</small></dt><dd>用來檢查資料有沒有讀錯的校驗碼，例如 OTP 內容的驗證。 <span class="gl-other">Cyclic redundancy check</span>  <a class="gl-more" href="design.html#pmic-digital">詳細說明 →</a></dd></div>
   <div><dt id="g-current-limit-short-circuit-current">Current limit / short-circuit current <small>限流 / 短路電流</small></dt><dd>輸出短路時的最大電流，可能是定電流或折返式（foldback）。 <span class="gl-also">也寫作：Current limit、short-circuit current、短路電流</span> <a class="gl-more" href="architecture.html#ldo-specs">詳細說明 →</a></dd></div>
@@ -85,6 +89,7 @@
   <div><dt id="g-en">EN <small>致能腳（Enable）</small></dt><dd>拉高開啟、拉低關閉的控制腳；浮接可能造成半開狀態。 <span class="gl-other">Enable pin</span>  <a class="gl-more" href="design.html#protection">詳細說明 →</a></dd></div>
   <div><dt id="g-esr-esl">ESR / ESL</dt><dd>電容的等效串聯電阻 / 電感。 <span class="gl-also">也寫作：ESL、ESR</span> <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-fb">FB <small>回授腳 / 回授節點</small></dt><dd>分壓後的輸出電壓接到這裡，和參考電壓比較；決定輸出電壓。 <span class="gl-other">Feedback pin / node</span>  <a class="gl-more" href="architecture.html#ldo-block">詳細說明 →</a></dd></div>
+  <div><dt id="g-feed-forward">Feed-forward <small>前饋（Feed-forward）</small></dt><dd>讓斜坡振幅隨 V<sub>IN</sub> 變化，抵消輸入電壓對迴路增益的影響。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-fmeda">FMEDA</dt><dd>Failure Modes, Effects and Diagnostic Analysis，功能安全分析方法。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-foldback">Foldback</dt><dd>折返限流：輸出電壓下降時限流值跟著降低。  <a class="gl-more" href="design.html#glossary">詳細說明 →</a></dd></div>
   <div><dt id="g-fpwm">FPWM <small>強制 PWM</small></dt><dd>輕載時也維持固定頻率的 PWM，漣波可預期但效率低，電感電流可能變負。 <span class="gl-other">Forced PWM</span>  <a class="gl-more" href="architecture.html#buck">詳細說明 →</a></dd></div>
@@ -341,7 +346,7 @@
 </dl>
 </article>
 </main>
-<footer class="updated">最後更新：<time datetime="2026-10-24">2026-10-24</time></footer>
+<footer class="updated">最後更新：<time datetime="2026-11-03">2026-11-03</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
 <script>

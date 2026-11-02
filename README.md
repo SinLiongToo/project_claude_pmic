@@ -9,7 +9,7 @@ LDO、DC-DC 與 PMIC 的教學網站：從架構、BCD 製程、電路設計、�
 | `index.html` | 首頁：知識流程、章節卡片、四種穩壓方式比較、閱讀路線 |
 | `architecture.html` | 1. 架構：線性 vs 切換、LDO 方塊圖、傳輸元件、壓差與熱、Buck / Boost / 電荷泵、PMIC |
 | `process.html` | 2. 製程：BCD、LDMOS、隔離與基板注入、電阻電容、厚金屬、熔絲 / OTP、匹配與應力 |
-| `design.html` | 3. 設計：LDO 迴路、ESR 窗口、無電容 LDO、PSRR、雜訊、暫態、帶隙、保護、DC-DC 控制與補償、PMIC 數位、驗證 |
+| `design.html` | 3. 設計：LDO 迴路、ESR 窗口、無電容 LDO、PSRR、雜訊、暫態、帶隙、保護、DC-DC 控制與補償、PMIC 數位、驗證；互動圖「PWM 怎麼產生」：載波 + 參考 → 比較器 → PWM，類比斜坡或數位計數器（`assets/pwmgen.js`） |
 | `production.html` | 4. 生產：流程、WAT、CP 修調、封裝、FT、良率、Cpk / SPC、PAT、追溯、PCN、產能 |
 | `test.html` | 5. 測試：參數量測、ATE、大量 ATE 測試（測試單元、UPH 與平行效率、測試成本、縮短測試時間、重測與分 bin，附 UPH / 成本計算器 `assets/ate.js`）、DFT、Kelvin、相關性 / GR&R、特性化、AEC-Q100、ESD / latch-up、功能安全 |
 | `application.html` | 6. 應用：電源樹、時序、MLCC DC bias、電感、熱、佈局、EMI、熱插拔、車用、系統電壓等級（從 IC 耐壓看應用：5 V、12 V 車用 42 V、24 V、48 V 資料中心 / 電信 / 輕混、800 V）、選型檢查表 |
@@ -82,6 +82,7 @@ npm run test:report      # 用瀏覽器看上一次的報告（含失敗截圖�
 | `quiz.spec.js` | 中英文測驗從頭作答到結束，複習連結存在 |
 | `glossary.spec.js` | 術語底線、懸停／鍵盤提示、歧義詞沒有對錯、術語表篩選與錨點 |
 | `figures.spec.js` | 應用章的佈局好／壞對照圖：四組都畫出來、文字不超出板子 |
+| `pwmgen.spec.js` | 設計章的 PWM 產生圖：各種模式沒有 NaN；duty = V_ref / V_ramp、數位計數器的量化；游標播放與暫停、V_ref 掃描 |
 | `ate.spec.js` | 測試章的 UPH / 成本計算器：每個滑桿沒有 NaN；與內文的計算範例比對 |
 | `smartswitch.spec.js` | 智慧開關頁的四個計算器：每個滑桿最小／中間／最大沒有 NaN；與資料手冊手算比對（感測電壓、感性能量、接面溫度、PWM 上限、運放偏移）|
 | `mobile.spec.js` | 手機設定：沒有橫向捲動、觸控操作、術語提示在螢幕內，點其他地方會關閉 |
