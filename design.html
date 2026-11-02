@@ -151,13 +151,13 @@
     <div class="sw-row"><button class="btn pri" id="pg-play" type="button" aria-pressed="true">❚❚ 暫停</button>
       <select id="pg-speed" aria-label="播放速度"><option value="0.5">慢</option><option value="1" selected>中</option><option value="2">快</option></select>
       <button class="btn" id="pg-sweep" type="button" aria-pressed="false">↕ 掃描 V<sub>ref</sub></button></div>
-    <p class="note">游標每秒走一個載波週期。數位模式下，計數器只能一階一階往上數，比較值也只能是整數階，所以低位數時看得到階梯與 duty 的跳動。</p>
+    <p class="note">像示波器一樣：時間往右走，右邊緣（紅線）是「現在」，波形往左捲動，速度「中」是每秒一個載波週期。調整 V<sub>ref</sub> 或參考的形狀只影響之後的波形，所以看得到 duty 隨時間跟著改變；換載波、模式、位數或週期數會重新開始。數位模式下，計數器只能一階一階往上數，比較值也只能是整數階。</p>
   </div>
   <div class="stack">
     <div class="metrics" id="pg-m"></div>
     <div class="panel"><h3>載波與參考 <small>陰影：參考 &gt; 載波</small></h3><svg class="viz" id="pg-wave" role="img" aria-label="載波與參考電壓，參考高於載波的區域塗上陰影"></svg>
       <div class="legend"><span><i style="background:var(--warn)"></i>載波</span><span><i style="background:var(--s3)"></i>參考 V<sub>ref</sub></span></div></div>
-    <div class="panel"><h3>比較器 <small>游標所在的瞬間</small></h3>
+    <div class="panel"><h3>比較器 <small>現在（右邊緣）</small></h3>
       <svg class="chain cmp-big" viewBox="0 0 640 215" role="img" aria-label="比較器：正輸入接參考電壓，負輸入接載波，輸出 PWM">
         <path class="wm" d="M120 70H250M120 130H250M310 70V24M310 130V176M296 176h28M302 182h16M308 188h4M370 100H463M477 100H521"/>
         <path d="M130 56h70" style="stroke:var(--s3);stroke-width:2;stroke-dasharray:6 4"/>
@@ -174,7 +174,7 @@
           <text id="pg-rule" x="320" y="208" text-anchor="middle" style="font-weight:600"></text>
         </g>
       </svg></div>
-    <div class="panel"><h3>PWM 輸出 <small>每個週期的 duty</small></h3><svg class="viz" id="pg-out" role="img" aria-label="比較器輸出的 PWM 波形與每個週期的 duty"></svg></div>
+    <div class="panel"><h3>PWM 輸出 <small>每個週期結束時標上 duty</small></h3><svg class="viz" id="pg-out" role="img" aria-label="比較器輸出的 PWM 波形與每個週期的 duty"></svg></div>
   </div>
 </div>
 <ul>

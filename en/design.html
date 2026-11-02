@@ -152,13 +152,13 @@
     <div class="sw-row"><button class="btn pri" id="pg-play" type="button" aria-pressed="true">❚❚ Pause</button>
       <select id="pg-speed" aria-label="Playback speed"><option value="0.5">Slow</option><option value="1" selected>Medium</option><option value="2">Fast</option></select>
       <button class="btn" id="pg-sweep" type="button" aria-pressed="false">↕ Sweep V<sub>ref</sub></button></div>
-    <p class="note">The cursor moves one carrier period per second. In digital mode the counter can only count in whole steps and the compare value is a whole number of steps, so with few bits you can see the staircase and the duty jumping.</p>
+    <p class="note">Like an oscilloscope: time runs to the right, the right edge (red line) is "now", and the waveforms scroll left; at Medium speed one carrier period passes per second. Changing V<sub>ref</sub> or the reference shape affects only what comes next, so you can watch the duty follow it over time; changing the carrier, mode, bits or periods starts over. In digital mode the counter counts in whole steps and the compare value is a whole number of steps.</p>
   </div>
   <div class="stack">
     <div class="metrics" id="pg-m"></div>
     <div class="panel"><h3>Carrier and reference <small>shaded: reference &gt; carrier</small></h3><svg class="viz" id="pg-wave" role="img" aria-label="Carrier and reference voltage, with the region where the reference is above the carrier shaded"></svg>
       <div class="legend"><span><i style="background:var(--warn)"></i>Carrier</span><span><i style="background:var(--s3)"></i>Reference V<sub>ref</sub></span></div></div>
-    <div class="panel"><h3>Comparator <small>at the cursor</small></h3>
+    <div class="panel"><h3>Comparator <small>now (right edge)</small></h3>
       <svg class="chain cmp-big" viewBox="0 0 640 215" role="img" aria-label="Comparator: the reference goes to the positive input, the carrier to the negative input, and the output is the PWM">
         <path class="wm" d="M120 70H250M120 130H250M310 70V24M310 130V176M296 176h28M302 182h16M308 188h4M370 100H463M477 100H521"/>
         <path d="M130 56h70" style="stroke:var(--s3);stroke-width:2;stroke-dasharray:6 4"/>
@@ -175,7 +175,7 @@
           <text id="pg-rule" x="320" y="208" text-anchor="middle" style="font-weight:600"></text>
         </g>
       </svg></div>
-    <div class="panel"><h3>PWM output <small>duty of each period</small></h3><svg class="viz" id="pg-out" role="img" aria-label="PWM waveform from the comparator, with each period's duty"></svg></div>
+    <div class="panel"><h3>PWM output <small>duty marked as each period ends</small></h3><svg class="viz" id="pg-out" role="img" aria-label="PWM waveform from the comparator, with each period's duty"></svg></div>
   </div>
 </div>
 <ul>
