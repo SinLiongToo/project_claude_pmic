@@ -169,7 +169,7 @@
 <div class="callout"><b>重試策略</b>　保護功能是給「不正常狀況」用的，資料手冊明講不是設計給連續或重複動作。軟體重試的頻率不能超過 f<sub>fault</sub> 200 Hz，而且短路耐受有次數限制（依 AEC-Q100-012 驗證）。實務上會限制重試次數（例如幾次後就停止並回報診斷碼），而且讓每次的間隔越來越長。</div>
 
 <h2 id="reverse">ReverSave：電池反接</h2>
-<p>電池接反時，V<sub>S</sub> 變成負的，電流會從地經過負載、經過 MOSFET 的<b>體二極體</b>流回電池。20 A 時體二極體壓降約 0.7 V，功耗約 14 W，TO-252 撐不了多久。</p>
+<p>電池接反時，V<sub>S</sub> 變成負的，電流會從地經過負載、經過 MOSFET 的<b>體二極體</b>流回電池。20 A、150 °C 時體二極體壓降典型 0.6 V、最大 0.8 V，功耗約 12–16 W，TO-252 撐不了多久。</p>
 <p>ReverSave 的做法是：反接時讓 MOSFET 自己導通，電流改走通道，R<sub>DS(REV)</sub> 典型 4 mΩ（150 °C 最大 10 mΩ），20 A 時功耗約 1.6 W。前提是外部驅動電晶體旁要並聯二極體 D，讓 IN 在反接時有路徑。要注意：</p>
 <ul>
   <li>ReverSave 保護的是<b>開關本身</b>，負載仍然會看到反向電壓。馬達會反轉、電子負載要自己有反接保護。</li>
@@ -551,6 +551,7 @@
   <tr><td>反覆短路後 R<sub>DS(ON)</sub> 變大或失效</td><td>軟體無限重試，或重試頻率超過 f<sub>fault</sub></td><td>限制重試次數與頻率</td></tr>
 </table></div>
 
+<p class="note">下面的案例是業界常見情境的綜合整理，用來說明分析思路，不是 BTS50025-1TEA 或任何特定產品的實際事件。</p>
 <div class="case" id="c-hss-cap"><div class="case-h"><span class="tag use">應用</span><b>換了下游模組，開關每次開機都跳脫</b><small>車用 · 12 V 配電</small></div><dl>
 <div><dt>現象</dt><dd>某車型的區域控制器改版後，冷車時有 2% 的機率開機就報短路故障；常溫重測都正常，退回的開關測試全部通過（NTF）。</dd></div>
 <div><dt>分析</dt><dd>在車上量開啟瞬間的電流：新的下游模組輸入電容從 47 µF 加到 220 µF，充電峰值約 60 A。低溫時開關的斜率較快、元件的跳脫值又分布在 65 A 附近的那一批，加上負載電流就超過了。</dd></div>
@@ -591,7 +592,7 @@
 </dl>
 </article>
 </main>
-<footer class="updated">最後更新：<time datetime="2026-10-24">2026-10-24</time></footer>
+<footer class="updated">最後更新：<time datetime="2026-11-03">2026-11-03</time></footer>
 <script src="assets/search-index.js"></script>
 <script src="assets/site.js"></script>
 <script src="assets/plot.js"></script>

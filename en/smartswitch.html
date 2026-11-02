@@ -169,7 +169,7 @@
 <div class="callout"><b>Retry strategy</b>　Protection is for abnormal conditions; the datasheet states it is designed for neither continuous nor repetitive operation. Software retries must not exceed f<sub>fault</sub> = 200 Hz, and short-circuit endurance is limited to a number of events (qualified to AEC-Q100-012). In practice, limit the number of retries (stop and report a diagnostic code after a few) and lengthen the interval each time.</div>
 
 <h2 id="reverse">ReverSave: reverse battery</h2>
-<p>With the battery reversed, V<sub>S</sub> goes negative and current flows from ground through the load and the MOSFET's <b>body diode</b> back to the battery. At 20 A the body diode drops about 0.7 V, about 14 W, which a TO-252 cannot take for long.</p>
+<p>With the battery reversed, V<sub>S</sub> goes negative and current flows from ground through the load and the MOSFET's <b>body diode</b> back to the battery. At 20 A and 150 °C the body diode drops 0.6 V typical and 0.8 V maximum, about 12–16 W, which a TO-252 cannot take for long.</p>
 <p>ReverSave turns the MOSFET on during reverse battery so the current flows through the channel instead: R<sub>DS(REV)</sub> is 4 mΩ typ. (10 mΩ max. at 150 °C), about 1.6 W at 20 A. This requires a diode D across the external drive transistor so IN has a path during reverse battery. Note that:</p>
 <ul>
   <li>ReverSave protects the <b>switch itself</b>; the load still sees the reverse voltage. Motors run backwards, and electronic loads need their own reverse protection.</li>
@@ -551,6 +551,7 @@
   <tr><td>R<sub>DS(ON)</sub> rises or the part fails after repeated shorts</td><td>Software retries forever, or faster than f<sub>fault</sub></td><td>Limit retry count and rate</td></tr>
 </table></div>
 
+<p class="note">The case below is a composite of common industry situations, written to show the reasoning. It is not an actual incident with the BTS50025-1TEA or any particular product.</p>
 <div class="case" id="c-hss-cap"><div class="case-h"><span class="tag use">Apps</span><b>A new downstream module, and the switch trips at every start</b><small>Automotive · 12 V distribution</small></div><dl>
 <div><dt>Symptom</dt><dd>After a zone-controller revision on one model, 2% of cold starts report a short-circuit fault at turn-on; retests at room temperature are fine, and every returned switch passes test (NTF).</dd></div>
 <div><dt>Analysis</dt><dd>Measuring the turn-on current in the car: the new downstream module's input capacitance grew from 47 µF to 220 µF, with a charging peak of about 60 A. At low temperature the switch's slope is faster, the lot's trip levels sit near 65 A, and with the load current added the threshold is crossed.</dd></div>
@@ -591,7 +592,7 @@
 </dl>
 </article>
 </main>
-<footer class="updated">Last updated: <time datetime="2026-10-24">2026-10-24</time></footer>
+<footer class="updated">Last updated: <time datetime="2026-11-03">2026-11-03</time></footer>
 <script src="../assets/search-index-en.js"></script>
 <script src="../assets/site.js"></script>
 <script src="../assets/plot.js"></script>
